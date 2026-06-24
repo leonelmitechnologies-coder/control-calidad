@@ -60,6 +60,21 @@ const uploadOrg = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+const uploadsIntDir = path.join(__dirname, 'public', 'uploads', 'rechazos-internos');
+if (!fs.existsSync(uploadsIntDir)) fs.mkdirSync(uploadsIntDir, { recursive: true });
+
+const uploadInt = multer({
+  storage: multer.diskStorage({
+    destination: (_, __, cb) => cb(null, uploadsIntDir),
+    filename:    (_, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+    },
+  }),
+  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
 function auth(req, res, next) {
   if (!req.session.usuario) return res.status(401).json({ error: 'No autorizado' });
   next();
@@ -282,6 +297,32 @@ async function initDB() {
       fecha_compromiso DATE,
       estatus          VARCHAR(20)  NOT NULL DEFAULT 'Pendiente',
       created_at       TIMESTAMP    DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rechazos_internos (
+      id                SERIAL PRIMARY KEY,
+      fecha_registro    DATE          NOT NULL,
+      license_plate     VARCHAR(50)   NOT NULL,
+      sku               VARCHAR(100)  NOT NULL DEFAULT '',
+      defecto           VARCHAR(100)  NOT NULL,
+      actividad_realizar TEXT         NOT NULL DEFAULT '',
+      costo_no_calidad  NUMERIC(10,2) NOT NULL DEFAULT 0,
+      origen_hallazgo   VARCHAR(50)   NOT NULL DEFAULT '',
+      inspector         VARCHAR(100)  NOT NULL DEFAULT '',
+      firma_filename    VARCHAR(255)  NOT NULL DEFAULT '',
+      registrado_por    VARCHAR(100),
+      created_at        TIMESTAMP     DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ri_images (
+      id          SERIAL PRIMARY KEY,
+      rechazo_id  INTEGER      NOT NULL REFERENCES rechazos_internos(id) ON DELETE CASCADE,
+      filename    VARCHAR(255) NOT NULL,
+      created_at  TIMESTAMP    DEFAULT NOW()
     )
   `);
 
@@ -791,6 +832,119 @@ ${accsHtml}
 
 </body></html>`;
 }
+
+// ── RECHAZOS INTERNOS ─────────────────────────────────────────
+app.get('/api/rechazos-internos', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT ri.*,
+        (SELECT COUNT(*) FROM ri_images WHERE rechazo_id = ri.id) AS cnt_images
+      FROM rechazos_internos ri
+      ORDER BY ri.fecha_registro DESC, ri.created_at DESC
+    `);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/rechazos-internos/:id', auth, async (req, res) => {
+  try {
+    const [rec, imgs] = await Promise.all([
+      pool.query('SELECT * FROM rechazos_internos WHERE id=$1', [req.params.id]),
+      pool.query('SELECT * FROM ri_images WHERE rechazo_id=$1 ORDER BY id', [req.params.id]),
+    ]);
+    if (!rec.rows.length) return res.status(404).json({ error: 'No encontrado' });
+    res.json({ ...rec.rows[0], images: imgs.rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/rechazos-internos', auth, async (req, res) => {
+  const { fecha_registro, license_plate, sku, defecto, actividad_realizar,
+          costo_no_calidad, origen_hallazgo, inspector } = req.body;
+  const registrado_por = req.session.usuario.nombre;
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO rechazos_internos
+         (fecha_registro, license_plate, sku, defecto, actividad_realizar,
+          costo_no_calidad, origen_hallazgo, inspector, registrado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [fecha_registro, license_plate, sku || '', defecto,
+       actividad_realizar || '', costo_no_calidad || 0,
+       origen_hallazgo || '', inspector || registrado_por, registrado_por]
+    );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/rechazos-internos/:id', auth, async (req, res) => {
+  const { fecha_registro, license_plate, sku, defecto, actividad_realizar,
+          costo_no_calidad, origen_hallazgo, inspector } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE rechazos_internos SET
+         fecha_registro=$1, license_plate=$2, sku=$3, defecto=$4,
+         actividad_realizar=$5, costo_no_calidad=$6, origen_hallazgo=$7, inspector=$8
+       WHERE id=$9 RETURNING *`,
+      [fecha_registro, license_plate, sku || '', defecto,
+       actividad_realizar || '', costo_no_calidad || 0,
+       origen_hallazgo || '', inspector || '', req.params.id]
+    );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/rechazos-internos/:id/images', auth, uploadInt.array('images', 10), async (req, res) => {
+  if (!req.files?.length) return res.status(400).json({ error: 'No se recibieron imágenes.' });
+  try {
+    for (const file of req.files) {
+      await pool.query(
+        'INSERT INTO ri_images (rechazo_id, filename) VALUES ($1,$2)',
+        [req.params.id, file.filename]
+      );
+    }
+    res.json({ ok: true, count: req.files.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/rechazos-internos/:id/firma', auth, uploadInt.single('firma'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió firma.' });
+  try {
+    const { rows: [old] } = await pool.query(
+      'SELECT firma_filename FROM rechazos_internos WHERE id=$1', [req.params.id]
+    );
+    if (old?.firma_filename) fs.unlink(path.join(uploadsIntDir, old.firma_filename), () => {});
+    await pool.query(
+      'UPDATE rechazos_internos SET firma_filename=$1 WHERE id=$2',
+      [req.file.filename, req.params.id]
+    );
+    res.json({ firma_filename: req.file.filename });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/rechazos-internos/:id/images/:imgId', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'DELETE FROM ri_images WHERE id=$1 AND rechazo_id=$2 RETURNING filename',
+      [req.params.imgId, req.params.id]
+    );
+    if (rows.length) fs.unlink(path.join(uploadsIntDir, rows[0].filename), () => {});
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/rechazos-internos/:id', auth, async (req, res) => {
+  try {
+    const { rows: imgs } = await pool.query(
+      'SELECT filename FROM ri_images WHERE rechazo_id=$1', [req.params.id]
+    );
+    imgs.forEach(img => fs.unlink(path.join(uploadsIntDir, img.filename), () => {}));
+    const { rows: [rec] } = await pool.query(
+      'SELECT firma_filename FROM rechazos_internos WHERE id=$1', [req.params.id]
+    );
+    if (rec?.firma_filename) fs.unlink(path.join(uploadsIntDir, rec.firma_filename), () => {});
+    await pool.query('DELETE FROM rechazos_internos WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // ── CAPAS (Acciones Correctivas) ──────────────────────────────
 app.get('/api/capas', auth, async (req, res) => {

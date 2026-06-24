@@ -900,6 +900,12 @@
     .capa-accion-fila textarea { resize:vertical; min-height:40px; padding:5px 7px; font-size:12px; border:1px solid var(--gris-claro); font-family:inherit; }
     .capa-accion-fila input, .capa-accion-fila select { padding:5px 7px; font-size:12px; border:1px solid var(--gris-claro); background:#fff; height:32px; }
 
+    /* ── Rechazos Internos ── */
+    .ri-firma-wrap { border:1px solid var(--gris-claro); border-radius:6px; overflow:hidden; background:#fff; margin-top:6px; }
+    .ri-firma-wrap canvas { display:block; width:100%; touch-action:none; }
+    .ri-firma-img  { max-width:100%; border:1px solid var(--gris-claro); border-radius:6px; margin-top:6px; }
+    .ri-readonly   { background:var(--fondo); color:var(--gris); cursor:default; }
+
     /* ── Dashboard ── */
     .dash-periodo     { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
     .dash-periodo-btn { padding:7px 18px; border:1px solid var(--gris-claro); background:#fff;
@@ -974,6 +980,7 @@
         <a class="nav-item" id="nav-nc"           href="/nc"           onclick="event.preventDefault();app.navegar('nc')">No Conformidades</a>
         <a class="nav-item" id="nav-recepciones"  href="/recepciones"   onclick="event.preventDefault();app.navegar('recepciones')">Recepciones</a>
         <a class="nav-item" id="nav-rechazos-ext"   href="/rechazos-ext"    onclick="event.preventDefault();app.navegar('rechazos-ext')">Rechazos Externos</a>
+        <a class="nav-item" id="nav-rechazos-int"   href="/rechazos-int"    onclick="event.preventDefault();app.navegar('rechazos-int')">Rechazos Internos</a>
         <a class="nav-item" id="nav-capas" href="/capas" onclick="event.preventDefault();app.navegar('capas')">Acciones Correctivas</a>
         <a class="nav-item" id="nav-organigrama-qc" href="/organigrama-qc"  onclick="event.preventDefault();app.navegar('organigrama-qc')">Organigrama QC</a>
         <a class="nav-item" id="nav-calendario"    href="/calendario"     onclick="event.preventDefault();app.navegar('calendario')">Calendario</a>
@@ -1233,6 +1240,37 @@
             <div id="re-tabla-vacio" class="vacio" style="display:none">
               No hay registros de rechazos externos.
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODULO: RECHAZOS INTERNOS -->
+      <div class="modulo" id="modulo-rechazos-int">
+        <div class="card">
+          <div class="card-header-con-filtro" style="margin-bottom:16px">
+            <div class="seccion-titulo" style="border-bottom:none;margin-bottom:0">Registros</div>
+            <button class="btn btn-primario" onclick="modRI.abrirFormulario()" style="font-size:12px;padding:8px 18px;">+ Agregar</button>
+          </div>
+          <div class="tabla-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Fecha</th>
+                  <th>License Plate</th>
+                  <th>SKU</th>
+                  <th>Defecto</th>
+                  <th>Actividad</th>
+                  <th>COPQ</th>
+                  <th>Origen</th>
+                  <th>Inspector</th>
+                  <th>Fotos</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="ri-tabla-cuerpo"></tbody>
+            </table>
+            <div id="ri-tabla-vacio" class="vacio" style="display:none">No hay registros de rechazos internos.</div>
           </div>
         </div>
       </div>
@@ -1717,6 +1755,87 @@
   </div>
 </div>
 
+<!-- MODAL: FORMULARIO RECHAZO INTERNO -->
+<div class="modal-overlay" id="modal-ri-form">
+  <div class="modal" style="max-width:640px;width:95vw">
+    <div class="modal-titulo" id="modal-ri-form-titulo">Nuevo Rechazo Interno</div>
+    <input type="hidden" id="ri-edit-id">
+    <form id="form-ri">
+      <div class="form-grid">
+        <div><label>Fecha de Registro *</label><input type="date" id="ri-fecha" required></div>
+        <div><label>License Plate *</label><input type="text" id="ri-license-plate" required placeholder="Ej. ABC-1234"></div>
+        <div><label>SKU</label><input type="text" id="ri-sku" placeholder="Código de producto"></div>
+        <div><label>Defecto *</label>
+          <select id="ri-defecto" required onchange="modRI._onDefectoChange()">
+            <option value="">— Seleccionar defecto —</option>
+            <option>Duplicado</option>
+            <option>Pulgada Incorrecta</option>
+            <option>Clasificacion Incorrecta</option>
+            <option>Marca Incorrecta</option>
+            <option>Pantalla Caida</option>
+            <option>Etiqueta Quemada</option>
+            <option>Sin Etiqueta</option>
+            <option>Falta de Tape</option>
+            <option>Falta de Limpieza en Caja</option>
+            <option>Tv con Salida</option>
+            <option>Modelo Incorrecto</option>
+          </select>
+        </div>
+        <div class="full"><label>Actividad a Realizar</label>
+          <input type="text" id="ri-actividad" class="ri-readonly" readonly placeholder="Se rellena automáticamente según el defecto">
+        </div>
+        <div><label>Costo de No Calidad (USD)</label>
+          <input type="number" id="ri-costo" class="ri-readonly" readonly step="0.01" placeholder="0.00">
+        </div>
+        <div><label>Origen de Hallazgo *</label>
+          <select id="ri-origen" required>
+            <option value="">— Seleccionar —</option>
+            <option>FFT Lineas</option>
+            <option>FFT Paletizado</option>
+            <option>Almacen</option>
+            <option>Shipping B2B</option>
+            <option>Shipping B2C</option>
+          </select>
+        </div>
+        <div class="full"><label>Inspector</label>
+          <input type="text" id="ri-inspector" class="ri-readonly" readonly placeholder="Usuario logueado">
+        </div>
+      </div>
+
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Fotos del Producto</div>
+      <button type="button" class="btn btn-secundario" style="font-size:12px;margin-bottom:10px"
+              onclick="document.getElementById('ri-file-input').click()">+ Subir fotos</button>
+      <input type="file" id="ri-file-input" multiple accept="image/*" style="display:none"
+             onchange="modRI.agregarImagenesPreview(this.files);this.value=''">
+      <div id="ri-imagenes-nuevas" class="re-imagenes-preview"></div>
+
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:8px">Firma de Recibido</div>
+      <p style="font-size:11px;color:var(--gris);margin-bottom:6px">Firma del responsable de recibir el reproceso</p>
+      <div class="ri-firma-wrap">
+        <canvas id="ri-firma-canvas" height="160"></canvas>
+      </div>
+      <button type="button" class="btn btn-secundario" style="font-size:11px;margin-top:6px"
+              onclick="modRI._signaturePad&&modRI._signaturePad.clear()">Limpiar firma</button>
+
+      <div class="btn-grupo" style="margin-top:22px">
+        <button type="submit" class="btn btn-primario" id="btn-ri-guardar">Guardar</button>
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-ri-form')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE RECHAZO INTERNO -->
+<div class="modal-overlay" id="modal-ri-detalle">
+  <div class="modal" style="max-width:640px;width:95vw">
+    <div class="modal-titulo" id="ri-det-titulo">Rechazo Interno</div>
+    <div class="nc-det-grid" id="ri-det-grid"></div>
+    <div id="ri-det-imagenes" class="re-det-imagenes" style="margin-top:16px"></div>
+    <div id="ri-det-firma" style="margin-top:16px"></div>
+    <div class="nc-det-acciones" id="ri-det-botones"></div>
+  </div>
+</div>
+
 <!-- MODAL: FORMULARIO ORGANIGRAMA QC -->
 <div class="modal-overlay" id="modal-org-form">
   <div class="modal" style="max-width:680px;width:95vw">
@@ -1988,6 +2107,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 <script>
 // ================================================================
 // UTILIDADES
@@ -2121,6 +2241,227 @@ const auth = {
     app.navegar(MODULOS[ruta] ? ruta : 'dashboard');
   },
 };
+
+// ================================================================
+// RECHAZOS INTERNOS
+// ================================================================
+const RI_DEFECTOS = {
+  'Duplicado':                { actividad: 'Verificacion de LPN correcto y Reproceso en Linea', costo: 105.00 },
+  'Pulgada Incorrecta':       { actividad: 'Inspeccion de TV',                                  costo: 17.50  },
+  'Clasificacion Incorrecta': { actividad: 'Inspeccion de TV y Reproceso en Linea',             costo: 17.50  },
+  'Marca Incorrecta':         { actividad: 'Inspeccion de TV',                                  costo: 17.50  },
+  'Pantalla Caida':           { actividad: 'Reproceso en Linea',                                costo: 43.75  },
+  'Etiqueta Quemada':         { actividad: 'Reimpresion de Etiqueta',                           costo: 5.83   },
+  'Sin Etiqueta':             { actividad: 'Reimpresion de Etiqueta',                           costo: 5.83   },
+  'Falta de Tape':            { actividad: 'Colocacion de Tape',                                costo: 5.83   },
+  'Falta de Limpieza en Caja':{ actividad: 'Reproceso en Limpieza de Cajas',                    costo: 14.00  },
+  'Tv con Salida':            { actividad: 'Inspeccion de TV y Reproceso en Linea',             costo: 52.50  },
+  'Modelo Incorrecto':        { actividad: 'Inspeccion de TV',                                  costo: 35.00  },
+};
+
+const modRI = {
+  registros: [],
+  _imagenesNuevas: [],
+  _signaturePad: null,
+  _editId: null,
+
+  async init() { await this.cargar(); },
+
+  async cargar() {
+    try {
+      this.registros = await api.get('/api/rechazos-internos');
+      this.renderTabla();
+    } catch(e) { ui.notificar(e.error || 'Error al cargar rechazos internos.'); }
+  },
+
+  renderTabla() {
+    const tbody = document.getElementById('ri-tabla-cuerpo');
+    const vacio = document.getElementById('ri-tabla-vacio');
+    if (!this.registros.length) { tbody.innerHTML = ''; vacio.style.display = 'block'; return; }
+    vacio.style.display = 'none';
+    tbody.innerHTML = this.registros.map((r, i) => `
+      <tr style="cursor:pointer" onclick="modRI.abrirDetalle(${r.id})"
+          onmouseover="this.style.background='#f0f4f9'" onmouseout="this.style.background=''">
+        <td>${i + 1}</td>
+        <td style="font-size:12px">${String(r.fecha_registro).slice(0,10)}</td>
+        <td>${r.license_plate}</td>
+        <td style="font-size:11px">${r.sku || '—'}</td>
+        <td style="font-size:12px">${r.defecto}</td>
+        <td style="font-size:11px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+            title="${r.actividad_realizar}">${r.actividad_realizar || '—'}</td>
+        <td style="font-size:12px;font-weight:700;color:var(--azul)">$${parseFloat(r.costo_no_calidad).toFixed(2)}</td>
+        <td style="font-size:11px">${r.origen_hallazgo || '—'}</td>
+        <td style="font-size:11px">${r.inspector || '—'}</td>
+        <td>${parseInt(r.cnt_images) > 0 ? `<span class="badge badge-proceso" style="font-size:10px">${r.cnt_images}</span>` : '—'}</td>
+        <td>
+          <button class="btn-accion" onclick="event.stopPropagation();modRI.abrirDetalle(${r.id})">Ver</button>
+          <button class="btn-accion" onclick="event.stopPropagation();modRI.abrirFormulario(${r.id})">Editar</button>
+          <button class="btn-accion rojo" onclick="event.stopPropagation();modRI.eliminar(${r.id})">Eliminar</button>
+        </td>
+      </tr>`).join('');
+  },
+
+  _onDefectoChange() {
+    const def = document.getElementById('ri-defecto').value;
+    const d   = RI_DEFECTOS[def];
+    document.getElementById('ri-actividad').value = d ? d.actividad : '';
+    document.getElementById('ri-costo').value     = d ? d.costo    : '';
+  },
+
+  agregarImagenesPreview(files) {
+    const wrap = document.getElementById('ri-imagenes-nuevas');
+    [...files].forEach(file => {
+      this._imagenesNuevas.push(file);
+      const idx = this._imagenesNuevas.length - 1;
+      const url = URL.createObjectURL(file);
+      const div = document.createElement('div');
+      div.className = 're-imagen-wrap';
+      div.innerHTML = `<img src="${url}" class="re-imagen-thumb">
+        <button type="button" class="re-imagen-del" onclick="modRI._quitarImagen(${idx},this.parentElement)">&#x2715;</button>`;
+      wrap.appendChild(div);
+    });
+  },
+
+  _quitarImagen(idx, div) {
+    this._imagenesNuevas[idx] = null;
+    div.remove();
+  },
+
+  async abrirFormulario(id) {
+    this._editId = id || null;
+    this._imagenesNuevas = [];
+    document.getElementById('ri-imagenes-nuevas').innerHTML = '';
+    document.getElementById('form-ri').reset();
+    document.getElementById('ri-edit-id').value = id || '';
+    document.getElementById('modal-ri-form-titulo').textContent = id ? 'Editar Rechazo Interno' : 'Nuevo Rechazo Interno';
+
+    if (id) {
+      try {
+        const r = await api.get(`/api/rechazos-internos/${id}`);
+        document.getElementById('ri-fecha').value          = String(r.fecha_registro).slice(0,10);
+        document.getElementById('ri-license-plate').value  = r.license_plate;
+        document.getElementById('ri-sku').value            = r.sku || '';
+        document.getElementById('ri-defecto').value        = r.defecto;
+        document.getElementById('ri-actividad').value      = r.actividad_realizar;
+        document.getElementById('ri-costo').value          = r.costo_no_calidad;
+        document.getElementById('ri-origen').value         = r.origen_hallazgo;
+        document.getElementById('ri-inspector').value      = r.inspector;
+      } catch(e) { ui.notificar(e.error || 'Error al cargar datos.'); return; }
+    } else {
+      document.getElementById('ri-fecha').value     = new Date().toISOString().slice(0,10);
+      document.getElementById('ri-inspector').value = sesionActual?.nombre || '';
+    }
+
+    ui.abrirModal('modal-ri-form');
+    setTimeout(() => {
+      const canvas = document.getElementById('ri-firma-canvas');
+      if (this._signaturePad) this._signaturePad.off();
+      this._signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255,255,255)' });
+      const resizeCanvas = () => {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width  = canvas.offsetWidth  * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        canvas.getContext('2d').scale(ratio, ratio);
+        this._signaturePad.clear();
+      };
+      resizeCanvas();
+    }, 100);
+  },
+
+  async abrirDetalle(id) {
+    try {
+      const r = await api.get(`/api/rechazos-internos/${id}`);
+      document.getElementById('ri-det-titulo').textContent = `${r.defecto} — ${r.license_plate}`;
+      document.getElementById('ri-det-grid').innerHTML = `
+        <div><label>Fecha</label><span>${String(r.fecha_registro).slice(0,10)}</span></div>
+        <div><label>License Plate</label><span>${r.license_plate}</span></div>
+        <div><label>SKU</label><span>${r.sku || '—'}</span></div>
+        <div><label>Defecto</label><span>${r.defecto}</span></div>
+        <div class="full"><label>Actividad a Realizar</label><span>${r.actividad_realizar || '—'}</span></div>
+        <div><label>Costo de No Calidad</label><span style="font-weight:700;color:var(--azul)">$${parseFloat(r.costo_no_calidad).toFixed(2)}</span></div>
+        <div><label>Origen de Hallazgo</label><span>${r.origen_hallazgo || '—'}</span></div>
+        <div><label>Inspector</label><span>${r.inspector || '—'}</span></div>
+        <div><label>Registrado por</label><span>${r.registrado_por || '—'}</span></div>`;
+
+      const imgsEl = document.getElementById('ri-det-imagenes');
+      if (r.images?.length) {
+        imgsEl.innerHTML = '<div class="seccion-titulo" style="margin-bottom:10px">Fotos del Producto</div>' +
+          `<div class="re-det-imagenes">${r.images.map(img =>
+            `<img src="/uploads/rechazos-internos/${img.filename}" class="re-imagen-thumb" style="cursor:pointer"
+                  onclick="window.open(this.src,'_blank')">`
+          ).join('')}</div>`;
+      } else { imgsEl.innerHTML = ''; }
+
+      const firmaEl = document.getElementById('ri-det-firma');
+      firmaEl.innerHTML = r.firma_filename
+        ? `<div class="seccion-titulo" style="margin-bottom:8px">Firma de Recibido</div>
+           <img src="/uploads/rechazos-internos/${r.firma_filename}" class="ri-firma-img">`
+        : '';
+
+      document.getElementById('ri-det-botones').innerHTML = `
+        <button class="btn btn-secundario" onclick="modRI.abrirFormulario(${r.id});ui.cerrarModal('modal-ri-detalle')">Editar</button>
+        <span class="spacer"></span>
+        <button class="btn" style="color:var(--rojo);border:1px solid var(--rojo);background:transparent"
+                onclick="modRI.eliminar(${r.id})">Eliminar</button>
+        <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-ri-detalle')">Cerrar</button>`;
+
+      ui.abrirModal('modal-ri-detalle');
+    } catch(e) { ui.notificar(e.error || 'Error al cargar detalle.'); }
+  },
+
+  eliminar(id) {
+    ui.confirmar('Se eliminará el registro y sus archivos de forma permanente.', async () => {
+      try {
+        await api.del(`/api/rechazos-internos/${id}`);
+        ui.cerrarModal('modal-ri-detalle');
+        await this.cargar();
+      } catch(e) { ui.notificar(e.error || 'Error al eliminar.'); }
+    }, 'Eliminar Rechazo Interno');
+  },
+};
+
+document.getElementById('form-ri').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-ri-guardar');
+  btn.disabled = true;
+  const id = document.getElementById('ri-edit-id').value;
+  const body = {
+    fecha_registro:    document.getElementById('ri-fecha').value,
+    license_plate:     document.getElementById('ri-license-plate').value.trim(),
+    sku:               document.getElementById('ri-sku').value.trim(),
+    defecto:           document.getElementById('ri-defecto').value,
+    actividad_realizar:document.getElementById('ri-actividad').value,
+    costo_no_calidad:  parseFloat(document.getElementById('ri-costo').value) || 0,
+    origen_hallazgo:   document.getElementById('ri-origen').value,
+    inspector:         document.getElementById('ri-inspector').value.trim(),
+  };
+  try {
+    let registro;
+    if (id) { registro = await api.put(`/api/rechazos-internos/${id}`, body); }
+    else    { registro = await api.post('/api/rechazos-internos', body); }
+
+    const fotos = modRI._imagenesNuevas.filter(Boolean);
+    if (fotos.length) {
+      const fd = new FormData();
+      fotos.forEach(f => fd.append('images', f));
+      const r = await fetch(`/api/rechazos-internos/${registro.id}/images`, { method: 'POST', body: fd });
+      if (!r.ok) ui.notificar('Las fotos no pudieron subirse.', 'Aviso');
+    }
+
+    if (modRI._signaturePad && !modRI._signaturePad.isEmpty()) {
+      const dataUrl = modRI._signaturePad.toDataURL('image/png');
+      const blob    = await (await fetch(dataUrl)).blob();
+      const fd2     = new FormData();
+      fd2.append('firma', blob, 'firma.png');
+      const r2 = await fetch(`/api/rechazos-internos/${registro.id}/firma`, { method: 'POST', body: fd2 });
+      if (!r2.ok) ui.notificar('La firma no pudo guardarse.', 'Aviso');
+    }
+
+    ui.cerrarModal('modal-ri-form');
+    await modRI.cargar();
+  } catch(e) { ui.notificar(e.error || 'Error al guardar.'); }
+  finally { btn.disabled = false; }
+});
 
 // ================================================================
 // CAPA — Acciones Correctivas y Preventivas
@@ -2614,6 +2955,7 @@ const MODULOS = {
   nc:             { titulo: 'No Conformidades',  modulo: 'modulo-nc',             nav: 'nav-nc',             onEnter: () => modNC.init() },
   recepciones:    { titulo: 'Recepciones',       modulo: 'modulo-recepciones',    nav: 'nav-recepciones',    onEnter: () => modREC.init() },
   'rechazos-ext':   { titulo: 'Rechazos Externos',              modulo: 'modulo-rechazos-ext',   nav: 'nav-rechazos-ext',   onEnter: () => modRE.init() },
+  'rechazos-int':   { titulo: 'Rechazos Internos',             modulo: 'modulo-rechazos-int',   nav: 'nav-rechazos-int',   onEnter: () => modRI.init() },
   'capas':          { titulo: 'Acciones Correctivas (CAPA)',   modulo: 'modulo-capas',          nav: 'nav-capas',          onEnter: () => modCAPA.init() },
   'organigrama-qc': { titulo: 'Organigrama QC',   modulo: 'modulo-organigrama-qc', nav: 'nav-organigrama-qc', onEnter: () => modORG.init() },
   'calendario':     { titulo: 'Calendario',       modulo: 'modulo-calendario',     nav: 'nav-calendario',     onEnter: () => modCAL.init() },
