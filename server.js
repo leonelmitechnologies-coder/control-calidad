@@ -730,6 +730,58 @@ ${accsHtml}
 </body></html>`;
 }
 
+// ── DASHBOARD ─────────────────────────────────────────────────
+app.get('/api/dashboard', auth, async (req, res) => {
+  try {
+    const { periodo = 'mes', anio, mes } = req.query;
+    const anioN = parseInt(anio) || new Date().getFullYear();
+    const mesN  = parseInt(mes)  || (new Date().getMonth() + 1);
+
+    let whereRE, whereNC, params;
+    if (periodo === 'ytd') {
+      whereRE = `EXTRACT(year FROM registration_date) = $1`;
+      whereNC = `EXTRACT(year FROM fecha) = $1`;
+      params  = [anioN];
+    } else {
+      whereRE = `DATE_TRUNC('month', registration_date) = make_date($1,$2,1)`;
+      whereNC = `DATE_TRUNC('month', fecha) = make_date($1,$2,1)`;
+      params  = [anioN, mesN];
+    }
+
+    const [resRE, resMarca, resClasif, resNcTotal, resNcSev, resNcArea, resColabs] =
+      await Promise.all([
+        pool.query(`SELECT COALESCE(SUM(sale_price),0) AS total_price, COUNT(*) AS total_rechazos
+                    FROM rechazos_externos WHERE ${whereRE}`, params),
+        pool.query(`SELECT COALESCE(brand,'Sin marca') AS brand,
+                           COALESCE(SUM(sale_price),0) AS total, COUNT(*) AS cnt
+                    FROM rechazos_externos WHERE ${whereRE}
+                    GROUP BY brand ORDER BY total DESC LIMIT 6`, params),
+        pool.query(`SELECT COALESCE(NULLIF(TRIM(classification),''),'Sin clasificación') AS classification,
+                           COUNT(*) AS cnt
+                    FROM rechazos_externos WHERE ${whereRE}
+                    GROUP BY classification ORDER BY cnt DESC LIMIT 6`, params),
+        pool.query(`SELECT COUNT(*) AS abiertas FROM no_conformidades
+                    WHERE estatus = 'Abierta' AND ${whereNC}`, params),
+        pool.query(`SELECT severidad, COUNT(*) AS cnt FROM no_conformidades
+                    WHERE ${whereNC} GROUP BY severidad`, params),
+        pool.query(`SELECT area, COUNT(*) AS cnt FROM no_conformidades
+                    WHERE ${whereNC} GROUP BY area ORDER BY cnt DESC LIMIT 6`, params),
+        pool.query(`SELECT COUNT(*) AS activos FROM organigrama_qc WHERE estatus = 'activo'`),
+      ]);
+
+    res.json({
+      sale_price_total:      parseFloat(resRE.rows[0].total_price),
+      rechazos_total:        parseInt(resRE.rows[0].total_rechazos),
+      nc_abiertas:           parseInt(resNcTotal.rows[0].abiertas),
+      colaboradores_activos: parseInt(resColabs.rows[0].activos),
+      sale_price_por_marca:  resMarca.rows,
+      rechazos_por_clasif:   resClasif.rows,
+      nc_por_severidad:      resNcSev.rows,
+      nc_por_area:           resNcArea.rows,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── ORGANIGRAMA QC ────────────────────────────────────────────
 const ORDEN_PUESTO = `CASE puesto
   WHEN 'Ingeniero de Calidad'   THEN 1

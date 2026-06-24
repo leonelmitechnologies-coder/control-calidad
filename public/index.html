@@ -875,6 +875,36 @@
     .cal-festivo-fila   { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--gris-claro); font-size:11px; }
     .cal-festivo-fila span { flex:1; }
     .cal-leyenda { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+
+    /* ── Dashboard ── */
+    .dash-periodo     { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+    .dash-periodo-btn { padding:7px 18px; border:1px solid var(--gris-claro); background:#fff;
+                        font-size:12px; font-weight:700; cursor:pointer; color:var(--gris); }
+    .dash-periodo-btn.activo { background:var(--azul); color:#fff; border-color:var(--azul); }
+    .dash-periodo select { padding:6px 10px; border:1px solid var(--gris-claro); font-size:12px; background:#fff; }
+
+    .kpi-grid  { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+                 gap:16px; margin-bottom:24px; }
+    .kpi-card  { background:#fff; border:1px solid var(--gris-claro); padding:20px 22px;
+                 border-left:4px solid var(--azul); }
+    .kpi-label { font-size:10px; font-weight:700; text-transform:uppercase;
+                 letter-spacing:1px; color:var(--gris); margin-bottom:8px; }
+    .kpi-valor { font-size:32px; font-weight:700; color:var(--azul); line-height:1; }
+    .kpi-sub   { font-size:11px; color:var(--gris); margin-top:6px; }
+    .kpi-card.verde .kpi-valor { color:var(--verde); }
+    .kpi-card.verde            { border-left-color:var(--verde); }
+    .kpi-card.rojo  .kpi-valor { color:var(--rojo); }
+    .kpi-card.rojo             { border-left-color:var(--rojo); }
+    .kpi-card.amber .kpi-valor { color:var(--amarillo); }
+    .kpi-card.amber            { border-left-color:var(--amarillo); }
+
+    .charts-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+                   gap:20px; }
+    .chart-card  { background:#fff; border:1px solid var(--gris-claro); padding:20px 22px; }
+    .chart-titulo{ font-size:11px; font-weight:700; text-transform:uppercase;
+                   letter-spacing:.8px; color:var(--azul); border-bottom:2px solid var(--azul);
+                   padding-bottom:6px; margin-bottom:16px; }
+    .chart-wrap  { position:relative; height:220px; }
   </style>
 </head>
 <body>
@@ -916,6 +946,7 @@
 
       <nav class="sidebar-nav">
         <div class="nav-seccion">Modulos</div>
+        <a class="nav-item" id="nav-dashboard"    href="/dashboard"    onclick="event.preventDefault();app.navegar('dashboard')">Dashboard</a>
         <a class="nav-item" id="nav-nc"           href="/nc"           onclick="event.preventDefault();app.navegar('nc')">No Conformidades</a>
         <a class="nav-item" id="nav-recepciones"  href="/recepciones"   onclick="event.preventDefault();app.navegar('recepciones')">Recepciones</a>
         <a class="nav-item" id="nav-rechazos-ext"   href="/rechazos-ext"    onclick="event.preventDefault();app.navegar('rechazos-ext')">Rechazos Externos</a>
@@ -937,6 +968,37 @@
       <div class="topbar">
         <span class="topbar-titulo" id="topbar-titulo"></span>
         <span class="topbar-fecha"  id="topbar-fecha"></span>
+      </div>
+
+      <!-- MODULO: DASHBOARD -->
+      <div class="modulo" id="modulo-dashboard">
+        <div class="card">
+          <div class="dash-periodo">
+            <button class="dash-periodo-btn activo" id="dash-btn-mes" onclick="modDASH.setPeriodo('mes')">Mes actual</button>
+            <button class="dash-periodo-btn" id="dash-btn-ytd" onclick="modDASH.setPeriodo('ytd')">Año completo</button>
+            <select id="dash-sel-mes" onchange="modDASH.cargar()"></select>
+            <select id="dash-sel-anio" onchange="modDASH.cargar()"></select>
+          </div>
+          <div class="kpi-grid" id="dash-kpi-grid"></div>
+          <div class="charts-grid">
+            <div class="chart-card">
+              <div class="chart-titulo">Sale Price por Marca</div>
+              <div class="chart-wrap"><canvas id="chart-marca"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-titulo">Rechazos por Clasificación</div>
+              <div class="chart-wrap"><canvas id="chart-clasif"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-titulo">No Conformidades por Severidad</div>
+              <div class="chart-wrap"><canvas id="chart-nc-sev"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-titulo">No Conformidades por Área</div>
+              <div class="chart-wrap"><canvas id="chart-nc-area"></canvas></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- MODULO: NO CONFORMIDADES -->
@@ -1770,6 +1832,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 // ================================================================
 // UTILIDADES
@@ -1891,7 +1954,157 @@ const auth = {
     document.getElementById('nav-usuarios').style.display =
       sesion.rol === 'Administrador' ? 'block' : 'none';
     const ruta = window.location.pathname.slice(1);
-    app.navegar(MODULOS[ruta] ? ruta : 'nc');
+    app.navegar(MODULOS[ruta] ? ruta : 'dashboard');
+  },
+};
+
+// ================================================================
+// DASHBOARD
+// ================================================================
+const modDASH = {
+  _periodo: 'mes',
+  _charts: {},
+
+  async init() {
+    this._poblarSelectores();
+    await this.cargar();
+  },
+
+  _poblarSelectores() {
+    const selMes  = document.getElementById('dash-sel-mes');
+    const selAnio = document.getElementById('dash-sel-anio');
+    const hoy     = new Date();
+    const MESES_LABEL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                         'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    selMes.innerHTML = MESES_LABEL.map((m, i) =>
+      `<option value="${i+1}" ${i+1 === hoy.getMonth()+1 ? 'selected' : ''}>${m}</option>`
+    ).join('');
+    const anioActual = hoy.getFullYear();
+    selAnio.innerHTML = [0,1,2].map(d =>
+      `<option value="${anioActual-d}" ${d===0?'selected':''}>${anioActual-d}</option>`
+    ).join('');
+  },
+
+  setPeriodo(p) {
+    this._periodo = p;
+    document.getElementById('dash-btn-mes').classList.toggle('activo', p === 'mes');
+    document.getElementById('dash-btn-ytd').classList.toggle('activo', p === 'ytd');
+    document.getElementById('dash-sel-mes').style.display = p === 'mes' ? '' : 'none';
+    this.cargar();
+  },
+
+  async cargar() {
+    const anio = document.getElementById('dash-sel-anio').value;
+    const mes  = document.getElementById('dash-sel-mes').value;
+    try {
+      const d = await api.get(`/api/dashboard?periodo=${this._periodo}&anio=${anio}&mes=${mes}`);
+      this._renderKpis(d);
+      this._renderCharts(d);
+    } catch(e) { ui.notificar('Error al cargar el dashboard.'); }
+  },
+
+  _renderKpis(d) {
+    const fmtPrice = v => '$' + parseFloat(v).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+    document.getElementById('dash-kpi-grid').innerHTML = `
+      <div class="kpi-card verde">
+        <div class="kpi-label">Sale Price Total</div>
+        <div class="kpi-valor">${fmtPrice(d.sale_price_total)}</div>
+        <div class="kpi-sub">${d.rechazos_total} rechazo${d.rechazos_total!==1?'s':''} en el período</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Rechazos</div>
+        <div class="kpi-valor">${d.rechazos_total}</div>
+        <div class="kpi-sub">Rechazos externos registrados</div>
+      </div>
+      <div class="kpi-card ${d.nc_abiertas > 0 ? 'rojo' : ''}">
+        <div class="kpi-label">NCs Abiertas</div>
+        <div class="kpi-valor">${d.nc_abiertas}</div>
+        <div class="kpi-sub">No conformidades sin cerrar</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Colaboradores Activos</div>
+        <div class="kpi-valor">${d.colaboradores_activos}</div>
+        <div class="kpi-sub">En el departamento QC</div>
+      </div>`;
+  },
+
+  _renderCharts(d) {
+    Object.values(this._charts).forEach(c => c.destroy());
+    this._charts = {};
+
+    const AZUL     = '#2563a8';
+    const AZUL2    = '#0d2b4e';
+    const ROJO     = '#c0392b';
+    const VERDE    = '#1a6b3c';
+    const AMARILLO = '#8a6a00';
+
+    const hBarConfig = (labels, data, color, tickFmt) => ({
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ data, backgroundColor: color, borderRadius: 3 }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { callback: tickFmt }, grid: { display: false } },
+          y: { grid: { display: false } },
+        },
+      },
+    });
+
+    // 1. Sale Price por Marca
+    this._charts.marca = new Chart(
+      document.getElementById('chart-marca'),
+      hBarConfig(
+        d.sale_price_por_marca.map(r => r.brand || 'Sin marca'),
+        d.sale_price_por_marca.map(r => parseFloat(r.total)),
+        AZUL,
+        v => '$' + v.toLocaleString('es-MX')
+      )
+    );
+
+    // 2. Rechazos por Clasificación
+    this._charts.clasif = new Chart(
+      document.getElementById('chart-clasif'),
+      hBarConfig(
+        d.rechazos_por_clasif.map(r => r.classification || '—'),
+        d.rechazos_por_clasif.map(r => parseInt(r.cnt)),
+        AZUL2,
+        v => v
+      )
+    );
+
+    // 3. Doughnut NCs por Severidad
+    const sevMap = {};
+    d.nc_por_severidad.forEach(r => { sevMap[r.severidad] = parseInt(r.cnt); });
+    this._charts.ncSev = new Chart(document.getElementById('chart-nc-sev'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Alta','Media','Baja'],
+        datasets: [{ data: [sevMap['Alta']||0, sevMap['Media']||0, sevMap['Baja']||0],
+                     backgroundColor: [ROJO, AMARILLO, VERDE] }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+      },
+    });
+
+    // 4. NCs por Área
+    this._charts.ncArea = new Chart(
+      document.getElementById('chart-nc-area'),
+      hBarConfig(
+        d.nc_por_area.map(r => r.area),
+        d.nc_por_area.map(r => parseInt(r.cnt)),
+        AZUL,
+        v => v
+      )
+    );
   },
 };
 
@@ -1899,6 +2112,7 @@ const auth = {
 // APP (NAVEGACION)
 // ================================================================
 const MODULOS = {
+  dashboard:      { titulo: 'Dashboard',         modulo: 'modulo-dashboard',      nav: 'nav-dashboard',      onEnter: () => modDASH.init() },
   nc:             { titulo: 'No Conformidades',  modulo: 'modulo-nc',             nav: 'nav-nc',             onEnter: () => modNC.init() },
   recepciones:    { titulo: 'Recepciones',       modulo: 'modulo-recepciones',    nav: 'nav-recepciones',    onEnter: () => modREC.init() },
   'rechazos-ext':   { titulo: 'Rechazos Externos', modulo: 'modulo-rechazos-ext',   nav: 'nav-rechazos-ext',   onEnter: () => modRE.init() },
