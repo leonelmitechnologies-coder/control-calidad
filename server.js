@@ -30,9 +30,11 @@ app.use(session({
   cookie: { secure: false, maxAge: 8 * 60 * 60 * 1000 },
 }));
 
-// ── Uploads (imágenes rechazos externos) ──────────────────────
-const uploadsDir = path.join(__dirname, 'public', 'uploads', 'rechazos');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+// ── Uploads ────────────────────────────────────────────────────
+const uploadsDir    = path.join(__dirname, 'public', 'uploads', 'rechazos');
+const uploadsOrgDir = path.join(__dirname, 'public', 'uploads', 'organigrama');
+if (!fs.existsSync(uploadsDir))    fs.mkdirSync(uploadsDir,    { recursive: true });
+if (!fs.existsSync(uploadsOrgDir)) fs.mkdirSync(uploadsOrgDir, { recursive: true });
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -44,6 +46,18 @@ const upload = multer({
   }),
   fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
   limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+const uploadOrg = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadsOrgDir),
+    filename:    (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      cb(null, `org-${Date.now()}${ext}`);
+    },
+  }),
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 function auth(req, res, next) {
@@ -180,6 +194,8 @@ async function initDB() {
       created_at          TIMESTAMP    DEFAULT NOW()
     )
   `);
+
+  await pool.query(`ALTER TABLE organigrama_qc ADD COLUMN IF NOT EXISTS foto_filename VARCHAR(255) NOT NULL DEFAULT ''`);
 
   const { rows } = await pool.query('SELECT COUNT(*) FROM usuarios');
   if (parseInt(rows[0].count) === 0) {
@@ -726,8 +742,20 @@ app.patch('/api/organigrama-qc/:id/estatus', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api/organigrama-qc/:id/foto', auth, uploadOrg.single('foto'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió imagen.' });
+    const { rows: [old] } = await pool.query('SELECT foto_filename FROM organigrama_qc WHERE id=$1', [req.params.id]);
+    if (old?.foto_filename) fs.unlink(path.join(uploadsOrgDir, old.foto_filename), () => {});
+    await pool.query('UPDATE organigrama_qc SET foto_filename=$1 WHERE id=$2', [req.file.filename, req.params.id]);
+    res.json({ foto_filename: req.file.filename });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.delete('/api/organigrama-qc/:id', auth, async (req, res) => {
   try {
+    const { rows: [rec] } = await pool.query('SELECT foto_filename FROM organigrama_qc WHERE id=$1', [req.params.id]);
+    if (rec?.foto_filename) fs.unlink(path.join(uploadsOrgDir, rec.foto_filename), () => {});
     await pool.query('DELETE FROM organigrama_qc WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }

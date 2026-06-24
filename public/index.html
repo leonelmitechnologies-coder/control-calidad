@@ -828,6 +828,21 @@
                       color:var(--gris); text-transform:uppercase; letter-spacing:.5px; min-width:140px; text-align:center; }
     .org-nivel-label{ font-size:9px; font-weight:700; text-transform:uppercase;
                       letter-spacing:.8px; color:var(--gris); margin-bottom:8px; text-align:center; }
+    .org-avatar     { width:52px; height:52px; border-radius:50%; overflow:hidden; margin:0 auto 8px;
+                      border:2px solid var(--gris-claro); flex-shrink:0; }
+    .org-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+    .org-avatar-ini { width:100%; height:100%; background:var(--azul); color:#fff;
+                      display:flex; align-items:center; justify-content:center;
+                      font-size:18px; font-weight:700; }
+    .org-foto-zona  { width:90px; height:90px; border-radius:50%; border:2px dashed var(--gris-claro);
+                      cursor:pointer; overflow:hidden; margin:0 auto 4px;
+                      display:flex; align-items:center; justify-content:center; transition:border-color .15s; }
+    .org-foto-zona:hover { border-color:var(--azul); }
+    .org-foto-zona img   { width:100%; height:100%; object-fit:cover; display:block; }
+    .org-foto-hint  { font-size:10px; color:var(--gris); text-align:center; margin-bottom:16px; }
+    .org-det-avatar { width:80px; height:80px; border-radius:50%; overflow:hidden; margin:0 auto 12px;
+                      border:2px solid var(--gris-claro); }
+    .org-det-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
   </style>
 </head>
 <body>
@@ -1393,6 +1408,11 @@
     <form id="form-org">
       <input type="hidden" id="org-edit-id">
       <div class="seccion-titulo" style="margin-bottom:12px">Información del Colaborador</div>
+      <input type="file" id="org-foto-input" accept="image/*" style="display:none" onchange="modORG.previsualizarFoto(this)">
+      <div class="org-foto-zona" onclick="document.getElementById('org-foto-input').click()" id="org-foto-zona">
+        <span style="font-size:10px;color:var(--gris);text-align:center;padding:8px">Subir foto</span>
+      </div>
+      <p class="org-foto-hint">Haz clic para seleccionar una fotografía</p>
       <div class="form-grid">
         <div><label>Nombre Completo *</label><input type="text" id="org-nombre" required placeholder="Nombre completo"></div>
         <div><label>No. Empleado</label><input type="text" id="org-no-empleado" placeholder="Número de empleado"></div>
@@ -1457,6 +1477,7 @@
 <div class="modal-overlay" id="modal-org-detalle">
   <div class="modal" style="max-width:520px;width:95vw">
     <div class="modal-titulo" id="org-det-titulo">Colaborador</div>
+    <div class="org-det-avatar" id="org-det-avatar"></div>
     <div class="nc-det-grid">
       <div><label>No. Empleado</label><span id="org-det-no-empleado"></span></div>
       <div><label>Puesto</label><span id="org-det-puesto"></span></div>
@@ -1464,6 +1485,7 @@
       <div><label>Turno</label><span id="org-det-turno"></span></div>
       <div><label>Estatus</label><span id="org-det-estatus"></span></div>
       <div><label>Fecha de Ingreso</label><span id="org-det-fecha-ingreso"></span></div>
+      <div><label>Tiempo en Planta</label><span id="org-det-tiempo-planta"></span></div>
       <div><label>Sexo</label><span id="org-det-sexo"></span></div>
       <div><label>Fecha de Nacimiento</label><span id="org-det-fecha-nacimiento"></span></div>
       <div><label>Teléfono</label><span id="org-det-telefono"></span></div>
@@ -2602,6 +2624,25 @@ document.getElementById('form-re').addEventListener('submit', async function(e) 
 // ================================================================
 // MODULO: ORGANIGRAMA QC
 // ================================================================
+function calcTiempoEnPlanta(fechaIngreso) {
+  if (!fechaIngreso) return '—';
+  const inicio = new Date(String(fechaIngreso).slice(0,10) + 'T00:00:00');
+  const hoy    = new Date();
+  let years  = hoy.getFullYear() - inicio.getFullYear();
+  let months = hoy.getMonth()    - inicio.getMonth();
+  let days   = hoy.getDate()     - inicio.getDate();
+  if (days < 0) {
+    months--;
+    days += new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate();
+  }
+  if (months < 0) { years--; months += 12; }
+  const p = [];
+  if (years  > 0) p.push(`${years} año${years  !== 1 ? 's' : ''}`);
+  if (months > 0) p.push(`${months} mes${months !== 1 ? 'es' : ''}`);
+  if (days   > 0) p.push(`${days} día${days     !== 1 ? 's' : ''}`);
+  return p.length ? p.join(', ') : 'Menos de un día';
+}
+
 const PUESTOS_ORG = [
   'Ingeniero de Calidad', 'Supervisor de Calidad',
   'Tecnico de Calidad', 'Especialista de Calidad', 'Inspector de Calidad'
@@ -2609,6 +2650,7 @@ const PUESTOS_ORG = [
 
 const modORG = {
   registros: [],
+  _fotoNueva: null,
 
   async init()   { await this.cargar(); },
 
@@ -2683,7 +2725,11 @@ const modORG = {
     const badge = r.estatus === 'activo'
       ? `<span class="badge badge-activo">Activo</span>`
       : `<span class="badge badge-inactivo">Inactivo</span>`;
+    const avatarHtml = r.foto_filename
+      ? `<img src="/uploads/organigrama/${r.foto_filename}">`
+      : `<div class="org-avatar-ini">${r.nombre_completo.charAt(0).toUpperCase()}</div>`;
     return `<div class="org-card" onclick="modORG.abrirDetalle(${r.id})">
+      <div class="org-avatar">${avatarHtml}</div>
       <div class="org-card-nombre">${r.nombre_completo}</div>
       <div class="org-card-puesto">${r.puesto}</div>
       ${r.turno ? `<div class="org-card-info">${r.turno}</div>` : ''}
@@ -2691,11 +2737,22 @@ const modORG = {
     </div>`;
   },
 
+  previsualizarFoto(input) {
+    if (!input.files[0]) return;
+    this._fotoNueva = input.files[0];
+    const zona = document.getElementById('org-foto-zona');
+    const reader = new FileReader();
+    reader.onload = e => { zona.innerHTML = `<img src="${e.target.result}">`; };
+    reader.readAsDataURL(input.files[0]);
+  },
+
   abrirFormulario() {
     document.getElementById('form-org').reset();
     document.getElementById('org-edit-id').value = '';
     document.getElementById('modal-org-form-titulo').textContent = 'Agregar Colaborador';
     document.getElementById('btn-org-guardar').textContent = 'Guardar';
+    this._fotoNueva = null;
+    document.getElementById('org-foto-zona').innerHTML = `<span style="font-size:10px;color:var(--gris);text-align:center;padding:8px">Subir foto</span>`;
     ui.abrirModal('modal-org-form');
   },
 
@@ -2717,6 +2774,11 @@ const modORG = {
     document.getElementById('org-contacto-emergencia').value = r.contacto_emergencia || '';
     document.getElementById('org-tel-emergencia').value = r.tel_emergencia || '';
     document.getElementById('modal-org-form-titulo').textContent = `Editar — ${r.nombre_completo}`;
+    this._fotoNueva = null;
+    const zona = document.getElementById('org-foto-zona');
+    zona.innerHTML = r.foto_filename
+      ? `<img src="/uploads/organigrama/${r.foto_filename}">`
+      : `<span style="font-size:10px;color:var(--gris);text-align:center;padding:8px">Subir foto</span>`;
     ui.cerrarModal('modal-org-detalle');
     ui.abrirModal('modal-org-form');
   },
@@ -2726,6 +2788,10 @@ const modORG = {
     if (!r) return;
     const fmtDate = d => d ? String(d).slice(0,10) : '—';
     document.getElementById('org-det-titulo').textContent = r.nombre_completo;
+    const avatarDet = document.getElementById('org-det-avatar');
+    avatarDet.innerHTML = r.foto_filename
+      ? `<img src="/uploads/organigrama/${r.foto_filename}">`
+      : `<div class="org-avatar-ini" style="width:100%;height:100%;border-radius:50%">${r.nombre_completo.charAt(0).toUpperCase()}</div>`;
     document.getElementById('org-det-no-empleado').textContent = r.no_empleado || '—';
     document.getElementById('org-det-puesto').textContent = r.puesto;
     document.getElementById('org-det-area').textContent = r.area || '—';
@@ -2734,6 +2800,7 @@ const modORG = {
       ? '<span class="badge badge-activo">Activo</span>'
       : '<span class="badge badge-inactivo">Inactivo</span>';
     document.getElementById('org-det-fecha-ingreso').textContent = fmtDate(r.fecha_ingreso);
+    document.getElementById('org-det-tiempo-planta').textContent = calcTiempoEnPlanta(r.fecha_ingreso);
     document.getElementById('org-det-sexo').textContent = r.sexo || '—';
     document.getElementById('org-det-fecha-nacimiento').textContent = fmtDate(r.fecha_nacimiento);
     document.getElementById('org-det-telefono').textContent = r.telefono || '—';
@@ -2790,10 +2857,18 @@ document.getElementById('form-org').addEventListener('submit', async function(e)
   };
   btn.disabled = true;
   try {
+    let savedId = id;
     if (id) {
       await api.put(`/api/organigrama-qc/${id}`, data);
     } else {
-      await api.post('/api/organigrama-qc', data);
+      const nuevo = await api.post('/api/organigrama-qc', data);
+      savedId = nuevo.id;
+    }
+    if (modORG._fotoNueva) {
+      const fd = new FormData();
+      fd.append('foto', modORG._fotoNueva);
+      await fetch(`/api/organigrama-qc/${savedId}/foto`, { method: 'POST', body: fd });
+      modORG._fotoNueva = null;
     }
     ui.cerrarModal('modal-org-form');
     await modORG.cargar();
