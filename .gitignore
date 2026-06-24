@@ -1,0 +1,19 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno
+.env
+.env.local
+.env.production
+
+# Logs de runtime
+logs/
+*.log
+*.err
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Herramientas internas
+.superpowers/

@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Control de Calidad</title>
+  <link rel="icon" type="image/png" href="/QC_logo_sin_fondo.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --azul:        #0d2b4e;
+      --azul-medio:  #1a4a7a;
+      --azul-claro:  #2563a8;
+      --negro:       #111111;
+      --gris-oscuro: #444444;
+      --gris:        #777777;
+      --gris-claro:  #e2e2e2;
+      --fondo:       #f4f6f9;
+      --blanco:      #ffffff;
+      --rojo:        #c0392b;
+      --verde:       #1a6b3c;
+      --amarillo:    #8a6a00;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: var(--negro);
+      background: var(--fondo);
+      min-height: 100vh;
+    }
+
+    /* LOGIN */
+    #vista-login {
+      min-height: 100vh;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: var(--azul);
+    }
+
+    .login-box {
+      background: var(--blanco);
+      width: 360px;
+      padding: 40px;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-logo h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--azul);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .login-separador {
+      width: 36px;
+      height: 3px;
+      background: var(--azul);
+      margin: 10px auto;
+    }
+
+    .login-logo p {
+      font-size: 12px;
+      color: var(--gris);
+    }
+
+    .login-campo {
+      margin-bottom: 16px;
+    }
+
+    .login-campo label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gris);
+      margin-bottom: 6px;
+    }
+
+    .login-campo input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--gris-claro);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--negro);
+      outline: none;
+      background: var(--blanco);
+      transition: border-color 0.15s;
+    }
+
+    .login-campo input:focus {
+      border-color: var(--azul);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 11px;
+      background: var(--azul);
+      color: var(--blanco);
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 6px;
+      transition: background 0.15s;
+    }
+
+    .btn-login:hover { background: var(--azul-medio); }
+    .btn-login:disabled { opacity: 0.6; cursor: default; }
+
+    .login-error {
+      color: var(--rojo);
+      font-size: 12px;
+      text-align: center;
+      margin-top: 12px;
+      min-height: 18px;
+    }
+
+    /* APP SHELL */
+    #vista-app {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 220px;
+      background: var(--azul);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+    }
+
+    .sidebar-logo {
+      padding: 22px 20px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .sidebar-logo h2 {
+      color: var(--blanco);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      line-height: 1.5;
+    }
+
+    .sidebar-logo span {
+      color: rgba(255,255,255,0.45);
+      font-size: 11px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 10px 0;
+      overflow-y: auto;
+    }
+
+    .nav-seccion {
+      padding: 16px 20px 5px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .nav-item {
+      display: block;
+      padding: 10px 20px;
+      color: rgba(255,255,255,0.7);
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.07);
+      color: var(--blanco);
+    }
+
+    .nav-item.activo {
+      background: rgba(255,255,255,0.12);
+      color: var(--blanco);
+      border-left-color: var(--blanco);
+      font-weight: 600;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .sidebar-usuario {
+      color: rgba(255,255,255,0.6);
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .sidebar-usuario strong {
+      display: block;
+      color: var(--blanco);
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .btn-logout {
+      width: 100%;
+      padding: 7px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.65);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-logout:hover {
+      background: rgba(255,255,255,0.1);
+      color: var(--blanco);
+    }
+
+    /* CONTENIDO */
+    .contenido-principal {
+      margin-left: 220px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .topbar {
+      background: var(--blanco);
+      border-bottom: 1px solid var(--gris-claro);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .topbar-titulo {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--azul);
+    }
+
+    .topbar-fecha {
+      font-size: 12px;
+      color: var(--gris);
+    }
+
+    .modulo {
+      display: none;
+      padding: 24px 28px;
+    }
+
+    .modulo.activo {
+      display: block;
+    }
+
+    /* COMPONENTES COMUNES */
+    .seccion-titulo {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--azul);
+      border-bottom: 2px solid var(--azul);
+      padding-bottom: 6px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: var(--blanco);
+      border: 1px solid var(--gris-claro);
+      padding: 22px;
+      margin-bottom: 22px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gris);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+
+    input[type=text],
+    input[type=password],
+    input[type=time],
+    input[type=email],
+    select,
+    textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #cccccc;
+      font-size: 13px;
+      color: var(--negro);
+      background: var(--blanco);
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--azul);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 75px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-grid .full { grid-column: 1 / -1; }
+
+    .btn-grupo {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      padding: 9px 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+
+    .btn-primario   { background: var(--azul);  color: var(--blanco); }
+    .btn-secundario { background: transparent;  color: var(--azul);  border: 1px solid var(--azul); }
+
+    /* TABLA */
+    .tabla-wrap { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    thead tr { background: var(--azul); color: var(--blanco); }
+
+    thead th {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody tr { border-bottom: 1px solid var(--gris-claro); }
+    tbody tr:hover { background: #f0f4f9; }
+    tbody td { padding: 10px 12px; vertical-align: middle; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-alta     { background: #fde8e8; color: var(--rojo);       border: 1px solid var(--rojo); }
+    .badge-media    { background: #fdf6e8; color: var(--amarillo);   border: 1px solid var(--amarillo); }
+    .badge-baja     { background: #e8f5ee; color: var(--verde);      border: 1px solid var(--verde); }
+    .badge-abierta  { background: #fde8e8; color: var(--rojo);       border: 1px solid var(--rojo); }
+    .badge-proceso  { background: #e8f0fd; color: var(--azul-claro); border: 1px solid var(--azul-claro); }
+    .badge-cerrada  { background: #e8f5ee; color: var(--verde);      border: 1px solid var(--verde); }
+    .badge-admin    { background: #e8f0fd; color: var(--azul);       border: 1px solid var(--azul); }
+    .badge-usuario  { background: #f4f4f4; color: var(--gris-oscuro);border: 1px solid var(--gris-claro); }
+    .badge-activo   { background: #e8f5ee; color: var(--verde);      border: 1px solid var(--verde); }
+    .badge-inactivo { background: #fde8e8; color: var(--rojo);       border: 1px solid var(--rojo); }
+
+    .btn-accion {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 3px 6px;
+      color: var(--azul);
+      text-decoration: underline;
+      font-family: inherit;
+    }
+
+    .btn-accion:hover  { opacity: 0.7; }
+    .btn-accion.rojo   { color: var(--rojo); }
+
+    .filtros {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .filtros select,
+    .filtros input {
+      width: auto;
+      min-width: 155px;
+    }
+
+    .vacio {
+      text-align: center;
+      padding: 40px;
+      color: var(--gris);
+      font-size: 13px;
+    }
+
+    .form-error {
+      color: var(--rojo);
+      font-size: 12px;
+      margin-top: 10px;
+      min-height: 16px;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.activo { display: flex; }
+
+    .modal {
+      background: var(--blanco);
+      width: 480px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 28px;
+    }
+
+    .modal-titulo {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--azul);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-bottom: 2px solid var(--azul);
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+
+    /* AUTOCOMPLETE */
+    .autocomplete-lista {
+      position: fixed;
+      background: var(--blanco);
+      border: 1px solid var(--gris-claro);
+      border-top: none;
+      z-index: 9999;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+    }
+
+    .autocomplete-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--negro);
+      cursor: pointer;
+      border-bottom: 1px solid var(--gris-claro);
+    }
+
+    .autocomplete-item:last-child { border-bottom: none; }
+
+    .autocomplete-item:hover { background: #f0f4f9; }
+
+    /* FILTROS DE RECEPCION */
+    .filtro-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .filtro-btn {
+      padding: 6px 14px;
+      border: 1px solid var(--gris-claro);
+      background: var(--blanco);
+      color: var(--gris-oscuro);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.15s;
+    }
+
+    .filtro-btn:hover { border-color: var(--azul); color: var(--azul); }
+    .filtro-btn.activo { background: var(--azul); color: var(--blanco); border-color: var(--azul); }
+
+    .filtro-badge {
+      background: rgba(255,255,255,0.25);
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .filtro-btn:not(.activo) .filtro-badge {
+      background: var(--gris-claro);
+      color: var(--gris-oscuro);
+    }
+
+    /* PESTAÑAS DEL MODULO */
+    .mod-tabs {
+      display: flex;
+      border-bottom: 2px solid var(--gris-claro);
+      margin: -22px -22px 22px;
+      padding: 0 22px;
+    }
+
+    .mod-tab {
+      padding: 13px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gris);
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.3px;
+      transition: color 0.15s;
+    }
+
+    .mod-tab:hover { color: var(--azul); }
+
+    .mod-tab.activo {
+      color: var(--azul);
+      border-bottom-color: var(--azul);
+    }
+
+    .mod-tab-badge {
+      display: inline-block;
+      background: var(--azul-claro);
+      color: var(--blanco);
+      border-radius: 10px;
+      padding: 1px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+
+    /* TABS NC */
+    .card-header-con-filtro {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0;
+    }
+
+    .card-header-con-filtro .seccion-titulo {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+
+    .card-header-con-filtro select {
+      width: auto;
+      min-width: 155px;
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+
+    .nc-tabs {
+      display: flex;
+      border-bottom: 2px solid var(--gris-claro);
+      margin: 14px -22px 0;
+      padding: 0 22px;
+    }
+
+    .nc-tab {
+      padding: 9px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gris);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: color 0.15s;
+    }
+
+    .nc-tab:hover { color: var(--azul); }
+
+    .nc-tab.activo { color: var(--azul); border-bottom-color: var(--azul); }
+
+    .nc-tab-badge {
+      border-radius: 10px;
+      padding: 1px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--gris-claro);
+      color: var(--gris-oscuro);
+      transition: background 0.15s, color 0.15s;
+    }
+
+    #tab-abierta.activo .nc-tab-badge  { background: var(--rojo);       color: var(--blanco); }
+    #tab-proceso.activo .nc-tab-badge  { background: var(--azul-claro);  color: var(--blanco); }
+    #tab-cerrada.activo .nc-tab-badge  { background: var(--verde);       color: var(--blanco); }
+
+    .nc-tabla-wrap { margin-top: 14px; }
+
+    /* MODAL DETALLE NC */
+    .nc-det-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .nc-det-grid .full { grid-column: 1 / -1; }
+
+    .nc-det-grid label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gris);
+      margin-bottom: 3px;
+    }
+
+    .nc-det-grid span {
+      display: block;
+      font-size: 13px;
+      color: var(--negro);
+      line-height: 1.5;
+    }
+
+    .nc-det-acciones {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--gris-claro);
+    }
+
+    .nc-det-acciones .spacer { flex: 1; }
+
+    @media (max-width: 700px) {
+      .sidebar { width: 185px; }
+      .contenido-principal { margin-left: 185px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .full { grid-column: 1; }
+      .nc-det-grid { grid-template-columns: 1fr; }
+      .nc-det-grid .full { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- VISTA: LOGIN -->
+<div id="vista-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="/QC_logo_sin_fondo.png" alt="Control de Calidad" style="max-width:120px;margin-bottom:14px;">
+      <div class="login-separador"></div>
+      <p>Sistema de Gestion</p>
+    </div>
+    <form id="form-login" onsubmit="auth.iniciarSesion(event)">
+      <div class="login-campo">
+        <label>Usuario</label>
+        <input type="text" id="login-usuario" placeholder="Nombre de usuario" autocomplete="username" required>
+      </div>
+      <div class="login-campo">
+        <label>Contrasena</label>
+        <input type="password" id="login-pass" placeholder="Contrasena" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn-login" id="btn-login">Ingresar al sistema</button>
+      <div class="login-error" id="login-error"></div>
+    </form>
+  </div>
+</div>
+
+<!-- VISTA: APP -->
+<div id="vista-app">
+  <div class="app-layout">
+
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <img src="/QC_logo_sin_fondo.png" alt="Control de Calidad"
+             style="max-width:80px;margin-bottom:10px;display:block;">
+        <h2>Control de<br>Calidad</h2>
+        <span>Sistema de Gestion</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-seccion">Modulos</div>
+        <a class="nav-item" id="nav-nc"           href="/nc"           onclick="event.preventDefault();app.navegar('nc')">No Conformidades</a>
+        <a class="nav-item" id="nav-recepciones" href="/recepciones"  onclick="event.preventDefault();app.navegar('recepciones')">Recepciones</a>
+        <a class="nav-item" id="nav-usuarios"    href="/usuarios"     onclick="event.preventDefault();app.navegar('usuarios')" style="display:none">Usuarios</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-usuario">
+          <strong id="sesion-nombre"></strong>
+          <span id="sesion-rol"></span>
+        </div>
+        <button class="btn-logout" onclick="auth.cerrarSesion()">Cerrar sesion</button>
+      </div>
+    </aside>
+
+    <div class="contenido-principal">
+      <div class="topbar">
+        <span class="topbar-titulo" id="topbar-titulo"></span>
+        <span class="topbar-fecha"  id="topbar-fecha"></span>
+      </div>
+
+      <!-- MODULO: NO CONFORMIDADES -->
+      <div class="modulo" id="modulo-nc">
+        <div class="card">
+
+          <!-- Pestañas del módulo -->
+          <div class="mod-tabs">
+            <button class="mod-tab activo" id="modtab-form" onclick="modNC.cambiarModTab('form')">
+              Nueva No Conformidad
+            </button>
+            <button class="mod-tab" id="modtab-registros" onclick="modNC.cambiarModTab('registros')">
+              Registros del dia
+              <span class="mod-tab-badge" id="badge-total">0</span>
+            </button>
+          </div>
+
+          <!-- Panel: Formulario -->
+          <div id="nc-panel-form">
+            <form id="form-nc">
+              <div class="form-grid">
+                <div>
+                  <label>Hora de deteccion</label>
+                  <input type="time" id="nc-hora" required>
+                </div>
+                <div>
+                  <label>Area</label>
+                  <select id="nc-area" required>
+                    <option value="">Seleccionar...</option>
+                    <option>Produccion</option>
+                    <option>Almacen</option>
+                    <option>Logistica</option>
+                    <option>Administracion</option>
+                    <option>Mantenimiento</option>
+                    <option>Calidad</option>
+                    <option>Ventas</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Tipo</label>
+                  <select id="nc-tipo" required>
+                    <option value="">Seleccionar...</option>
+                    <option>Producto no conforme</option>
+                    <option>Proceso fuera de parametro</option>
+                    <option>Documentacion incorrecta</option>
+                    <option>Equipo defectuoso</option>
+                    <option>Incumplimiento de procedimiento</option>
+                    <option>Proveedor</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Severidad</label>
+                  <select id="nc-severidad" required>
+                    <option value="">Seleccionar...</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Media">Media</option>
+                    <option value="Baja">Baja</option>
+                  </select>
+                </div>
+                <div class="full">
+                  <label>Descripcion de la no conformidad</label>
+                  <textarea id="nc-descripcion" placeholder="Describir el problema detectado..." required></textarea>
+                </div>
+                <div>
+                  <label>Responsable de atencion</label>
+                  <input type="text" id="nc-responsable" placeholder="Nombre o puesto">
+                </div>
+                <div>
+                  <label>Accion inmediata tomada</label>
+                  <input type="text" id="nc-accion" placeholder="Descripcion breve">
+                </div>
+              </div>
+              <div class="btn-grupo">
+                <button type="submit" class="btn btn-primario" id="btn-nc-registrar">Registrar</button>
+                <button type="button" class="btn btn-secundario" onclick="modNC.limpiar()">Limpiar</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Panel: Registros del día -->
+          <div id="nc-panel-registros" style="display:none">
+            <div class="card-header-con-filtro" style="margin-bottom:0">
+              <div style="font-size:11px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;">Filtrar</div>
+              <select id="nc-filtro-area" onchange="modNC.renderTabla()">
+                <option value="">Todas las areas</option>
+              </select>
+            </div>
+
+            <div class="nc-tabs">
+              <button class="nc-tab activo" id="tab-abierta" onclick="modNC.cambiarTab('Abierta')">
+                Abiertas <span class="nc-tab-badge" id="badge-abierta">0</span>
+              </button>
+              <button class="nc-tab" id="tab-proceso" onclick="modNC.cambiarTab('En proceso')">
+                En proceso <span class="nc-tab-badge" id="badge-proceso">0</span>
+              </button>
+              <button class="nc-tab" id="tab-cerrada" onclick="modNC.cambiarTab('Cerrada')">
+                Cerradas <span class="nc-tab-badge" id="badge-cerrada">0</span>
+              </button>
+            </div>
+
+            <div class="nc-tabla-wrap tabla-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Hora</th>
+                    <th>Area</th>
+                    <th>Tipo</th>
+                    <th>Severidad</th>
+                    <th>Registrado por</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="nc-tabla-cuerpo"></tbody>
+              </table>
+              <div id="nc-tabla-vacio" class="vacio" style="display:none">
+                No hay registros en este estado.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- MODULO: RECEPCIONES -->
+      <div class="modulo" id="modulo-recepciones">
+        <div class="card">
+
+          <div class="card-header-con-filtro" style="margin-bottom:16px">
+            <div class="seccion-titulo" style="border-bottom:none;margin-bottom:0">Registros del dia</div>
+            <button class="btn btn-primario" onclick="modREC.abrirFormulario()" style="font-size:12px;padding:8px 18px;">+ Agregar</button>
+          </div>
+
+          <div class="filtro-bar">
+            <button class="filtro-btn activo" id="rec-filtro-todos" onclick="modREC.cambiarFiltro('Todos')">
+              Todos <span class="filtro-badge" id="rec-badge-todos">0</span>
+            </button>
+            <button class="filtro-btn" id="rec-filtro-confirmado" onclick="modREC.cambiarFiltro('Confirmado')">
+              Confirmado <span class="filtro-badge" id="rec-badge-confirmado">0</span>
+            </button>
+            <button class="filtro-btn" id="rec-filtro-descarga" onclick="modREC.cambiarFiltro('En descarga')">
+              En descarga <span class="filtro-badge" id="rec-badge-descarga">0</span>
+            </button>
+            <button class="filtro-btn" id="rec-filtro-descargado" onclick="modREC.cambiarFiltro('Descargado')">
+              Descargado <span class="filtro-badge" id="rec-badge-descargado">0</span>
+            </button>
+            <button class="filtro-btn" id="rec-filtro-rechazado" onclick="modREC.cambiarFiltro('Rechazado')">
+              Rechazado <span class="filtro-badge" id="rec-badge-rechazado">0</span>
+            </button>
+          </div>
+
+          <div class="tabla-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Hora</th>
+                  <th>Company</th>
+                  <th>From</th>
+                  <th>Cargo</th>
+                  <th>Unit Qty</th>
+                  <th>Pallet Qty</th>
+                  <th>Type</th>
+                  <th>Estatus</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="rec-tabla-cuerpo"></tbody>
+            </table>
+            <div id="rec-tabla-vacio" class="vacio" style="display:none">
+              No hay registros para el dia de hoy.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- MODULO: USUARIOS -->
+      <div class="modulo" id="modulo-usuarios">
+
+        <div class="card">
+          <div class="seccion-titulo">Registrar nuevo usuario</div>
+          <form id="form-usuario">
+            <div class="form-grid">
+              <div>
+                <label>Nombre completo</label>
+                <input type="text" id="usr-nombre" placeholder="Nombre y apellido" required>
+              </div>
+              <div>
+                <label>Usuario (login)</label>
+                <input type="text" id="usr-usuario" placeholder="Sin espacios" required>
+              </div>
+              <div>
+                <label>Contrasena</label>
+                <input type="password" id="usr-pass" placeholder="Minimo 6 caracteres" required>
+              </div>
+              <div>
+                <label>Confirmar contrasena</label>
+                <input type="password" id="usr-pass2" placeholder="Repetir contrasena" required>
+              </div>
+              <div>
+                <label>Rol</label>
+                <select id="usr-rol" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="Administrador">Administrador</option>
+                  <option value="Usuario">Usuario</option>
+                </select>
+              </div>
+              <div>
+                <label>Area asignada</label>
+                <select id="usr-area">
+                  <option value="">Sin area asignada</option>
+                  <option>Produccion</option>
+                  <option>Almacen</option>
+                  <option>Logistica</option>
+                  <option>Administracion</option>
+                  <option>Mantenimiento</option>
+                  <option>Calidad</option>
+                  <option>Ventas</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-error" id="usr-error"></div>
+            <div class="btn-grupo">
+              <button type="submit" class="btn btn-primario">Crear usuario</button>
+              <button type="button" class="btn btn-secundario" onclick="modUSR.limpiar()">Limpiar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="seccion-titulo">Usuarios registrados</div>
+          <div class="tabla-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nombre</th>
+                  <th>Usuario</th>
+                  <th>Rol</th>
+                  <th>Area</th>
+                  <th>Estatus</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="usr-tabla-cuerpo"></tbody>
+            </table>
+            <div id="usr-tabla-vacio" class="vacio" style="display:none">
+              No hay usuarios registrados.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONFIRMACION -->
+<div class="modal-overlay" id="modal-confirmar">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-titulo" id="modal-confirmar-titulo">Confirmar accion</div>
+    <p id="modal-confirmar-msg" style="color:var(--gris-oscuro);font-size:14px;line-height:1.6;margin-bottom:22px;"></p>
+    <div class="btn-grupo">
+      <button class="btn btn-primario" id="modal-confirmar-ok">Aceptar</button>
+      <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-confirmar')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOTIFICACION -->
+<div class="modal-overlay" id="modal-notificar">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-titulo" id="modal-notificar-titulo">Aviso</div>
+    <p id="modal-notificar-msg" style="color:var(--gris-oscuro);font-size:14px;line-height:1.6;margin-bottom:22px;"></p>
+    <div class="btn-grupo">
+      <button class="btn btn-primario" onclick="ui.cerrarModal('modal-notificar')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVA / EDITAR RECEPCION -->
+<div class="modal-overlay" id="modal-rec-form">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-titulo" id="modal-rec-form-titulo">Nueva Recepcion</div>
+    <form id="form-rec">
+      <input type="hidden" id="rec-edit-id">
+      <div class="form-grid">
+        <div>
+          <label>Fecha</label>
+          <input type="date" id="rec-fecha-form" required>
+        </div>
+        <div>
+          <label>Hora</label>
+          <input type="time" id="rec-hora" required>
+        </div>
+        <div style="position:relative">
+          <label>Company</label>
+          <input type="text" id="rec-company" placeholder="Escribe o selecciona..." required autocomplete="off"
+                 oninput="sugerencias.filtrarLista(this,'rec-company-lista',COMPANIES)"
+                 onblur="sugerencias.cerrar('rec-company-lista')"
+                 onfocus="sugerencias.filtrarLista(this,'rec-company-lista',COMPANIES)">
+          <div id="rec-company-lista" class="autocomplete-lista" style="display:none"></div>
+        </div>
+        <div style="position:relative">
+          <label>From (Origen)</label>
+          <input type="text" id="rec-origen" placeholder="Escribe o selecciona..." required autocomplete="off"
+                 oninput="sugerencias.filtrar(this,'rec-origen-lista')"
+                 onblur="sugerencias.cerrar('rec-origen-lista')"
+                 onfocus="sugerencias.filtrar(this,'rec-origen-lista')">
+          <div id="rec-origen-lista" class="autocomplete-lista" style="display:none"></div>
+        </div>
+        <div>
+          <label>Cargo</label>
+          <input type="text" id="rec-cargo" placeholder="Tipo de mercancia" required>
+        </div>
+        <div>
+          <label>Type</label>
+          <select id="rec-tipo" required>
+            <option value="Import">Import</option>
+            <option value="Export">Export</option>
+          </select>
+        </div>
+        <div>
+          <label>Estatus</label>
+          <select id="rec-estatus" required>
+            <option value="Confirmado">Confirmado</option>
+            <option value="En descarga">En descarga</option>
+            <option value="Descargado">Descargado</option>
+            <option value="Rechazado">Rechazado</option>
+          </select>
+        </div>
+        <div>
+          <label>Unit Qty</label>
+          <input type="number" id="rec-unit-qty" placeholder="0" min="0" required>
+        </div>
+        <div>
+          <label>Pallet Qty</label>
+          <input type="number" id="rec-pallet-qty" placeholder="0" min="0" required>
+        </div>
+      </div>
+      <div class="btn-grupo" style="margin-top:18px">
+        <button type="submit" class="btn btn-primario" id="btn-rec-registrar">Registrar</button>
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-rec-form')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE RECEPCION -->
+<div class="modal-overlay" id="modal-rec-detalle">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-titulo" id="rec-det-titulo">Detalle de Recepcion</div>
+    <div class="nc-det-grid">
+      <div><label>Hora</label><span id="rec-det-hora"></span></div>
+      <div><label>Company</label><span id="rec-det-company"></span></div>
+      <div><label>From</label><span id="rec-det-origen"></span></div>
+      <div><label>Cargo</label><span id="rec-det-cargo"></span></div>
+      <div><label>Type</label><span id="rec-det-tipo"></span></div>
+      <div><label>Unit Qty</label><span id="rec-det-unit"></span></div>
+      <div><label>Pallet Qty</label><span id="rec-det-pallet"></span></div>
+      <div><label>Registrado por</label><span id="rec-det-registrado"></span></div>
+      <div><label>Estatus</label><span id="rec-det-estatus"></span></div>
+    </div>
+    <div class="nc-det-acciones" id="rec-det-acciones"></div>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE NO CONFORMIDAD -->
+<div class="modal-overlay" id="modal-nc-detalle">
+  <div class="modal">
+    <div class="modal-titulo" id="nc-det-titulo">Detalle de No Conformidad</div>
+    <div class="nc-det-grid">
+      <div>
+        <label>Hora</label>
+        <span id="nc-det-hora"></span>
+      </div>
+      <div>
+        <label>Area</label>
+        <span id="nc-det-area"></span>
+      </div>
+      <div>
+        <label>Tipo</label>
+        <span id="nc-det-tipo"></span>
+      </div>
+      <div>
+        <label>Severidad</label>
+        <span id="nc-det-severidad"></span>
+      </div>
+      <div class="full">
+        <label>Descripcion</label>
+        <span id="nc-det-descripcion"></span>
+      </div>
+      <div>
+        <label>Responsable</label>
+        <span id="nc-det-responsable"></span>
+      </div>
+      <div>
+        <label>Accion inmediata</label>
+        <span id="nc-det-accion"></span>
+      </div>
+      <div>
+        <label>Registrado por</label>
+        <span id="nc-det-registrado"></span>
+      </div>
+    </div>
+    <div class="nc-det-acciones" id="nc-det-acciones"></div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR USUARIO -->
+<div class="modal-overlay" id="modal-editar-usuario">
+  <div class="modal">
+    <div class="modal-titulo">Editar usuario</div>
+    <form id="form-editar-usuario">
+      <input type="hidden" id="edit-usr-id">
+      <div class="form-grid">
+        <div>
+          <label>Nombre completo</label>
+          <input type="text" id="edit-usr-nombre" required>
+        </div>
+        <div>
+          <label>Usuario (login)</label>
+          <input type="text" id="edit-usr-usuario" required>
+        </div>
+        <div class="full">
+          <label>Nueva contrasena (dejar vacio para no cambiar)</label>
+          <input type="password" id="edit-usr-pass" placeholder="Nueva contrasena...">
+        </div>
+        <div>
+          <label>Rol</label>
+          <select id="edit-usr-rol" required>
+            <option value="Administrador">Administrador</option>
+            <option value="Usuario">Usuario</option>
+          </select>
+        </div>
+        <div>
+          <label>Area asignada</label>
+          <select id="edit-usr-area">
+            <option value="">Sin area asignada</option>
+            <option>Produccion</option>
+            <option>Almacen</option>
+            <option>Logistica</option>
+            <option>Administracion</option>
+            <option>Mantenimiento</option>
+            <option>Calidad</option>
+            <option>Ventas</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-error" id="edit-usr-error"></div>
+      <div class="btn-grupo">
+        <button type="submit" class="btn btn-primario">Guardar cambios</button>
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-editar-usuario')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// UTILIDADES
+// ================================================================
+function horaActual() { return new Date().toTimeString().slice(0, 5); }
+
+function fechaHoy() {
+  return new Date().toLocaleDateString('es-MX', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+}
+
+// ================================================================
+// API
+// ================================================================
+const api = {
+  async _req(method, url, data) {
+    const opts = { method, headers: {} };
+    if (data !== undefined) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(data);
+    }
+    const r    = await fetch(url, opts);
+    const json = await r.json();
+    if (!r.ok) throw json;
+    return json;
+  },
+  get:  (url)       => api._req('GET',    url),
+  post: (url, d)    => api._req('POST',   url, d),
+  put:  (url, d)    => api._req('PUT',    url, d),
+  patch:(url, d)    => api._req('PATCH',  url, d),
+  del:  (url)       => api._req('DELETE', url),
+};
+
+// ================================================================
+// UI
+// ================================================================
+const ui = {
+  cerrarModal(id) { document.getElementById(id).classList.remove('activo'); },
+  abrirModal(id)  { document.getElementById(id).classList.add('activo'); },
+
+  confirmar(msg, onOk, titulo = 'Confirmar accion') {
+    document.getElementById('modal-confirmar-titulo').textContent = titulo;
+    document.getElementById('modal-confirmar-msg').textContent    = msg;
+    const btn = document.getElementById('modal-confirmar-ok');
+    btn.onclick = () => { this.cerrarModal('modal-confirmar'); onOk(); };
+    this.abrirModal('modal-confirmar');
+  },
+
+  notificar(msg, titulo = 'Error') {
+    document.getElementById('modal-notificar-titulo').textContent = titulo;
+    document.getElementById('modal-notificar-msg').textContent    = msg;
+    this.abrirModal('modal-notificar');
+  },
+};
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => {
+    if (e.target === el) el.classList.remove('activo');
+  });
+});
+
+// ================================================================
+// AUTH
+// ================================================================
+let sesionActual = null;
+
+const auth = {
+  async iniciarSesion(e) {
+    e.preventDefault();
+    const usuario  = document.getElementById('login-usuario').value.trim();
+    const password = document.getElementById('login-pass').value;
+    const errorEl  = document.getElementById('login-error');
+    const btn      = document.getElementById('btn-login');
+    errorEl.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+    try {
+      const sesion = await api.post('/api/login', { usuario, password });
+      sesionActual = sesion;
+      this._mostrarApp(sesion);
+    } catch (err) {
+      errorEl.textContent = err.error || 'Error al iniciar sesion.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Ingresar al sistema';
+    }
+  },
+
+  async cerrarSesion() {
+    try { await api.post('/api/logout'); } catch (_) {}
+    sesionActual = null;
+    document.getElementById('vista-app').style.display   = 'none';
+    document.getElementById('vista-login').style.display = 'flex';
+    document.getElementById('login-usuario').value = '';
+    document.getElementById('login-pass').value    = '';
+    document.getElementById('login-error').textContent = '';
+  },
+
+  _mostrarApp(sesion) {
+    document.getElementById('vista-login').style.display = 'none';
+    document.getElementById('vista-app').style.display   = 'block';
+    document.getElementById('sesion-nombre').textContent = sesion.nombre;
+    document.getElementById('sesion-rol').textContent    = sesion.rol;
+    document.getElementById('topbar-fecha').textContent  = fechaHoy();
+    document.getElementById('nav-usuarios').style.display =
+      sesion.rol === 'Administrador' ? 'block' : 'none';
+    const ruta = window.location.pathname.slice(1);
+    app.navegar(MODULOS[ruta] ? ruta : 'nc');
+  },
+};
+
+// ================================================================
+// APP (NAVEGACION)
+// ================================================================
+const MODULOS = {
+  nc:          { titulo: 'No Conformidades', modulo: 'modulo-nc',          nav: 'nav-nc',          onEnter: () => modNC.init() },
+  recepciones: { titulo: 'Recepciones',      modulo: 'modulo-recepciones', nav: 'nav-recepciones', onEnter: () => modREC.init() },
+  usuarios:    { titulo: 'Usuarios',         modulo: 'modulo-usuarios',    nav: 'nav-usuarios',    onEnter: () => modUSR.renderTabla() },
+};
+
+const app = {
+  navegar(clave, { pushState = true } = {}) {
+    if (clave === 'usuarios' && sesionActual?.rol !== 'Administrador') return;
+    if (!MODULOS[clave]) clave = 'nc';
+    Object.values(MODULOS).forEach(cfg => {
+      document.getElementById(cfg.modulo).classList.remove('activo');
+      const el = document.getElementById(cfg.nav);
+      if (el) el.classList.remove('activo');
+    });
+    const cfg = MODULOS[clave];
+    document.getElementById(cfg.modulo).classList.add('activo');
+    document.getElementById(cfg.nav).classList.add('activo');
+    document.getElementById('topbar-titulo').textContent = cfg.titulo;
+    if (pushState) history.pushState({ clave }, '', `/${clave}`);
+    cfg.onEnter();
+  },
+};
+
+window.addEventListener('popstate', e => {
+  if (e.state?.clave) app.navegar(e.state.clave, { pushState: false });
+});
+
+// ================================================================
+// MODULO: NO CONFORMIDADES
+// ================================================================
+const modNC = {
+  registros: [],
+  tabActual: 'Abierta',
+  modTabActual: 'form',
+
+  async init() {
+    document.getElementById('nc-hora').value = horaActual();
+    await this.cargar();
+  },
+
+  cambiarModTab(tab) {
+    this.modTabActual = tab;
+    document.getElementById('nc-panel-form').style.display      = tab === 'form'      ? '' : 'none';
+    document.getElementById('nc-panel-registros').style.display = tab === 'registros' ? '' : 'none';
+    document.getElementById('modtab-form').classList.toggle('activo',      tab === 'form');
+    document.getElementById('modtab-registros').classList.toggle('activo', tab === 'registros');
+    if (tab === 'registros') this.cargar();
+  },
+
+  async cargar() {
+    try {
+      this.registros = await api.get('/api/nc');
+      this.poblarFiltroArea();
+      this.renderTabs();
+      this.renderTabla();
+    } catch (e) {
+      console.error('Error cargando NCs:', e);
+    }
+  },
+
+  limpiar() {
+    document.getElementById('form-nc').reset();
+    document.getElementById('nc-hora').value = horaActual();
+  },
+
+  poblarFiltroArea() {
+    const areas = [...new Set(this.registros.map(r => r.area))].sort();
+    const sel   = document.getElementById('nc-filtro-area');
+    const val   = sel.value;
+    sel.innerHTML = '<option value="">Todas las areas</option>';
+    areas.forEach(a => {
+      const o = document.createElement('option');
+      o.value = a; o.textContent = a;
+      sel.appendChild(o);
+    });
+    sel.value = val;
+  },
+
+  renderTabs() {
+    const counts = { Abierta: 0, 'En proceso': 0, Cerrada: 0 };
+    const area   = document.getElementById('nc-filtro-area').value;
+    this.registros
+      .filter(r => !area || r.area === area)
+      .forEach(r => { if (counts[r.estatus] !== undefined) counts[r.estatus]++; });
+
+    document.getElementById('badge-abierta').textContent = counts['Abierta'];
+    document.getElementById('badge-proceso').textContent = counts['En proceso'];
+    document.getElementById('badge-cerrada').textContent = counts['Cerrada'];
+    document.getElementById('badge-total').textContent   = this.registros.length;
+
+    ['tab-abierta', 'tab-proceso', 'tab-cerrada'].forEach(id =>
+      document.getElementById(id).classList.remove('activo')
+    );
+    const tabMap = { Abierta: 'tab-abierta', 'En proceso': 'tab-proceso', Cerrada: 'tab-cerrada' };
+    document.getElementById(tabMap[this.tabActual]).classList.add('activo');
+  },
+
+  cambiarTab(estatus) {
+    this.tabActual = estatus;
+    this.renderTabs();
+    this.renderTabla();
+  },
+
+  renderTabla() {
+    const area   = document.getElementById('nc-filtro-area').value;
+    let lista    = this.registros.filter(r => r.estatus === this.tabActual);
+    if (area) lista = lista.filter(r => r.area === area);
+
+    const cuerpo = document.getElementById('nc-tabla-cuerpo');
+    const vacio  = document.getElementById('nc-tabla-vacio');
+
+    if (!lista.length) {
+      cuerpo.innerHTML = '';
+      vacio.style.display = 'block';
+      return;
+    }
+    vacio.style.display = 'none';
+
+    const badgeSev = { Alta: 'badge-alta', Media: 'badge-media', Baja: 'badge-baja' };
+
+    cuerpo.innerHTML = lista.map((r, i) => {
+      const hora = r.hora ? String(r.hora).slice(0, 5) : '';
+      return `<tr style="cursor:pointer" onclick="modNC.abrirDetalle(${r.id})" onmouseover="this.style.background='#f0f4f9'" onmouseout="this.style.background=''">
+        <td>${i + 1}</td>
+        <td>${hora}</td>
+        <td>${r.area}</td>
+        <td>${r.tipo}</td>
+        <td><span class="badge ${badgeSev[r.severidad] || ''}">${r.severidad}</span></td>
+        <td>${r.registrado_por}</td>
+        <td><button class="btn-accion" onclick="event.stopPropagation();modNC.abrirDetalle(${r.id})">Ver &rarr;</button></td>
+      </tr>`;
+    }).join('');
+  },
+
+  abrirDetalle(id) {
+    const r = this.registros.find(x => x.id === id);
+    if (!r) return;
+
+    const badgeSev = { Alta: 'badge-alta', Media: 'badge-media', Baja: 'badge-baja' };
+    const hora     = r.hora ? String(r.hora).slice(0, 5) : '';
+
+    document.getElementById('nc-det-titulo').textContent   = `No Conformidad #${r.id}`;
+    document.getElementById('nc-det-hora').textContent      = hora;
+    document.getElementById('nc-det-area').textContent      = r.area;
+    document.getElementById('nc-det-tipo').textContent      = r.tipo;
+    document.getElementById('nc-det-severidad').innerHTML   = `<span class="badge ${badgeSev[r.severidad] || ''}">${r.severidad}</span>`;
+    document.getElementById('nc-det-descripcion').textContent = r.descripcion;
+    document.getElementById('nc-det-responsable').textContent = r.responsable;
+    document.getElementById('nc-det-accion').textContent    = r.accion;
+    document.getElementById('nc-det-registrado').textContent = r.registrado_por;
+
+    const acciones = document.getElementById('nc-det-acciones');
+    const btnsEstatus = {
+      Abierta:     [['En proceso', 'btn-primario'], ['Cerrada', 'btn-secundario']],
+      'En proceso':[['Cerrada',    'btn-primario'], ['Abierta', 'btn-secundario']],
+      Cerrada:     [['Abierta',    'btn-secundario']],
+    };
+
+    let html = (btnsEstatus[r.estatus] || []).map(([est, cls]) =>
+      `<button class="btn ${cls}" onclick="modNC.cambiarEstatus(${r.id},'${est}')">
+        ${est === 'Abierta' ? 'Reabrir' : 'Marcar ' + est}
+      </button>`
+    ).join('');
+
+    html += `<span class="spacer"></span>
+      <button class="btn" style="color:var(--rojo);border:1px solid var(--rojo);background:transparent"
+              onclick="modNC.eliminar(${r.id})">Eliminar</button>
+      <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-nc-detalle')">Cerrar</button>`;
+
+    acciones.innerHTML = html;
+    ui.abrirModal('modal-nc-detalle');
+  },
+
+  async cambiarEstatus(id, nuevoEstatus) {
+    try {
+      await api.patch(`/api/nc/${id}/estatus`, { estatus: nuevoEstatus });
+      ui.cerrarModal('modal-nc-detalle');
+      await this.cargar();
+    } catch (e) {
+      ui.notificar(e.error || 'Error al actualizar estatus.');
+    }
+  },
+
+  eliminar(id) {
+    ui.cerrarModal('modal-nc-detalle');
+    ui.confirmar('Esta accion eliminara el registro de forma permanente.', async () => {
+      try {
+        await api.del(`/api/nc/${id}`);
+        await modNC.cargar();
+      } catch (e) {
+        ui.notificar(e.error || 'Error al eliminar.');
+      }
+    }, 'Eliminar registro');
+  },
+};
+
+document.getElementById('form-nc').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-nc-registrar');
+  btn.disabled = true;
+  try {
+    await api.post('/api/nc', {
+      hora:        document.getElementById('nc-hora').value,
+      area:        document.getElementById('nc-area').value,
+      tipo:        document.getElementById('nc-tipo').value,
+      descripcion: document.getElementById('nc-descripcion').value,
+      severidad:   document.getElementById('nc-severidad').value,
+      responsable: document.getElementById('nc-responsable').value.trim(),
+      accion:      document.getElementById('nc-accion').value.trim(),
+    });
+    modNC.limpiar();
+    await modNC.cargar();
+    modNC.cambiarModTab('registros');
+  } catch (err) {
+    ui.notificar(err.error || 'Error al registrar la no conformidad.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ================================================================
+// ================================================================
+// AUTOCOMPLETE
+// ================================================================
+const ORIGENES = [
+  'GB','JHONY','TJ','Groesbeck, TX','Tijuana, BC','Manzanillo, CO',
+  'Johstown, NY','Spartanburg, NY','SPASC','Bentonville, AR',
+  'Waco, TX','Greenfield, IN','Spartanburg, SC','Las Vegas, NV',
+];
+
+const COMPANIES = [
+  'JB HUNT','OMEGA','ARIITRANS','TRANE','SOLBE','MAFER',
+  'Jasso Logístics','Trucka USA LLC','Mi Logístics','Absolute','TMH',
+  'Transportes Dinámicos del Bajio','Tres Guerra','Ornex Group S de RL de CV',
+  'DIMAS','ZURDOS EXPRESS','José Gustavo Espinoza Rueda','Contreras Nuñes',
+  'Blue Fox','FEMA','Transportes San Miguel','PAM Transport',
+  'ZARO Trucking','NAVA\'S TRUCKING','ALM','OLYMPIC TRANSPORT','THERCA',
+];
+
+const sugerencias = {
+  _mostrar(input, listaId, catalogo) {
+    const lista = document.getElementById(listaId);
+    const q     = input.value.trim().toLowerCase();
+    const items = q ? catalogo.filter(o => o.toLowerCase().includes(q)) : catalogo;
+
+    if (!items.length) { lista.style.display = 'none'; return; }
+
+    const rect = input.getBoundingClientRect();
+    lista.style.top   = rect.bottom + 'px';
+    lista.style.left  = rect.left + 'px';
+    lista.style.width = rect.width + 'px';
+
+    lista.innerHTML = items.map(o =>
+      `<div class="autocomplete-item" onmousedown="sugerencias.seleccionar('${input.id}','${listaId}',this.textContent)">${o}</div>`
+    ).join('');
+    lista.style.display = 'block';
+  },
+
+  filtrar(input, listaId)              { this._mostrar(input, listaId, ORIGENES);  },
+  filtrarLista(input, listaId, lista)  { this._mostrar(input, listaId, lista);     },
+
+  seleccionar(inputId, listaId, valor) {
+    document.getElementById(inputId).value = valor.trim();
+    document.getElementById(listaId).style.display = 'none';
+  },
+
+  cerrar(listaId) {
+    setTimeout(() => {
+      const el = document.getElementById(listaId);
+      if (el) el.style.display = 'none';
+    }, 150);
+  },
+};
+
+// ================================================================
+// MODULO: RECEPCIONES
+// ================================================================
+const modREC = {
+  registros: [],
+  filtroActual: 'Todos',
+
+  async init() { await this.cargar(); },
+
+  async cargar() {
+    try {
+      this.registros = await api.get('/api/recepciones');
+      this.renderFiltros();
+      this.renderTabla();
+    } catch (e) { console.error('Error cargando recepciones:', e); }
+  },
+
+  abrirFormulario() {
+    document.getElementById('form-rec').reset();
+    document.getElementById('rec-edit-id').value    = '';
+    document.getElementById('rec-fecha-form').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('rec-hora').value       = horaActual();
+    document.getElementById('rec-estatus').value    = 'Confirmado';
+    document.getElementById('modal-rec-form-titulo').textContent = 'Nueva Recepcion';
+    document.getElementById('btn-rec-registrar').textContent     = 'Registrar';
+    ui.abrirModal('modal-rec-form');
+  },
+
+  abrirEditar(id) {
+    const r = this.registros.find(x => x.id === id);
+    if (!r) return;
+    const hora     = r.hora ? String(r.hora).slice(0, 5) : '';
+    const fechaRec = r.fecha ? String(r.fecha).slice(0, 10) : this.fecha;
+    document.getElementById('rec-edit-id').value    = r.id;
+    document.getElementById('rec-fecha-form').value = fechaRec;
+    document.getElementById('rec-hora').value        = hora;
+    document.getElementById('rec-company').value     = r.company;
+    document.getElementById('rec-origen').value      = r.origen;
+    document.getElementById('rec-cargo').value       = r.cargo;
+    document.getElementById('rec-tipo').value        = r.tipo;
+    document.getElementById('rec-estatus').value     = r.estatus;
+    document.getElementById('rec-unit-qty').value    = r.unit_qty;
+    document.getElementById('rec-pallet-qty').value  = r.pallet_qty;
+    document.getElementById('modal-rec-form-titulo').textContent = `Editar Recepcion #${r.id}`;
+    document.getElementById('btn-rec-registrar').textContent     = 'Guardar cambios';
+    ui.abrirModal('modal-rec-form');
+  },
+
+  renderFiltros() {
+    const counts = { Todos: this.registros.length, Confirmado: 0, 'En descarga': 0, Descargado: 0, Rechazado: 0 };
+    this.registros.forEach(r => { if (counts[r.estatus] !== undefined) counts[r.estatus]++; });
+
+    document.getElementById('rec-badge-todos').textContent       = counts['Todos'];
+    document.getElementById('rec-badge-confirmado').textContent  = counts['Confirmado'];
+    document.getElementById('rec-badge-descarga').textContent    = counts['En descarga'];
+    document.getElementById('rec-badge-descargado').textContent  = counts['Descargado'];
+    document.getElementById('rec-badge-rechazado').textContent   = counts['Rechazado'];
+
+    const mapa = {
+      Todos: 'rec-filtro-todos', Confirmado: 'rec-filtro-confirmado',
+      'En descarga': 'rec-filtro-descarga', Descargado: 'rec-filtro-descargado',
+      Rechazado: 'rec-filtro-rechazado',
+    };
+    Object.values(mapa).forEach(id => document.getElementById(id).classList.remove('activo'));
+    document.getElementById(mapa[this.filtroActual]).classList.add('activo');
+  },
+
+  cambiarFiltro(filtro) {
+    this.filtroActual = filtro;
+    this.renderFiltros();
+    this.renderTabla();
+  },
+
+  renderTabla() {
+    const lista = this.filtroActual === 'Todos'
+      ? [...this.registros]
+      : this.registros.filter(r => r.estatus === this.filtroActual);
+
+    const cuerpo = document.getElementById('rec-tabla-cuerpo');
+    const vacio  = document.getElementById('rec-tabla-vacio');
+
+    if (!lista.length) { cuerpo.innerHTML = ''; vacio.style.display = 'block'; return; }
+    vacio.style.display = 'none';
+
+    const badgeEst = {
+      Confirmado: 'badge-proceso', 'En descarga': 'badge-media',
+      Descargado: 'badge-cerrada', Rechazado: 'badge-alta',
+    };
+
+    const grupos = [];
+    lista.forEach(r => {
+      const f = String(r.fecha).slice(0, 10);
+      if (!grupos.length || grupos[grupos.length - 1].fecha !== f) {
+        grupos.push({ fecha: f, registros: [] });
+      }
+      grupos[grupos.length - 1].registros.push(r);
+    });
+
+    cuerpo.innerHTML = grupos.map(g => {
+      const [y, m, d] = g.fecha.split('-');
+      const label = new Date(y, m - 1, d).toLocaleDateString('es-MX', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      });
+      const filaFecha = `<tr>
+        <td colspan="10" style="background:#f0f4f9;padding:7px 10px;font-size:10px;font-weight:700;color:var(--azul-oscuro);text-transform:uppercase;letter-spacing:.5px;border-top:2px solid var(--gris-claro)">${label}</td>
+      </tr>`;
+      const filas = g.registros.map((r, i) => {
+        const hora = r.hora ? String(r.hora).slice(0, 5) : '';
+        return `<tr onmouseover="this.style.background='#f0f4f9'" onmouseout="this.style.background=''">
+          <td>${i + 1}</td>
+          <td>${hora}</td>
+          <td>${r.company}</td>
+          <td>${r.origen}</td>
+          <td>${r.cargo}</td>
+          <td>${r.unit_qty}</td>
+          <td>${r.pallet_qty}</td>
+          <td>${r.tipo}</td>
+          <td><span class="badge ${badgeEst[r.estatus] || ''}">${r.estatus}</span></td>
+          <td>
+            <button class="btn-accion" onclick="modREC.abrirEditar(${r.id})">Editar</button>
+            <button class="btn-accion rojo" onclick="modREC.eliminar(${r.id})">Eliminar</button>
+          </td>
+        </tr>`;
+      }).join('');
+      return filaFecha + filas;
+    }).join('');
+  },
+
+  eliminar(id) {
+    ui.confirmar('Esta accion eliminara el registro de forma permanente.', async () => {
+      try {
+        await api.del(`/api/recepciones/${id}`);
+        await modREC.cargar();
+      } catch (e) { ui.notificar(e.error || 'Error al eliminar.'); }
+    }, 'Eliminar registro');
+  },
+};
+
+document.getElementById('form-rec').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn  = document.getElementById('btn-rec-registrar');
+  const id   = document.getElementById('rec-edit-id').value;
+  const data = {
+    hora:       document.getElementById('rec-hora').value,
+    company:    document.getElementById('rec-company').value.trim(),
+    origen:     document.getElementById('rec-origen').value.trim(),
+    cargo:      document.getElementById('rec-cargo').value.trim(),
+    tipo:       document.getElementById('rec-tipo').value,
+    estatus:    document.getElementById('rec-estatus').value,
+    unit_qty:   parseInt(document.getElementById('rec-unit-qty').value) || 0,
+    pallet_qty: parseInt(document.getElementById('rec-pallet-qty').value) || 0,
+    fecha:      document.getElementById('rec-fecha-form').value,
+  };
+  btn.disabled = true;
+  try {
+    if (id) {
+      await api.put(`/api/recepciones/${id}`, data);
+    } else {
+      await api.post('/api/recepciones', data);
+    }
+    ui.cerrarModal('modal-rec-form');
+    await modREC.cargar();
+  } catch (err) {
+    ui.notificar(err.error || 'Error al guardar la recepcion.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ================================================================
+// MODULO: USUARIOS
+// ================================================================
+const modUSR = {
+  _cache: [],
+
+  limpiar() {
+    document.getElementById('form-usuario').reset();
+    document.getElementById('usr-error').textContent = '';
+  },
+
+  async toggleActivo(id) {
+    try {
+      await api.patch(`/api/usuarios/${id}/toggle`);
+      await this.renderTabla();
+    } catch (e) {
+      ui.notificar(e.error || 'Error al cambiar estatus.');
+    }
+  },
+
+  eliminar(id) {
+    ui.confirmar('Esta accion eliminara al usuario de forma permanente.', async () => {
+      try {
+        await api.del(`/api/usuarios/${id}`);
+        await modUSR.renderTabla();
+      } catch (e) {
+        ui.notificar(e.error || 'Error al eliminar.');
+      }
+    }, 'Eliminar usuario');
+  },
+
+  abrirEditar(id) {
+    const u = this._cache.find(x => x.id === id);
+    if (!u) return;
+    document.getElementById('edit-usr-id').value       = u.id;
+    document.getElementById('edit-usr-nombre').value   = u.nombre;
+    document.getElementById('edit-usr-usuario').value  = u.usuario;
+    document.getElementById('edit-usr-pass').value     = '';
+    document.getElementById('edit-usr-rol').value      = u.rol;
+    document.getElementById('edit-usr-area').value     = u.area || '';
+    document.getElementById('edit-usr-error').textContent = '';
+    ui.abrirModal('modal-editar-usuario');
+  },
+
+  async renderTabla() {
+    try {
+      const usuarios = await api.get('/api/usuarios');
+      this._cache = usuarios;
+      const cuerpo = document.getElementById('usr-tabla-cuerpo');
+      const vacio  = document.getElementById('usr-tabla-vacio');
+
+      if (!usuarios.length) {
+        cuerpo.innerHTML = '';
+        vacio.style.display = 'block';
+        return;
+      }
+      vacio.style.display = 'none';
+
+      cuerpo.innerHTML = usuarios.map((u, i) => {
+        const esMio = sesionActual && u.id === sesionActual.id;
+        return `<tr>
+          <td>${i + 1}</td>
+          <td>${u.nombre}${esMio ? ' <span style="font-size:10px;color:var(--gris)">(sesion actual)</span>' : ''}</td>
+          <td>${u.usuario}</td>
+          <td><span class="badge ${u.rol === 'Administrador' ? 'badge-admin' : 'badge-usuario'}">${u.rol}</span></td>
+          <td>${u.area || '—'}</td>
+          <td><span class="badge ${u.activo ? 'badge-activo' : 'badge-inactivo'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
+          <td>
+            <button class="btn-accion" onclick="modUSR.abrirEditar(${u.id})">Editar</button>
+            ${!esMio ? `<button class="btn-accion" onclick="modUSR.toggleActivo(${u.id})">${u.activo ? 'Desactivar' : 'Activar'}</button>` : ''}
+            ${!esMio ? `<button class="btn-accion rojo" onclick="modUSR.eliminar(${u.id})">Eliminar</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('');
+    } catch (e) {
+      console.error('Error cargando usuarios:', e);
+    }
+  },
+};
+
+document.getElementById('form-usuario').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const error   = document.getElementById('usr-error');
+  error.textContent = '';
+
+  const nombre  = document.getElementById('usr-nombre').value.trim();
+  const usuario = document.getElementById('usr-usuario').value.trim().toLowerCase();
+  const pass    = document.getElementById('usr-pass').value;
+  const pass2   = document.getElementById('usr-pass2').value;
+  const rol     = document.getElementById('usr-rol').value;
+  const area    = document.getElementById('usr-area').value;
+
+  if (!/^\S+$/.test(usuario)) { error.textContent = 'El usuario no debe contener espacios.'; return; }
+  if (pass.length < 6)         { error.textContent = 'La contrasena debe tener al menos 6 caracteres.'; return; }
+  if (pass !== pass2)           { error.textContent = 'Las contrasenas no coinciden.'; return; }
+
+  try {
+    await api.post('/api/usuarios', { nombre, usuario, password: pass, rol, area });
+    modUSR.limpiar();
+    await modUSR.renderTabla();
+  } catch (err) {
+    error.textContent = err.error || 'Error al crear usuario.';
+  }
+});
+
+document.getElementById('form-editar-usuario').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const error   = document.getElementById('edit-usr-error');
+  error.textContent = '';
+
+  const id      = parseInt(document.getElementById('edit-usr-id').value);
+  const nombre  = document.getElementById('edit-usr-nombre').value.trim();
+  const usuario = document.getElementById('edit-usr-usuario').value.trim().toLowerCase();
+  const pass    = document.getElementById('edit-usr-pass').value;
+  const rol     = document.getElementById('edit-usr-rol').value;
+  const area    = document.getElementById('edit-usr-area').value;
+
+  if (!/^\S+$/.test(usuario))  { error.textContent = 'El usuario no debe contener espacios.'; return; }
+  if (pass && pass.length < 6) { error.textContent = 'La contrasena debe tener al menos 6 caracteres.'; return; }
+
+  try {
+    const updated = await api.put(`/api/usuarios/${id}`,
+      { nombre, usuario, ...(pass ? { password: pass } : {}), rol, area }
+    );
+    if (sesionActual?.id === id) {
+      sesionActual = { ...sesionActual, nombre: updated.nombre, rol: updated.rol };
+      document.getElementById('sesion-nombre').textContent = updated.nombre;
+      document.getElementById('sesion-rol').textContent    = updated.rol;
+    }
+    ui.cerrarModal('modal-editar-usuario');
+    await modUSR.renderTabla();
+  } catch (err) {
+    error.textContent = err.error || 'Error al actualizar usuario.';
+  }
+});
+
+// ================================================================
+// ARRANQUE
+// ================================================================
+(async function arrancar() {
+  try {
+    const sesion = await api.get('/api/me');
+    sesionActual = sesion;
+    auth._mostrarApp(sesion);
+  } catch {
+    document.getElementById('vista-login').style.display = 'flex';
+  }
+})();
+</script>
+</body>
+</html>
