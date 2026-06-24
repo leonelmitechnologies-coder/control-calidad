@@ -1304,6 +1304,19 @@
   </div>
 </div>
 
+<!-- MODAL: PREGUNTAR (reemplaza prompt nativo) -->
+<div class="modal-overlay" id="modal-preguntar">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-titulo" id="modal-preguntar-titulo">Ingresa un valor</div>
+    <p id="modal-preguntar-msg" style="color:var(--gris-oscuro);font-size:14px;line-height:1.6;margin-bottom:12px;"></p>
+    <input type="text" id="modal-preguntar-input" class="input" style="margin-bottom:22px;">
+    <div class="btn-grupo">
+      <button class="btn btn-primario" id="modal-preguntar-ok">Aceptar</button>
+      <button class="btn btn-secundario" id="modal-preguntar-cancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: NUEVA / EDITAR RECEPCION -->
 <div class="modal-overlay" id="modal-rec-form">
   <div class="modal" style="max-width:560px">
@@ -1795,6 +1808,19 @@ const ui = {
     document.getElementById('modal-notificar-titulo').textContent = titulo;
     document.getElementById('modal-notificar-msg').textContent    = msg;
     this.abrirModal('modal-notificar');
+  },
+
+  preguntar(msg, defaultVal, onOk, titulo = 'Ingresa un valor') {
+    document.getElementById('modal-preguntar-titulo').textContent = titulo;
+    document.getElementById('modal-preguntar-msg').textContent    = msg;
+    const inp = document.getElementById('modal-preguntar-input');
+    inp.value = defaultVal != null ? String(defaultVal) : '';
+    const btnOk  = document.getElementById('modal-preguntar-ok');
+    const btnCan = document.getElementById('modal-preguntar-cancel');
+    btnOk.onclick  = () => { this.cerrarModal('modal-preguntar'); onOk(inp.value); };
+    btnCan.onclick = () => { this.cerrarModal('modal-preguntar'); };
+    this.abrirModal('modal-preguntar');
+    setTimeout(() => inp.focus(), 50);
   },
 };
 
@@ -3044,13 +3070,19 @@ const modCAL = {
     ui.abrirModal('modal-cal-detalle');
   },
 
-  async cambiarEstatus(id, estatus) {
-    const obs = estatus === 'rechazado' ? (prompt('Motivo del rechazo (opcional):') || '') : '';
-    try {
-      await api.patch(`/api/calendario/${id}/estatus`, { estatus, observaciones: obs });
-      ui.cerrarModal('modal-cal-detalle');
-      await this.cargar();
-    } catch (e) { ui.notificar(e.error || 'Error al cambiar estatus.'); }
+  cambiarEstatus(id, estatus) {
+    const _hacer = async (obs) => {
+      try {
+        await api.patch(`/api/calendario/${id}/estatus`, { estatus, observaciones: obs });
+        ui.cerrarModal('modal-cal-detalle');
+        await this.cargar();
+      } catch (e) { ui.notificar(e.error || 'Error al cambiar estatus.'); }
+    };
+    if (estatus === 'rechazado') {
+      ui.preguntar('Motivo del rechazo (opcional):', '', _hacer, 'Rechazar solicitud');
+    } else {
+      _hacer('');
+    }
   },
 
   eliminar(id) {
@@ -3105,13 +3137,18 @@ const modCAL = {
   },
 
   editarSaldo(colabId, nombre, actual) {
-    const nuevo = prompt(`Días de vacaciones asignados para ${nombre} en ${this._anio}:`, actual);
-    if (nuevo === null) return;
-    const n = parseInt(nuevo);
-    if (isNaN(n) || n < 0) { ui.notificar('Ingresa un número válido.'); return; }
-    api.post('/api/calendario/saldo', { colaborador_id: colabId, anio: this._anio, dias_asignados: n })
-      .then(() => this.cargarSaldo())
-      .catch(e => ui.notificar(e.error || 'Error al guardar saldo.'));
+    ui.preguntar(
+      `Días de vacaciones asignados para ${nombre} en ${this._anio}:`,
+      actual,
+      (val) => {
+        const n = parseInt(val);
+        if (isNaN(n) || n < 0) { ui.notificar('Ingresa un número válido.'); return; }
+        api.post('/api/calendario/saldo', { colaborador_id: colabId, anio: this._anio, dias_asignados: n })
+          .then(() => this.cargarSaldo())
+          .catch(e => ui.notificar(e.error || 'Error al guardar saldo.'));
+      },
+      'Saldo de vacaciones'
+    );
   },
 };
 
