@@ -1111,18 +1111,20 @@ app.get('/api/dashboard', auth, async (req, res) => {
     const anioN = parseInt(anio) || new Date().getFullYear();
     const mesN  = parseInt(mes)  || (new Date().getMonth() + 1);
 
-    let whereRE, whereNC, params;
+    let whereRE, whereNC, whereRI, params;
     if (periodo === 'ytd') {
       whereRE = `EXTRACT(year FROM registration_date) = $1`;
       whereNC = `EXTRACT(year FROM fecha) = $1`;
+      whereRI = `EXTRACT(year FROM fecha_registro) = $1`;
       params  = [anioN];
     } else {
       whereRE = `DATE_TRUNC('month', registration_date) = make_date($1,$2,1)`;
       whereNC = `DATE_TRUNC('month', fecha) = make_date($1,$2,1)`;
+      whereRI = `DATE_TRUNC('month', fecha_registro) = make_date($1,$2,1)`;
       params  = [anioN, mesN];
     }
 
-    const [resRE, resMarca, resClasif, resNcTotal, resNcSev, resNcArea, resColabs] =
+    const [resRE, resMarca, resClasif, resNcTotal, resNcSev, resNcArea, resColabs, resRI] =
       await Promise.all([
         pool.query(`SELECT COALESCE(SUM(sale_price),0) AS total_price, COUNT(*) AS total_rechazos
                     FROM rechazos_externos WHERE ${whereRE}`, params),
@@ -1141,11 +1143,19 @@ app.get('/api/dashboard', auth, async (req, res) => {
         pool.query(`SELECT area, COUNT(*) AS cnt FROM no_conformidades
                     WHERE ${whereNC} GROUP BY area ORDER BY cnt DESC LIMIT 6`, params),
         pool.query(`SELECT COUNT(*) AS activos FROM organigrama_qc WHERE estatus = 'activo'`),
+        pool.query(`SELECT COALESCE(SUM(costo_no_calidad),0) AS total_copq, COUNT(*) AS total_ri
+                    FROM rechazos_internos WHERE ${whereRI}`, params),
       ]);
 
+    const extPrice  = parseFloat(resRE.rows[0].total_price);
+    const intCopq   = parseFloat(resRI.rows[0].total_copq);
+
     res.json({
-      sale_price_total:      parseFloat(resRE.rows[0].total_price),
+      sale_price_total:      extPrice,
+      copq_interno_total:    intCopq,
+      total_rejects_cost:    extPrice + intCopq,
       rechazos_total:        parseInt(resRE.rows[0].total_rechazos),
+      rechazos_internos_total: parseInt(resRI.rows[0].total_ri),
       nc_abiertas:           parseInt(resNcTotal.rows[0].abiertas),
       colaboradores_activos: parseInt(resColabs.rows[0].activos),
       sale_price_por_marca:  resMarca.rows,

@@ -2844,17 +2844,22 @@ const modDASH = {
   },
 
   _renderKpis(d) {
-    const fmtPrice = v => '$' + parseFloat(v).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+    const fmtPrice = v => '$' + parseFloat(v||0).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
     document.getElementById('dash-kpi-grid').innerHTML = `
       <div class="kpi-card verde">
-        <div class="kpi-label">Sale Price Total</div>
+        <div class="kpi-label">External Rejects Prices</div>
         <div class="kpi-valor">${fmtPrice(d.sale_price_total)}</div>
-        <div class="kpi-sub">${d.rechazos_total} rechazo${d.rechazos_total!==1?'s':''} en el período</div>
+        <div class="kpi-sub">${d.rechazos_total} rechazo${d.rechazos_total!==1?'s':''} externos en el período</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Total Rechazos</div>
-        <div class="kpi-valor">${d.rechazos_total}</div>
-        <div class="kpi-sub">Rechazos externos registrados</div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">Internal Reject Prices</div>
+        <div class="kpi-valor">${fmtPrice(d.copq_interno_total)}</div>
+        <div class="kpi-sub">${d.rechazos_internos_total||0} rechazo${(d.rechazos_internos_total||0)!==1?'s':''} internos en el período</div>
+      </div>
+      <div class="kpi-card rojo">
+        <div class="kpi-label">Total Rejects Cost</div>
+        <div class="kpi-valor">${fmtPrice(d.total_rejects_cost)}</div>
+        <div class="kpi-sub">Externos + Internos</div>
       </div>
       <div class="kpi-card ${d.nc_abiertas > 0 ? 'rojo' : ''}">
         <div class="kpi-label">NCs Abiertas</div>
