@@ -2846,20 +2846,22 @@ const modDASH = {
   _renderKpis(d) {
     const fmtPrice = v => '$' + parseFloat(v||0).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
     document.getElementById('dash-kpi-grid').innerHTML = `
-      <div class="kpi-card verde">
-        <div class="kpi-label">External Rejects Prices</div>
-        <div class="kpi-valor">${fmtPrice(d.sale_price_total)}</div>
-        <div class="kpi-sub">${d.rechazos_total} rechazo${d.rechazos_total!==1?'s':''} externos en el período</div>
-      </div>
-      <div class="kpi-card amber">
-        <div class="kpi-label">Internal Reject Prices</div>
-        <div class="kpi-valor">${fmtPrice(d.copq_interno_total)}</div>
-        <div class="kpi-sub">${d.rechazos_internos_total||0} rechazo${(d.rechazos_internos_total||0)!==1?'s':''} internos en el período</div>
-      </div>
-      <div class="kpi-card rojo">
-        <div class="kpi-label">Total Rejects Cost</div>
-        <div class="kpi-valor">${fmtPrice(d.total_rejects_cost)}</div>
-        <div class="kpi-sub">Externos + Internos</div>
+      <div class="kpi-card rojo" style="grid-column:span 2">
+        <div class="kpi-label" style="margin-bottom:12px">Rejects Cost Summary</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px">
+            <span style="color:var(--gris)">External Rejects Prices <span style="font-size:10px">(${d.rechazos_total} registros)</span></span>
+            <span style="font-weight:700;color:var(--verde)">${fmtPrice(d.sale_price_total)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px">
+            <span style="color:var(--gris)">Internal Reject Prices <span style="font-size:10px">(${d.rechazos_internos_total||0} registros)</span></span>
+            <span style="font-weight:700;color:var(--amarillo)">${fmtPrice(d.copq_interno_total)}</span>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--gris-claro);padding-top:10px;display:flex;justify-content:space-between;align-items:center">
+          <span class="kpi-label" style="margin:0">Total Rejects Cost</span>
+          <span class="kpi-valor" style="font-size:26px">${fmtPrice(d.total_rejects_cost)}</span>
+        </div>
       </div>
       <div class="kpi-card ${d.nc_abiertas > 0 ? 'rojo' : ''}">
         <div class="kpi-label">NCs Abiertas</div>
