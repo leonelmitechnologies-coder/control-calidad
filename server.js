@@ -197,6 +197,62 @@ async function initDB() {
 
   await pool.query(`ALTER TABLE organigrama_qc ADD COLUMN IF NOT EXISTS foto_filename VARCHAR(255) NOT NULL DEFAULT ''`);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS calendario_solicitudes (
+      id             SERIAL PRIMARY KEY,
+      colaborador_id INTEGER      NOT NULL,
+      tipo           VARCHAR(50)  NOT NULL,
+      fecha_inicio   DATE         NOT NULL,
+      fecha_fin      DATE         NOT NULL,
+      dias_habiles   INTEGER      NOT NULL DEFAULT 1,
+      motivo         TEXT         NOT NULL DEFAULT '',
+      estatus        VARCHAR(20)  NOT NULL DEFAULT 'pendiente',
+      aprobado_por   VARCHAR(100) NOT NULL DEFAULT '',
+      observaciones  TEXT         NOT NULL DEFAULT '',
+      registrado_por VARCHAR(100) NOT NULL DEFAULT '',
+      created_at     TIMESTAMP    DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS calendario_festivos (
+      id         SERIAL PRIMARY KEY,
+      nombre     VARCHAR(100) NOT NULL,
+      fecha      DATE         NOT NULL,
+      recurrente BOOLEAN      DEFAULT true,
+      created_at TIMESTAMP    DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS calendario_saldo (
+      id             SERIAL PRIMARY KEY,
+      colaborador_id INTEGER NOT NULL,
+      anio           INTEGER NOT NULL,
+      dias_asignados INTEGER NOT NULL DEFAULT 0,
+      created_at     TIMESTAMP DEFAULT NOW(),
+      UNIQUE(colaborador_id, anio)
+    )
+  `);
+
+  // Festivos oficiales México (solo si la tabla está vacía)
+  const { rows: fRows } = await pool.query('SELECT COUNT(*) FROM calendario_festivos');
+  if (parseInt(fRows[0].count) === 0) {
+    const festivos = [
+      ['Año Nuevo',                  '2026-01-01'],
+      ['Día de la Constitución',     '2026-02-02'],
+      ['Natalicio de Benito Juárez', '2026-03-16'],
+      ['Día del Trabajo',            '2026-05-01'],
+      ['Independencia de México',    '2026-09-16'],
+      ['Revolución Mexicana',        '2026-11-16'],
+      ['Navidad',                    '2026-12-25'],
+    ];
+    for (const [nombre, fecha] of festivos) {
+      await pool.query('INSERT INTO calendario_festivos (nombre, fecha, recurrente) VALUES ($1,$2,true)', [nombre, fecha]);
+    }
+    console.log('Festivos oficiales precargados.');
+  }
+
   const { rows } = await pool.query('SELECT COUNT(*) FROM usuarios');
   if (parseInt(rows[0].count) === 0) {
     const hash = await bcrypt.hash('admin123', 10);
@@ -758,6 +814,117 @@ app.delete('/api/organigrama-qc/:id', auth, async (req, res) => {
     if (rec?.foto_filename) fs.unlink(path.join(uploadsOrgDir, rec.foto_filename), () => {});
     await pool.query('DELETE FROM organigrama_qc WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── CALENDARIO ────────────────────────────────────────────────
+app.get('/api/calendario', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT cs.*, oq.nombre_completo, oq.area, oq.puesto
+      FROM calendario_solicitudes cs
+      JOIN organigrama_qc oq ON cs.colaborador_id = oq.id
+      ORDER BY cs.fecha_inicio DESC
+    `);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/calendario', auth, async (req, res) => {
+  const { colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles, motivo, estatus } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO calendario_solicitudes
+       (colaborador_id,tipo,fecha_inicio,fecha_fin,dias_habiles,motivo,estatus,registrado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles||1, motivo||'',
+       estatus||'pendiente', req.session.usuario?.nombre||'']
+    );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/calendario/:id', auth, async (req, res) => {
+  const { colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles, motivo, estatus } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE calendario_solicitudes SET
+       colaborador_id=$1,tipo=$2,fecha_inicio=$3,fecha_fin=$4,
+       dias_habiles=$5,motivo=$6,estatus=$7
+       WHERE id=$8 RETURNING *`,
+      [colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles||1,
+       motivo||'', estatus||'pendiente', req.params.id]
+    );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/calendario/:id/estatus', auth, async (req, res) => {
+  const { estatus, observaciones } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE calendario_solicitudes SET estatus=$1, observaciones=$2, aprobado_por=$3 WHERE id=$4 RETURNING *`,
+      [estatus, observaciones||'', req.session.usuario?.nombre||'', req.params.id]
+    );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/calendario/:id', auth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM calendario_solicitudes WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/calendario/festivos', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM calendario_festivos ORDER BY fecha');
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/calendario/festivos', auth, async (req, res) => {
+  const { nombre, fecha, recurrente } = req.body;
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO calendario_festivos (nombre,fecha,recurrente) VALUES ($1,$2,$3) RETURNING *',
+      [nombre, fecha, recurrente !== false]
+    );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/calendario/festivos/:id', auth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM calendario_festivos WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/calendario/saldo', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT cs.*, oq.nombre_completo, oq.area
+      FROM calendario_saldo cs
+      JOIN organigrama_qc oq ON cs.colaborador_id = oq.id
+      ORDER BY oq.nombre_completo
+    `);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/calendario/saldo', auth, async (req, res) => {
+  const { colaborador_id, anio, dias_asignados } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO calendario_saldo (colaborador_id,anio,dias_asignados)
+       VALUES ($1,$2,$3)
+       ON CONFLICT (colaborador_id,anio) DO UPDATE SET dias_asignados=$3
+       RETURNING *`,
+      [colaborador_id, anio, dias_asignados]
+    );
+    res.json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -843,6 +843,36 @@
     .org-det-avatar { width:80px; height:80px; border-radius:50%; overflow:hidden; margin:0 auto 12px;
                       border:2px solid var(--gris-claro); }
     .org-det-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+
+    /* ── Calendario ── */
+    .cal-header    { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+    .cal-nav-mes   { display:flex; align-items:center; gap:12px; }
+    .cal-nav-btn   { background:none; border:1px solid var(--gris-claro); padding:4px 14px; cursor:pointer; font-size:16px; line-height:1; }
+    .cal-nav-btn:hover { border-color:var(--azul); color:var(--azul); }
+    .cal-mes-label { font-size:16px; font-weight:700; color:var(--azul); min-width:180px; text-align:center; }
+    .filtro-select { border:1px solid var(--gris-claro); padding:6px 10px; font-size:11px; font-family:inherit; background:#fff; }
+    .cal-grid      { display:grid; grid-template-columns:repeat(7,1fr); border-left:1px solid var(--gris-claro); border-top:1px solid var(--gris-claro); }
+    .cal-dia-hdr   { padding:6px; text-align:center; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gris); background:var(--fondo); border-right:1px solid var(--gris-claro); border-bottom:1px solid var(--gris-claro); }
+    .cal-dia       { min-height:90px; padding:5px; border-right:1px solid var(--gris-claro); border-bottom:1px solid var(--gris-claro); font-size:11px; background:#fff; }
+    .cal-dia.otro-mes   { background:var(--fondo); opacity:.5; }
+    .cal-dia.hoy        { background:#f0f5ff; }
+    .cal-dia.fin-semana { background:#fafafa; }
+    .cal-dia-num   { font-size:11px; font-weight:700; color:var(--gris); margin-bottom:3px; }
+    .cal-dia.hoy .cal-dia-num { color:var(--azul); }
+    .cal-chip      { font-size:9px; padding:2px 4px; margin-bottom:2px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
+    .cal-chip:hover { opacity:.75; }
+    .cal-chip-vacaciones   { background:#e8f5ee; color:#1a6b3c; border-left:2px solid #1a6b3c; }
+    .cal-chip-permiso      { background:#e8f0fd; color:#2563a8; border-left:2px solid #2563a8; }
+    .cal-chip-incapacidad  { background:#fdf6e8; color:#8a6a00; border-left:2px solid #8a6a00; }
+    .cal-chip-capacitacion { background:#f4e8fd; color:#6b1a7a; border-left:2px solid #6b1a7a; }
+    .cal-festivo   { font-size:9px; padding:2px 4px; margin-bottom:2px; background:#fde8e8; color:var(--rojo); border-left:2px solid var(--rojo); display:block; }
+    .cal-conflicto { font-size:9px; color:var(--rojo); font-weight:700; }
+    .cal-saldo-wrap  { margin-top:28px; }
+    .cal-saldo-titulo{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--azul); border-bottom:2px solid var(--azul); padding-bottom:5px; margin-bottom:12px; }
+    .cal-festivos-lista { margin-bottom:16px; }
+    .cal-festivo-fila   { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--gris-claro); font-size:11px; }
+    .cal-festivo-fila span { flex:1; }
+    .cal-leyenda { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
   </style>
 </head>
 <body>
@@ -888,6 +918,7 @@
         <a class="nav-item" id="nav-recepciones"  href="/recepciones"   onclick="event.preventDefault();app.navegar('recepciones')">Recepciones</a>
         <a class="nav-item" id="nav-rechazos-ext"   href="/rechazos-ext"    onclick="event.preventDefault();app.navegar('rechazos-ext')">Rechazos Externos</a>
         <a class="nav-item" id="nav-organigrama-qc" href="/organigrama-qc"  onclick="event.preventDefault();app.navegar('organigrama-qc')">Organigrama QC</a>
+        <a class="nav-item" id="nav-calendario"    href="/calendario"     onclick="event.preventDefault();app.navegar('calendario')">Calendario</a>
         <a class="nav-item" id="nav-usuarios"    href="/usuarios"     onclick="event.preventDefault();app.navegar('usuarios')" style="display:none">Usuarios</a>
       </nav>
 
@@ -1126,6 +1157,46 @@
           </div>
           <div id="org-arbol"></div>
           <div id="org-vacio" class="vacio">Sin colaboradores registrados.</div>
+        </div>
+      </div>
+
+      <!-- MODULO: CALENDARIO -->
+      <div class="modulo" id="modulo-calendario">
+        <div class="card">
+          <div class="cal-header">
+            <div class="cal-nav-mes">
+              <button class="cal-nav-btn" onclick="modCAL.cambiarMes(-1)">&#8592;</button>
+              <div class="cal-mes-label" id="cal-mes-label"></div>
+              <button class="cal-nav-btn" onclick="modCAL.cambiarMes(1)">&#8594;</button>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <select id="cal-filtro-area" class="filtro-select" onchange="modCAL.renderCalendario()">
+                <option value="">Todas las áreas</option>
+                <option>Incoming</option><option>Sorting</option><option>FFT</option>
+                <option>Paletizado</option><option>Almacen</option><option>Shipping</option>
+              </select>
+              <select id="cal-filtro-tipo" class="filtro-select" onchange="modCAL.renderCalendario()">
+                <option value="">Todos los tipos</option>
+                <option>Vacaciones</option><option>Permiso</option>
+                <option>Incapacidad</option><option>Capacitación</option>
+              </select>
+              <button class="btn btn-secundario" onclick="modCAL.abrirFestivos()">Festivos</button>
+              <button class="btn btn-primario" onclick="modCAL.abrirFormulario()">+ Nueva solicitud</button>
+            </div>
+          </div>
+          <div class="cal-leyenda">
+            <span class="cal-chip cal-chip-vacaciones" style="cursor:default">Vacaciones</span>
+            <span class="cal-chip cal-chip-permiso" style="cursor:default">Permiso</span>
+            <span class="cal-chip cal-chip-incapacidad" style="cursor:default">Incapacidad</span>
+            <span class="cal-chip cal-chip-capacitacion" style="cursor:default">Capacitación</span>
+            <span class="cal-festivo" style="cursor:default">Festivo</span>
+          </div>
+          <div id="cal-grid"></div>
+          <div class="cal-saldo-wrap">
+            <div class="cal-saldo-titulo">Saldo de Vacaciones — <span id="cal-saldo-anio"></span></div>
+            <div id="cal-saldo-tabla"></div>
+            <div id="cal-saldo-vacio" class="vacio">Sin registros de saldo.</div>
+          </div>
         </div>
       </div>
 
@@ -1497,6 +1568,89 @@
   </div>
 </div>
 
+<!-- MODAL: FORMULARIO CALENDARIO -->
+<div class="modal-overlay" id="modal-cal-form">
+  <div class="modal" style="max-width:600px;width:95vw">
+    <div class="modal-titulo" id="modal-cal-form-titulo">Nueva Solicitud</div>
+    <form id="form-cal">
+      <input type="hidden" id="cal-edit-id">
+      <div class="form-grid">
+        <div><label>Colaborador *</label>
+          <select id="cal-colaborador" required onchange="modCAL.onColaboradorChange()">
+            <option value="">Seleccionar colaborador</option>
+          </select>
+        </div>
+        <div><label>Área</label><input type="text" id="cal-area" readonly placeholder="Auto-rellena"></div>
+        <div><label>Tipo *</label>
+          <select id="cal-tipo" required>
+            <option value="">Seleccionar tipo</option>
+            <option>Vacaciones</option><option>Permiso</option>
+            <option>Incapacidad</option><option>Capacitación</option>
+          </select>
+        </div>
+        <div><label>Estatus</label>
+          <select id="cal-estatus">
+            <option value="pendiente">Pendiente</option>
+            <option value="aprobado">Aprobado</option>
+            <option value="rechazado">Rechazado</option>
+          </select>
+        </div>
+        <div><label>Fecha Inicio *</label><input type="date" id="cal-fecha-inicio" required oninput="modCAL.recalcularDias()"></div>
+        <div><label>Fecha Fin *</label><input type="date" id="cal-fecha-fin" required oninput="modCAL.recalcularDias()"></div>
+        <div><label>Días Hábiles</label><input type="text" id="cal-dias-habiles" readonly placeholder="Calculado automáticamente"></div>
+        <div class="full"><label>Motivo</label><textarea id="cal-motivo" rows="2" placeholder="Motivo o descripción"></textarea></div>
+      </div>
+      <div class="modal-footer" style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-cal-form')">Cancelar</button>
+        <button type="submit" id="btn-cal-guardar" class="btn btn-primario">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE CALENDARIO -->
+<div class="modal-overlay" id="modal-cal-detalle">
+  <div class="modal" style="max-width:520px;width:95vw">
+    <div class="modal-titulo" id="cal-det-titulo">Solicitud</div>
+    <div class="nc-det-grid">
+      <div><label>Colaborador</label><span id="cal-det-nombre"></span></div>
+      <div><label>Área</label><span id="cal-det-area"></span></div>
+      <div><label>Tipo</label><span id="cal-det-tipo"></span></div>
+      <div><label>Estatus</label><span id="cal-det-estatus"></span></div>
+      <div><label>Fecha Inicio</label><span id="cal-det-fecha-inicio"></span></div>
+      <div><label>Fecha Fin</label><span id="cal-det-fecha-fin"></span></div>
+      <div><label>Días Hábiles</label><span id="cal-det-dias"></span></div>
+      <div><label>Registrado por</label><span id="cal-det-registrado"></span></div>
+      <div class="full"><label>Motivo</label><span id="cal-det-motivo"></span></div>
+      <div><label>Aprobado por</label><span id="cal-det-aprobado-por"></span></div>
+      <div class="full"><label>Observaciones</label><span id="cal-det-observaciones"></span></div>
+    </div>
+    <div class="nc-det-acciones" id="cal-det-botones"></div>
+  </div>
+</div>
+
+<!-- MODAL: FESTIVOS -->
+<div class="modal-overlay" id="modal-cal-festivos">
+  <div class="modal" style="max-width:480px;width:95vw">
+    <div class="modal-titulo">Días Festivos</div>
+    <div class="cal-festivos-lista" id="cal-festivos-lista"></div>
+    <div class="seccion-titulo" style="margin-bottom:10px;font-size:10px">Agregar Festivo</div>
+    <div class="form-grid">
+      <div class="full"><label>Nombre</label><input type="text" id="cal-fest-nombre" placeholder="Ej. Día del Trabajo"></div>
+      <div><label>Fecha</label><input type="date" id="cal-fest-fecha"></div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer">
+          <input type="checkbox" id="cal-fest-recurrente" checked> Recurrente (anual)
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer" style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-cal-festivos')">Cerrar</button>
+      <button type="button" class="btn btn-primario" onclick="modCAL.agregarFestivo()">+ Agregar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: DETALLE NO CONFORMIDAD -->
 <div class="modal-overlay" id="modal-nc-detalle">
   <div class="modal">
@@ -1708,6 +1862,7 @@ const MODULOS = {
   recepciones:    { titulo: 'Recepciones',       modulo: 'modulo-recepciones',    nav: 'nav-recepciones',    onEnter: () => modREC.init() },
   'rechazos-ext':   { titulo: 'Rechazos Externos', modulo: 'modulo-rechazos-ext',   nav: 'nav-rechazos-ext',   onEnter: () => modRE.init() },
   'organigrama-qc': { titulo: 'Organigrama QC',   modulo: 'modulo-organigrama-qc', nav: 'nav-organigrama-qc', onEnter: () => modORG.init() },
+  'calendario':     { titulo: 'Calendario',       modulo: 'modulo-calendario',     nav: 'nav-calendario',     onEnter: () => modCAL.init() },
   usuarios:         { titulo: 'Usuarios',          modulo: 'modulo-usuarios',       nav: 'nav-usuarios',       onEnter: () => modUSR.renderTabla() },
 };
 
@@ -2622,6 +2777,370 @@ document.getElementById('form-re').addEventListener('submit', async function(e) 
 });
 
 // ================================================================
+// ================================================================
+// MODULO: CALENDARIO
+// ================================================================
+const TIPOS_CAL  = ['Vacaciones','Permiso','Incapacidad','Capacitación'];
+const DIAS_SEM   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MESES_ES   = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+const modCAL = {
+  solicitudes:   [],
+  colaboradores: [],
+  festivos:      [],
+  saldo:         [],
+  _mes:  new Date().getMonth(),
+  _anio: new Date().getFullYear(),
+
+  async init() {
+    try {
+      await Promise.all([
+        this.cargarColaboradores(),
+        this.cargar(),
+        this.cargarFestivos(),
+        this.cargarSaldo(),
+      ]);
+    } catch (e) { ui.notificar('Error cargando el calendario.'); }
+  },
+
+  async cargar() {
+    this.solicitudes = await api.get('/api/calendario');
+    this.renderCalendario();
+    this.renderSaldo();
+  },
+
+  async cargarColaboradores() {
+    const todos = await api.get('/api/organigrama-qc');
+    this.colaboradores = todos.filter(c => c.estatus === 'activo');
+    const sel = document.getElementById('cal-colaborador');
+    sel.innerHTML = '<option value="">Seleccionar colaborador</option>' +
+      this.colaboradores.map(c => `<option value="${c.id}">${c.nombre_completo} — ${c.puesto}</option>`).join('');
+  },
+
+  async cargarFestivos() {
+    this.festivos = await api.get('/api/calendario/festivos');
+  },
+
+  async cargarSaldo() {
+    this.saldo = await api.get('/api/calendario/saldo');
+    this.renderSaldo();
+  },
+
+  _esFestivo(dateObj) {
+    const m = dateObj.getMonth() + 1;
+    const d = dateObj.getDate();
+    const iso = dateObj.toISOString().slice(0, 10);
+    return this.festivos.some(f => {
+      if (f.recurrente) {
+        const fd = new Date(f.fecha + 'T00:00:00');
+        return fd.getMonth() + 1 === m && fd.getDate() === d;
+      }
+      return f.fecha.slice(0, 10) === iso;
+    });
+  },
+
+  _festivoNombre(dateObj) {
+    const m = dateObj.getMonth() + 1;
+    const d = dateObj.getDate();
+    const iso = dateObj.toISOString().slice(0, 10);
+    const f = this.festivos.find(f => {
+      if (f.recurrente) {
+        const fd = new Date(f.fecha + 'T00:00:00');
+        return fd.getMonth() + 1 === m && fd.getDate() === d;
+      }
+      return f.fecha.slice(0, 10) === iso;
+    });
+    return f ? f.nombre : '';
+  },
+
+  _diasHabiles(inicio, fin) {
+    if (!inicio || !fin) return 0;
+    let count = 0;
+    const d = new Date(inicio + 'T00:00:00');
+    const fFin = new Date(fin + 'T00:00:00');
+    while (d <= fFin) {
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6 && !this._esFestivo(d)) count++;
+      d.setDate(d.getDate() + 1);
+    }
+    return count;
+  },
+
+  cambiarMes(delta) {
+    this._mes += delta;
+    if (this._mes > 11) { this._mes = 0;  this._anio++; }
+    if (this._mes < 0)  { this._mes = 11; this._anio--; }
+    this.renderCalendario();
+    this.renderSaldo();
+  },
+
+  renderCalendario() {
+    document.getElementById('cal-mes-label').textContent = `${MESES_ES[this._mes]} ${this._anio}`;
+    const filtroArea = document.getElementById('cal-filtro-area').value;
+    const filtroTipo = document.getElementById('cal-filtro-tipo').value;
+
+    // First day of month and padding
+    const primerDia = new Date(this._anio, this._mes, 1);
+    const ultimoDia = new Date(this._anio, this._mes + 1, 0);
+    const startPad  = primerDia.getDay(); // 0=Sun
+    const hoyIso    = new Date().toISOString().slice(0, 10);
+
+    let html = DIAS_SEM.map(d => `<div class="cal-dia-hdr">${d}</div>`).join('');
+
+    // Padding days before month starts
+    for (let i = 0; i < startPad; i++) {
+      const d = new Date(this._anio, this._mes, 1 - (startPad - i));
+      html += `<div class="cal-dia otro-mes"><div class="cal-dia-num">${d.getDate()}</div></div>`;
+    }
+
+    // Days of the month
+    for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+      const dateObj = new Date(this._anio, this._mes, dia);
+      const iso     = dateObj.toISOString().slice(0, 10);
+      const dow     = dateObj.getDay();
+      const esHoy   = iso === hoyIso;
+      const esFin   = dow === 0 || dow === 6;
+      const esFest  = this._esFestivo(dateObj);
+
+      let clases = 'cal-dia';
+      if (esHoy) clases += ' hoy';
+      else if (esFin) clases += ' fin-semana';
+
+      // Filter solicitudes for this day
+      let sols = this.solicitudes.filter(s => {
+        const ini = s.fecha_inicio.slice(0, 10);
+        const fin = s.fecha_fin.slice(0, 10);
+        return iso >= ini && iso <= fin && s.estatus !== 'rechazado';
+      });
+      if (filtroArea) sols = sols.filter(s => s.area === filtroArea);
+      if (filtroTipo) sols = sols.filter(s => s.tipo === filtroTipo);
+
+      // Conflict detection: ≥2 from same area
+      const areaCounts = {};
+      sols.forEach(s => { areaCounts[s.area] = (areaCounts[s.area] || 0) + 1; });
+      const hayConflicto = Object.values(areaCounts).some(v => v >= 2);
+
+      let inner = `<div class="cal-dia-num">${dia}</div>`;
+      if (esFest) inner += `<span class="cal-festivo">${this._festivoNombre(dateObj)}</span>`;
+      sols.forEach(s => {
+        const cls = 'cal-chip-' + s.tipo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
+        inner += `<span class="cal-chip ${cls}" onclick="modCAL.abrirDetalle(${s.id})" title="${s.nombre_completo}">${s.nombre_completo.split(' ')[0]}</span>`;
+      });
+      if (hayConflicto) inner += `<div class="cal-conflicto">⚠ Conflicto</div>`;
+
+      html += `<div class="${clases}">${inner}</div>`;
+    }
+
+    // Padding after month
+    const totalCeldas = startPad + ultimoDia.getDate();
+    const resto = totalCeldas % 7 === 0 ? 0 : 7 - (totalCeldas % 7);
+    for (let i = 1; i <= resto; i++) {
+      html += `<div class="cal-dia otro-mes"><div class="cal-dia-num">${i}</div></div>`;
+    }
+
+    document.getElementById('cal-grid').innerHTML = `<div class="cal-grid">${html}</div>`;
+  },
+
+  renderSaldo() {
+    document.getElementById('cal-saldo-anio').textContent = this._anio;
+    const tablaEl = document.getElementById('cal-saldo-tabla');
+    const vacioEl = document.getElementById('cal-saldo-vacio');
+
+    const activos = this.colaboradores;
+    if (!activos.length) { tablaEl.innerHTML = ''; vacioEl.style.display = ''; return; }
+    vacioEl.style.display = 'none';
+
+    const rows = activos.map(c => {
+      const reg  = this.saldo.find(s => s.colaborador_id === c.id && parseInt(s.anio) === this._anio);
+      const asignados = reg ? parseInt(reg.dias_asignados) : 0;
+      const usados = this.solicitudes
+        .filter(s => s.colaborador_id === c.id && s.tipo === 'Vacaciones' && s.estatus === 'aprobado' &&
+          s.fecha_inicio.slice(0,4) === String(this._anio))
+        .reduce((sum, s) => sum + (parseInt(s.dias_habiles)||0), 0);
+      const disponibles = asignados - usados;
+      const colorDisp = disponibles < 0 ? 'color:var(--rojo)' : disponibles === 0 ? 'color:var(--gris)' : 'color:var(--verde)';
+      return `<tr>
+        <td>${c.nombre_completo}</td>
+        <td>${c.area || '—'}</td>
+        <td style="text-align:center">${asignados}</td>
+        <td style="text-align:center">${usados}</td>
+        <td style="text-align:center;font-weight:700;${colorDisp}">${disponibles}</td>
+        <td style="text-align:center">
+          <button class="btn-accion" title="Editar saldo" onclick="modCAL.editarSaldo(${c.id},'${c.nombre_completo}',${asignados})">&#9998;</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    tablaEl.innerHTML = `<div class="tabla-wrap"><table>
+      <thead><tr><th>Colaborador</th><th>Área</th><th>Asignados</th><th>Usados</th><th>Disponibles</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  },
+
+  onColaboradorChange() {
+    const id = parseInt(document.getElementById('cal-colaborador').value);
+    const c  = this.colaboradores.find(x => x.id === id);
+    document.getElementById('cal-area').value = c ? c.area : '';
+  },
+
+  recalcularDias() {
+    const ini = document.getElementById('cal-fecha-inicio').value;
+    const fin = document.getElementById('cal-fecha-fin').value;
+    if (ini && fin && fin >= ini) {
+      document.getElementById('cal-dias-habiles').value = this._diasHabiles(ini, fin) + ' día(s)';
+    } else {
+      document.getElementById('cal-dias-habiles').value = '';
+    }
+  },
+
+  abrirFormulario() {
+    document.getElementById('form-cal').reset();
+    document.getElementById('cal-edit-id').value = '';
+    document.getElementById('modal-cal-form-titulo').textContent = 'Nueva Solicitud';
+    ui.abrirModal('modal-cal-form');
+  },
+
+  abrirEditar(id) {
+    const s = this.solicitudes.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('cal-edit-id').value = s.id;
+    document.getElementById('cal-colaborador').value = s.colaborador_id;
+    document.getElementById('cal-area').value = s.area || '';
+    document.getElementById('cal-tipo').value = s.tipo;
+    document.getElementById('cal-estatus').value = s.estatus;
+    document.getElementById('cal-fecha-inicio').value = s.fecha_inicio.slice(0,10);
+    document.getElementById('cal-fecha-fin').value = s.fecha_fin.slice(0,10);
+    document.getElementById('cal-dias-habiles').value = s.dias_habiles + ' día(s)';
+    document.getElementById('cal-motivo').value = s.motivo || '';
+    document.getElementById('modal-cal-form-titulo').textContent = 'Editar Solicitud';
+    ui.cerrarModal('modal-cal-detalle');
+    ui.abrirModal('modal-cal-form');
+  },
+
+  abrirDetalle(id) {
+    const s = this.solicitudes.find(x => x.id === id);
+    if (!s) return;
+    const badgeMap = { pendiente:'badge-proceso', aprobado:'badge-activo', rechazado:'badge-inactivo' };
+    document.getElementById('cal-det-titulo').textContent = s.nombre_completo;
+    document.getElementById('cal-det-nombre').textContent = s.nombre_completo;
+    document.getElementById('cal-det-area').textContent = s.area || '—';
+    document.getElementById('cal-det-tipo').textContent = s.tipo;
+    document.getElementById('cal-det-estatus').innerHTML = `<span class="badge ${badgeMap[s.estatus]||''}">${s.estatus}</span>`;
+    document.getElementById('cal-det-fecha-inicio').textContent = s.fecha_inicio.slice(0,10);
+    document.getElementById('cal-det-fecha-fin').textContent = s.fecha_fin.slice(0,10);
+    document.getElementById('cal-det-dias').textContent = s.dias_habiles + ' día(s)';
+    document.getElementById('cal-det-registrado').textContent = s.registrado_por || '—';
+    document.getElementById('cal-det-motivo').textContent = s.motivo || '—';
+    document.getElementById('cal-det-aprobado-por').textContent = s.aprobado_por || '—';
+    document.getElementById('cal-det-observaciones').textContent = s.observaciones || '—';
+    document.getElementById('cal-det-botones').innerHTML = `
+      <button class="btn btn-secundario" style="background:#e8f5ee;color:#1a6b3c;border-color:#1a6b3c" onclick="modCAL.cambiarEstatus(${s.id},'aprobado')">Aprobar</button>
+      <button class="btn btn-secundario" style="background:#fde8e8;color:var(--rojo);border-color:var(--rojo)" onclick="modCAL.cambiarEstatus(${s.id},'rechazado')">Rechazar</button>
+      <button class="btn btn-secundario" onclick="modCAL.abrirEditar(${s.id})">Editar</button>
+      <span class="spacer"></span>
+      <button class="btn btn-rojo" onclick="modCAL.eliminar(${s.id})">Eliminar</button>
+      <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-cal-detalle')">Cerrar</button>`;
+    ui.abrirModal('modal-cal-detalle');
+  },
+
+  async cambiarEstatus(id, estatus) {
+    const obs = estatus === 'rechazado' ? (prompt('Motivo del rechazo (opcional):') || '') : '';
+    try {
+      await api.patch(`/api/calendario/${id}/estatus`, { estatus, observaciones: obs });
+      ui.cerrarModal('modal-cal-detalle');
+      await this.cargar();
+    } catch (e) { ui.notificar(e.error || 'Error al cambiar estatus.'); }
+  },
+
+  eliminar(id) {
+    ui.confirmar('Se eliminará la solicitud de forma permanente.', async () => {
+      try {
+        await api.del(`/api/calendario/${id}`);
+        ui.cerrarModal('modal-cal-detalle');
+        await this.cargar();
+      } catch (e) { ui.notificar(e.error || 'Error al eliminar.'); }
+    }, 'Eliminar solicitud');
+  },
+
+  abrirFestivos() {
+    this._renderFestivosList();
+    ui.abrirModal('modal-cal-festivos');
+  },
+
+  _renderFestivosList() {
+    const el = document.getElementById('cal-festivos-lista');
+    if (!this.festivos.length) { el.innerHTML = '<p style="font-size:11px;color:var(--gris)">Sin festivos registrados.</p>'; return; }
+    el.innerHTML = this.festivos.map(f => `
+      <div class="cal-festivo-fila">
+        <span>${f.nombre}</span>
+        <span style="color:var(--gris)">${f.fecha.slice(0,10)}</span>
+        <span style="color:var(--gris);font-size:10px">${f.recurrente ? 'Anual' : 'Una vez'}</span>
+        <button class="btn-accion rojo" onclick="modCAL.eliminarFestivo(${f.id})">&#x2715;</button>
+      </div>`).join('');
+  },
+
+  async agregarFestivo() {
+    const nombre = document.getElementById('cal-fest-nombre').value.trim();
+    const fecha  = document.getElementById('cal-fest-fecha').value;
+    const recurrente = document.getElementById('cal-fest-recurrente').checked;
+    if (!nombre || !fecha) { ui.notificar('Ingresa nombre y fecha del festivo.'); return; }
+    try {
+      await api.post('/api/calendario/festivos', { nombre, fecha, recurrente });
+      document.getElementById('cal-fest-nombre').value = '';
+      document.getElementById('cal-fest-fecha').value = '';
+      await this.cargarFestivos();
+      this._renderFestivosList();
+      this.renderCalendario();
+    } catch (e) { ui.notificar(e.error || 'Error al agregar festivo.'); }
+  },
+
+  async eliminarFestivo(id) {
+    try {
+      await api.del(`/api/calendario/festivos/${id}`);
+      await this.cargarFestivos();
+      this._renderFestivosList();
+      this.renderCalendario();
+    } catch (e) { ui.notificar(e.error || 'Error al eliminar festivo.'); }
+  },
+
+  editarSaldo(colabId, nombre, actual) {
+    const nuevo = prompt(`Días de vacaciones asignados para ${nombre} en ${this._anio}:`, actual);
+    if (nuevo === null) return;
+    const n = parseInt(nuevo);
+    if (isNaN(n) || n < 0) { ui.notificar('Ingresa un número válido.'); return; }
+    api.post('/api/calendario/saldo', { colaborador_id: colabId, anio: this._anio, dias_asignados: n })
+      .then(() => this.cargarSaldo())
+      .catch(e => ui.notificar(e.error || 'Error al guardar saldo.'));
+  },
+};
+
+document.getElementById('form-cal').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-cal-guardar');
+  const id  = document.getElementById('cal-edit-id').value;
+  const ini = document.getElementById('cal-fecha-inicio').value;
+  const fin = document.getElementById('cal-fecha-fin').value;
+  const data = {
+    colaborador_id: parseInt(document.getElementById('cal-colaborador').value),
+    tipo:           document.getElementById('cal-tipo').value,
+    estatus:        document.getElementById('cal-estatus').value,
+    fecha_inicio:   ini,
+    fecha_fin:      fin,
+    dias_habiles:   modCAL._diasHabiles(ini, fin),
+    motivo:         document.getElementById('cal-motivo').value.trim(),
+  };
+  btn.disabled = true;
+  try {
+    if (id) { await api.put(`/api/calendario/${id}`, data); }
+    else    { await api.post('/api/calendario', data); }
+    ui.cerrarModal('modal-cal-form');
+    await modCAL.cargar();
+  } catch (err) {
+    ui.notificar(err.error || 'Error al guardar la solicitud.');
+  } finally { btn.disabled = false; }
+});
+
 // MODULO: ORGANIGRAMA QC
 // ================================================================
 function calcTiempoEnPlanta(fechaIngreso) {
