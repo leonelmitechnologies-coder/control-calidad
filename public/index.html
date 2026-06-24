@@ -1165,40 +1165,53 @@
       <!-- MODULO: CALENDARIO -->
       <div class="modulo" id="modulo-calendario">
         <div class="card">
-          <div class="cal-header">
-            <div class="cal-nav-mes">
-              <button class="cal-nav-btn" onclick="modCAL.cambiarMes(-1)">&#8592;</button>
-              <div class="cal-mes-label" id="cal-mes-label"></div>
-              <button class="cal-nav-btn" onclick="modCAL.cambiarMes(1)">&#8594;</button>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <select id="cal-filtro-area" class="filtro-select" onchange="modCAL.renderCalendario()">
-                <option value="">Todas las áreas</option>
-                <option>Incoming</option><option>Sorting</option><option>FFT</option>
-                <option>Paletizado</option><option>Almacen</option><option>Shipping</option>
-              </select>
-              <select id="cal-filtro-tipo" class="filtro-select" onchange="modCAL.renderCalendario()">
-                <option value="">Todos los tipos</option>
-                <option>Vacaciones</option><option>Permiso</option>
-                <option>Incapacidad</option><option>Capacitación</option>
-              </select>
-              <button class="btn btn-secundario" onclick="modCAL.abrirFestivos()">Festivos</button>
-              <button class="btn btn-primario" onclick="modCAL.abrirFormulario()">+ Nueva solicitud</button>
-            </div>
+
+          <!-- Pestañas -->
+          <div class="mod-tabs">
+            <button class="mod-tab activo" id="cal-tab-calendario" onclick="modCAL.cambiarTab('calendario')">Calendario</button>
+            <button class="mod-tab" id="cal-tab-saldo" onclick="modCAL.cambiarTab('saldo')">Saldo de Vacaciones</button>
           </div>
-          <div class="cal-leyenda">
-            <span class="cal-chip cal-chip-vacaciones" style="cursor:default">Vacaciones</span>
-            <span class="cal-chip cal-chip-permiso" style="cursor:default">Permiso</span>
-            <span class="cal-chip cal-chip-incapacidad" style="cursor:default">Incapacidad</span>
-            <span class="cal-chip cal-chip-capacitacion" style="cursor:default">Capacitación</span>
-            <span class="cal-festivo" style="cursor:default">Festivo</span>
+
+          <!-- Panel: Calendario -->
+          <div id="cal-panel-calendario">
+            <div class="cal-header">
+              <div class="cal-nav-mes">
+                <button class="cal-nav-btn" onclick="modCAL.cambiarMes(-1)">&#8592;</button>
+                <div class="cal-mes-label" id="cal-mes-label"></div>
+                <button class="cal-nav-btn" onclick="modCAL.cambiarMes(1)">&#8594;</button>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <select id="cal-filtro-area" class="filtro-select" onchange="modCAL.renderCalendario()">
+                  <option value="">Todas las áreas</option>
+                  <option>Incoming</option><option>Sorting</option><option>FFT</option>
+                  <option>Paletizado</option><option>Almacen</option><option>Shipping</option>
+                </select>
+                <select id="cal-filtro-tipo" class="filtro-select" onchange="modCAL.renderCalendario()">
+                  <option value="">Todos los tipos</option>
+                  <option>Vacaciones</option><option>Permiso</option>
+                  <option>Incapacidad</option><option>Capacitación</option>
+                </select>
+                <button class="btn btn-secundario" onclick="modCAL.abrirFestivos()">Festivos</button>
+                <button class="btn btn-primario" onclick="modCAL.abrirFormulario()">+ Nueva solicitud</button>
+              </div>
+            </div>
+            <div class="cal-leyenda">
+              <span class="cal-chip cal-chip-vacaciones" style="cursor:default">Vacaciones</span>
+              <span class="cal-chip cal-chip-permiso" style="cursor:default">Permiso</span>
+              <span class="cal-chip cal-chip-incapacidad" style="cursor:default">Incapacidad</span>
+              <span class="cal-chip cal-chip-capacitacion" style="cursor:default">Capacitación</span>
+              <span class="cal-festivo" style="cursor:default">Festivo</span>
+            </div>
+            <div id="cal-grid"></div>
           </div>
-          <div id="cal-grid"></div>
-          <div class="cal-saldo-wrap">
+
+          <!-- Panel: Saldo de Vacaciones -->
+          <div id="cal-panel-saldo" style="display:none">
             <div class="cal-saldo-titulo">Saldo de Vacaciones — <span id="cal-saldo-anio"></span></div>
             <div id="cal-saldo-tabla"></div>
             <div id="cal-saldo-vacio" class="vacio">Sin registros de saldo.</div>
           </div>
+
         </div>
       </div>
 
@@ -2820,6 +2833,15 @@ const modCAL = {
   saldo:         [],
   _mes:  new Date().getMonth(),
   _anio: new Date().getFullYear(),
+  _tab:  'calendario',
+
+  cambiarTab(tab) {
+    this._tab = tab;
+    document.getElementById('cal-panel-calendario').style.display = tab === 'calendario' ? '' : 'none';
+    document.getElementById('cal-panel-saldo').style.display      = tab === 'saldo'      ? '' : 'none';
+    document.getElementById('cal-tab-calendario').classList.toggle('activo', tab === 'calendario');
+    document.getElementById('cal-tab-saldo').classList.toggle('activo',      tab === 'saldo');
+  },
 
   async init() {
     try {
