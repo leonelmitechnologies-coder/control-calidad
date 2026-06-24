@@ -876,6 +876,30 @@
     .cal-festivo-fila span { flex:1; }
     .cal-leyenda { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
 
+    /* ── CAPA ── */
+    .capa-origen-badge { font-size:10px; padding:2px 7px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border:1px solid; display:inline-block; }
+    .capa-origen-nc    { background:#e8f0fd; color:#2563a8; border-color:#2563a8; }
+    .capa-origen-re    { background:#fdf6e8; color:#8a6a00; border-color:#8a6a00; }
+    .badge-abierta-capa  { background:#fde8e8; color:var(--rojo);  border:1px solid var(--rojo);  display:inline-block; padding:2px 8px; font-size:10px; font-weight:700; text-transform:uppercase; }
+    .badge-proceso-capa  { background:#e8f0fd; color:#2563a8;      border:1px solid #2563a8;      display:inline-block; padding:2px 8px; font-size:10px; font-weight:700; text-transform:uppercase; }
+    .badge-cerrada-capa  { background:#e8f5ee; color:var(--verde); border:1px solid var(--verde); display:inline-block; padding:2px 8px; font-size:10px; font-weight:700; text-transform:uppercase; }
+    .porques-tabla      { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+    .porques-tabla th   { background:var(--azul); color:#fff; padding:7px 10px; font-size:10px; font-weight:700; text-transform:uppercase; }
+    .porques-tabla td   { padding:7px 10px; border-bottom:1px solid var(--gris-claro); vertical-align:top; }
+    .porques-tabla td:first-child { width:28px; text-align:center; font-weight:700; color:var(--azul); }
+    .ishikawa-grid      { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
+    .ishikawa-cat       { background:var(--fondo); border:1px solid var(--gris-claro); padding:10px 12px; }
+    .ishikawa-cat-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--azul); margin-bottom:6px; }
+    .ishikawa-causa-fila { display:flex; gap:6px; margin-bottom:5px; align-items:center; }
+    .ishikawa-causa-fila input { flex:1; padding:4px 7px; font-size:12px; border:1px solid var(--gris-claro); background:#fff; }
+    .capa-acciones-tabla { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+    .capa-acciones-tabla th { background:var(--azul); color:#fff; padding:7px 10px; font-size:10px; font-weight:700; text-transform:uppercase; }
+    .capa-acciones-tabla td { padding:6px 8px; border-bottom:1px solid var(--gris-claro); vertical-align:middle; }
+    .accion-estatus-sel { font-size:11px; padding:3px 6px; border:1px solid var(--gris-claro); background:#fff; cursor:pointer; }
+    .capa-accion-fila   { display:grid; grid-template-columns:1fr 140px 120px 110px 28px; gap:6px; align-items:start; margin-bottom:8px; }
+    .capa-accion-fila textarea { resize:vertical; min-height:40px; padding:5px 7px; font-size:12px; border:1px solid var(--gris-claro); font-family:inherit; }
+    .capa-accion-fila input, .capa-accion-fila select { padding:5px 7px; font-size:12px; border:1px solid var(--gris-claro); background:#fff; height:32px; }
+
     /* ── Dashboard ── */
     .dash-periodo     { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
     .dash-periodo-btn { padding:7px 18px; border:1px solid var(--gris-claro); background:#fff;
@@ -950,6 +974,7 @@
         <a class="nav-item" id="nav-nc"           href="/nc"           onclick="event.preventDefault();app.navegar('nc')">No Conformidades</a>
         <a class="nav-item" id="nav-recepciones"  href="/recepciones"   onclick="event.preventDefault();app.navegar('recepciones')">Recepciones</a>
         <a class="nav-item" id="nav-rechazos-ext"   href="/rechazos-ext"    onclick="event.preventDefault();app.navegar('rechazos-ext')">Rechazos Externos</a>
+        <a class="nav-item" id="nav-capas" href="/capas" onclick="event.preventDefault();app.navegar('capas')">Acciones Correctivas</a>
         <a class="nav-item" id="nav-organigrama-qc" href="/organigrama-qc"  onclick="event.preventDefault();app.navegar('organigrama-qc')">Organigrama QC</a>
         <a class="nav-item" id="nav-calendario"    href="/calendario"     onclick="event.preventDefault();app.navegar('calendario')">Calendario</a>
         <a class="nav-item" id="nav-usuarios"    href="/usuarios"     onclick="event.preventDefault();app.navegar('usuarios')" style="display:none">Usuarios</a>
@@ -1212,6 +1237,38 @@
         </div>
       </div>
 
+      <!-- MODULO: CAPAS -->
+      <div class="modulo" id="modulo-capas">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <select id="capa-filtro-tipo" class="filtro-select" onchange="modCAPA.renderTabla()">
+                <option value="">NC y Rechazos</option>
+                <option value="nc">Solo NCs</option>
+                <option value="re">Solo Rechazos</option>
+              </select>
+              <select id="capa-filtro-estatus" class="filtro-select" onchange="modCAPA.renderTabla()">
+                <option value="">Todos los estatus</option>
+                <option value="Abierta">Abierta</option>
+                <option value="En proceso">En proceso</option>
+                <option value="Cerrada">Cerrada</option>
+              </select>
+            </div>
+            <button class="btn btn-primario" onclick="modCAPA.abrirFormulario()">+ Nueva CAPA</button>
+          </div>
+          <div class="tabla-wrap">
+            <table>
+              <thead><tr>
+                <th>#</th><th>Origen</th><th>Título</th><th>Método</th>
+                <th>Responsable</th><th>F. Compromiso</th><th>Estatus</th><th></th>
+              </tr></thead>
+              <tbody id="capa-tabla-cuerpo"></tbody>
+            </table>
+          </div>
+          <div id="capa-tabla-vacio" class="vacio" style="display:none">Sin acciones correctivas registradas.</div>
+        </div>
+      </div>
+
       <!-- MODULO: ORGANIGRAMA QC -->
       <div class="modulo" id="modulo-organigrama-qc">
         <div class="card">
@@ -1378,6 +1435,104 @@
     <div class="btn-grupo">
       <button class="btn btn-primario" onclick="ui.cerrarModal('modal-notificar')">Cerrar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: CAPA FORMULARIO -->
+<div class="modal-overlay" id="modal-capa-form">
+  <div class="modal" style="max-width:740px;width:95vw">
+    <div class="modal-titulo" id="modal-capa-form-titulo">Nueva Acción Correctiva (CAPA)</div>
+    <input type="hidden" id="capa-edit-id">
+    <form id="form-capa">
+      <div class="seccion-titulo">Datos Generales</div>
+      <div class="form-grid">
+        <div>
+          <label>Tipo de origen</label>
+          <select id="capa-origen-tipo" onchange="modCAPA._cargarOrigenSelect()" required>
+            <option value="">— Seleccionar —</option>
+            <option value="nc">No Conformidad</option>
+            <option value="re">Rechazo Externo</option>
+          </select>
+        </div>
+        <div>
+          <label>Registro origen</label>
+          <select id="capa-origen-id" required>
+            <option value="">— Primero selecciona tipo —</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>Título de la CAPA</label>
+          <input type="text" id="capa-titulo" required>
+        </div>
+        <div class="full">
+          <label>Descripción del problema</label>
+          <textarea id="capa-descripcion" rows="3" style="resize:vertical"></textarea>
+        </div>
+        <div>
+          <label>Responsable</label>
+          <input type="text" id="capa-responsable" required>
+        </div>
+        <div>
+          <label>Fecha de apertura</label>
+          <input type="date" id="capa-fecha-apertura" required>
+        </div>
+        <div>
+          <label>Fecha compromiso</label>
+          <input type="date" id="capa-fecha-compromiso">
+        </div>
+      </div>
+
+      <div class="seccion-titulo" style="margin-top:20px">Método de Análisis de Causa Raíz</div>
+      <div style="display:flex;gap:20px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+          <input type="radio" name="capa-metodo" value="5porques" id="capa-metodo-5p" checked
+                 onchange="modCAPA._toggleMetodo('5porques')"> 5 Porqués
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+          <input type="radio" name="capa-metodo" value="ishikawa" id="capa-metodo-ish"
+                 onchange="modCAPA._toggleMetodo('ishikawa')"> Ishikawa (6M)
+        </label>
+      </div>
+
+      <!-- Panel 5 Porqués -->
+      <div id="capa-panel-5porques">
+        <table class="porques-tabla">
+          <thead><tr><th>#</th><th>¿Por qué?</th><th>Respuesta / Causa encontrada</th></tr></thead>
+          <tbody id="capa-porques-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Panel Ishikawa -->
+      <div id="capa-panel-ishikawa" style="display:none">
+        <div class="ishikawa-grid" id="capa-ishi-grid"></div>
+      </div>
+
+      <div class="seccion-titulo" style="margin-top:20px">Acciones Correctivas</div>
+      <div style="display:grid;grid-template-columns:1fr 140px 120px 110px 28px;gap:6px;margin-bottom:6px">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gris)">Acción</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gris)">Responsable</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gris)">F. Compromiso</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gris)">Estatus</span>
+        <span></span>
+      </div>
+      <div id="capa-acciones-lista"></div>
+      <button type="button" class="btn btn-secundario" style="margin-top:4px"
+              onclick="modCAPA.agregarAccion()">+ Agregar acción</button>
+
+      <div class="btn-grupo" style="margin-top:22px">
+        <button type="submit" class="btn btn-primario" id="btn-capa-guardar">Guardar</button>
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-capa-form')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: CAPA DETALLE -->
+<div class="modal-overlay" id="modal-capa-detalle">
+  <div class="modal" style="max-width:740px;width:95vw">
+    <div class="modal-titulo" id="capa-det-titulo">Acción Correctiva</div>
+    <div id="capa-det-contenido"></div>
+    <div class="nc-det-acciones" id="capa-det-botones"></div>
   </div>
 </div>
 
@@ -1968,6 +2123,340 @@ const auth = {
 };
 
 // ================================================================
+// CAPA — Acciones Correctivas y Preventivas
+// ================================================================
+const ISHIKAWA_CATS = ['Mano de obra','Máquina','Método','Material','Medio ambiente','Medición'];
+const PORQUES_LABEL = ['¿Por qué ocurrió?','¿Por qué esa causa?','¿Por qué esa razón?','¿Por qué no se detectó?','Causa raíz identificada'];
+
+const modCAPA = {
+  registros: [],
+  _origenes: { nc: [], re: [] },
+
+  async init() {
+    await Promise.all([this.cargar(), this._cargarOrigenes()]);
+  },
+
+  async cargar() {
+    try {
+      this.registros = await api.get('/api/capas');
+      this.renderTabla();
+    } catch(e) { ui.notificar(e.error || 'Error al cargar CAPAs.'); }
+  },
+
+  async _cargarOrigenes() {
+    try {
+      const [ncs, res] = await Promise.all([
+        api.get('/api/nc?fecha=todos'),
+        api.get('/api/rechazos-externos'),
+      ]);
+      this._origenes.nc = Array.isArray(ncs) ? ncs : [];
+      this._origenes.re = Array.isArray(res) ? res : [];
+    } catch(_) {}
+  },
+
+  renderTabla() {
+    const tipo    = document.getElementById('capa-filtro-tipo').value;
+    const estatus = document.getElementById('capa-filtro-estatus').value;
+    let filas = this.registros;
+    if (tipo)    filas = filas.filter(r => r.origen_tipo === tipo);
+    if (estatus) filas = filas.filter(r => r.estatus === estatus);
+
+    const tbody = document.getElementById('capa-tabla-cuerpo');
+    const vacio = document.getElementById('capa-tabla-vacio');
+    if (!filas.length) { tbody.innerHTML = ''; vacio.style.display = 'block'; return; }
+    vacio.style.display = 'none';
+
+    const badgeCls = { 'Abierta': 'badge-abierta-capa', 'En proceso': 'badge-proceso-capa', 'Cerrada': 'badge-cerrada-capa' };
+    const metodoLabel = { '5porques': '5 Porqués', 'ishikawa': 'Ishikawa' };
+
+    tbody.innerHTML = filas.map(r => `
+      <tr style="cursor:pointer" onclick="modCAPA.abrirDetalle(${r.id})">
+        <td>${r.id}</td>
+        <td><span class="capa-origen-badge capa-origen-${r.origen_tipo}">${r.origen_tipo === 'nc' ? 'NC' : 'RE'}</span>
+            <span style="font-size:11px;color:var(--gris);margin-left:5px">${r.origen_ref || ''}</span></td>
+        <td style="font-size:12px">${r.titulo}</td>
+        <td style="font-size:11px">${metodoLabel[r.metodo_analisis] || r.metodo_analisis}</td>
+        <td style="font-size:12px">${r.responsable}</td>
+        <td style="font-size:11px">${r.fecha_compromiso ? String(r.fecha_compromiso).slice(0,10) : '—'}</td>
+        <td><span class="${badgeCls[r.estatus] || ''}">${r.estatus}</span></td>
+        <td><button class="btn-accion" onclick="event.stopPropagation();modCAPA.abrirDetalle(${r.id})">&#8250;</button></td>
+      </tr>`).join('');
+  },
+
+  _initPorques() {
+    document.getElementById('capa-porques-tbody').innerHTML = [1,2,3,4,5].map(i => `
+      <tr>
+        <td>${i}</td>
+        <td style="font-size:11px;color:var(--gris)">${PORQUES_LABEL[i-1]}</td>
+        <td><textarea name="porq-${i}" rows="2" style="width:100%;resize:vertical;padding:4px 6px;font-size:12px;border:1px solid var(--gris-claro);font-family:inherit"></textarea></td>
+      </tr>`).join('');
+  },
+
+  _initIshikawa(datos) {
+    document.getElementById('capa-ishi-grid').innerHTML = ISHIKAWA_CATS.map(cat => {
+      const causas = datos ? datos.filter(d => d.categoria === cat) : [];
+      const filas = causas.length
+        ? causas.map(d => `<div class="ishikawa-causa-fila"><input type="text" value="${d.causa}" data-cat="${cat}"><button type="button" class="btn-accion rojo" onclick="this.closest('.ishikawa-causa-fila').remove()">&#x2715;</button></div>`).join('')
+        : `<div class="ishikawa-causa-fila"><input type="text" data-cat="${cat}" placeholder="Agregar causa..."><button type="button" class="btn-accion rojo" onclick="this.closest('.ishikawa-causa-fila').remove()">&#x2715;</button></div>`;
+      return `<div class="ishikawa-cat">
+        <div class="ishikawa-cat-label">${cat}</div>
+        <div id="ishi-cat-${cat.replace(/\s/g,'_')}">
+          ${filas}
+        </div>
+        <button type="button" class="btn-accion" style="font-size:11px;margin-top:4px"
+                onclick="modCAPA._agregarCausaIshi('${cat}')">+ causa</button>
+      </div>`;
+    }).join('');
+  },
+
+  _agregarCausaIshi(cat) {
+    const wrap = document.getElementById('ishi-cat-' + cat.replace(/\s/g,'_'));
+    const fila = document.createElement('div');
+    fila.className = 'ishikawa-causa-fila';
+    fila.innerHTML = `<input type="text" data-cat="${cat}" placeholder="Agregar causa..."><button type="button" class="btn-accion rojo" onclick="this.closest('.ishikawa-causa-fila').remove()">&#x2715;</button>`;
+    wrap.appendChild(fila);
+  },
+
+  _toggleMetodo(metodo) {
+    document.getElementById('capa-panel-5porques').style.display = metodo === '5porques' ? '' : 'none';
+    document.getElementById('capa-panel-ishikawa').style.display = metodo === 'ishikawa'  ? '' : 'none';
+  },
+
+  agregarAccion(data) {
+    const fila = document.createElement('div');
+    fila.className = 'capa-accion-fila';
+    fila.innerHTML = `
+      <textarea placeholder="Descripción de la acción..." rows="2">${data?.accion || ''}</textarea>
+      <input type="text" placeholder="Responsable" value="${data?.responsable || ''}">
+      <input type="date" value="${data?.fecha_compromiso ? String(data.fecha_compromiso).slice(0,10) : ''}">
+      <select>
+        <option value="Pendiente"   ${(!data||data.estatus==='Pendiente')   ?'selected':''}>Pendiente</option>
+        <option value="En proceso"  ${data?.estatus==='En proceso'          ?'selected':''}>En proceso</option>
+        <option value="Completada"  ${data?.estatus==='Completada'          ?'selected':''}>Completada</option>
+      </select>
+      <button type="button" class="btn-accion rojo" onclick="this.closest('.capa-accion-fila').remove()">&#x2715;</button>`;
+    document.getElementById('capa-acciones-lista').appendChild(fila);
+  },
+
+  _cargarOrigenSelect() {
+    const tipo = document.getElementById('capa-origen-tipo').value;
+    const sel  = document.getElementById('capa-origen-id');
+    if (!tipo) { sel.innerHTML = '<option value="">— Primero selecciona tipo —</option>'; return; }
+    const items = this._origenes[tipo] || [];
+    if (!items.length) { sel.innerHTML = '<option value="">Sin registros disponibles</option>'; return; }
+    sel.innerHTML = '<option value="">— Seleccionar —</option>' +
+      items.map(r => {
+        const label = tipo === 'nc'
+          ? `NC #${r.id} — ${r.area} / ${r.tipo} (${r.fecha})`
+          : `RE #${r.id} — ${r.license_plate} (${r.brand || ''})`;
+        return `<option value="${r.id}">${label}</option>`;
+      }).join('');
+  },
+
+  abrirFormulario(origenTipo, origenId) {
+    document.getElementById('capa-edit-id').value = '';
+    document.getElementById('modal-capa-form-titulo').textContent = 'Nueva Acción Correctiva (CAPA)';
+    document.getElementById('form-capa').reset();
+    document.getElementById('capa-fecha-apertura').value = new Date().toISOString().slice(0,10);
+    document.getElementById('capa-metodo-5p').checked = true;
+    this._toggleMetodo('5porques');
+    this._initPorques();
+    this._initIshikawa(null);
+    document.getElementById('capa-acciones-lista').innerHTML = '';
+    this.agregarAccion();
+
+    if (origenTipo) {
+      document.getElementById('capa-origen-tipo').value = origenTipo;
+      this._cargarOrigenSelect();
+      if (origenId) setTimeout(() => { document.getElementById('capa-origen-id').value = origenId; }, 0);
+    }
+    ui.abrirModal('modal-capa-form');
+  },
+
+  async abrirEditar(id) {
+    try {
+      const c = await api.get(`/api/capas/${id}`);
+      document.getElementById('capa-edit-id').value = id;
+      document.getElementById('modal-capa-form-titulo').textContent = 'Editar CAPA';
+      document.getElementById('capa-origen-tipo').value = c.origen_tipo;
+      this._cargarOrigenSelect();
+      setTimeout(() => { document.getElementById('capa-origen-id').value = c.origen_id; }, 0);
+      document.getElementById('capa-titulo').value         = c.titulo;
+      document.getElementById('capa-descripcion').value    = c.descripcion_problema;
+      document.getElementById('capa-responsable').value    = c.responsable;
+      document.getElementById('capa-fecha-apertura').value = String(c.fecha_apertura).slice(0,10);
+      document.getElementById('capa-fecha-compromiso').value = c.fecha_compromiso ? String(c.fecha_compromiso).slice(0,10) : '';
+
+      const metodo = c.metodo_analisis;
+      document.getElementById(metodo === '5porques' ? 'capa-metodo-5p' : 'capa-metodo-ish').checked = true;
+      this._toggleMetodo(metodo);
+      if (metodo === '5porques') {
+        this._initPorques();
+        c.porques.forEach(p => {
+          const ta = document.querySelector(`#capa-porques-tbody tr:nth-child(${p.orden}) textarea`);
+          if (ta) ta.value = p.respuesta;
+        });
+      } else {
+        this._initIshikawa(c.ishikawa);
+      }
+      document.getElementById('capa-acciones-lista').innerHTML = '';
+      c.acciones.forEach(a => this.agregarAccion(a));
+      ui.cerrarModal('modal-capa-detalle');
+      ui.abrirModal('modal-capa-form');
+    } catch(e) { ui.notificar(e.error || 'Error al cargar CAPA.'); }
+  },
+
+  async abrirDetalle(id) {
+    try {
+      const c = await api.get(`/api/capas/${id}`);
+      document.getElementById('capa-det-titulo').textContent = c.titulo;
+      const badgeCls = { 'Abierta': 'badge-abierta-capa', 'En proceso': 'badge-proceso-capa', 'Cerrada': 'badge-cerrada-capa' };
+      const metodoLabel = { '5porques': '5 Porqués', 'ishikawa': 'Ishikawa (6M)' };
+
+      let analisisHtml = '';
+      if (c.metodo_analisis === '5porques') {
+        const filas = c.porques.filter(p => p.respuesta).map(p =>
+          `<tr><td>${p.orden}</td><td style="font-size:11px;color:var(--gris)">${PORQUES_LABEL[p.orden-1]}</td><td>${p.respuesta}</td></tr>`).join('');
+        analisisHtml = filas
+          ? `<table class="porques-tabla"><thead><tr><th>#</th><th>Pregunta</th><th>Respuesta</th></tr></thead><tbody>${filas}</tbody></table>`
+          : '<p style="font-size:12px;color:var(--gris)">Sin respuestas registradas.</p>';
+      } else {
+        const catMap = {};
+        c.ishikawa.forEach(r => { if (!catMap[r.categoria]) catMap[r.categoria] = []; catMap[r.categoria].push(r.causa); });
+        analisisHtml = `<div class="ishikawa-grid">${ISHIKAWA_CATS.map(cat => `
+          <div class="ishikawa-cat">
+            <div class="ishikawa-cat-label">${cat}</div>
+            ${(catMap[cat]||[]).length ? catMap[cat].map(ca => `<div style="font-size:12px;padding:3px 0;border-bottom:1px solid var(--gris-claro)">${ca}</div>`).join('') : '<div style="font-size:11px;color:var(--gris)">Sin causas registradas.</div>'}
+          </div>`).join('')}</div>`;
+      }
+
+      const accionesHtml = c.acciones.length ? `
+        <table class="capa-acciones-tabla"><thead><tr>
+          <th>Acción</th><th>Responsable</th><th>F. Compromiso</th><th>Estatus</th>
+        </tr></thead><tbody>${c.acciones.map(a => `
+          <tr>
+            <td>${a.accion}</td>
+            <td>${a.responsable}</td>
+            <td>${a.fecha_compromiso ? String(a.fecha_compromiso).slice(0,10) : '—'}</td>
+            <td>
+              <select class="accion-estatus-sel" onchange="modCAPA.cambiarEstatusAccion(${c.id},${a.id},this.value)">
+                <option ${a.estatus==='Pendiente'  ?'selected':''}>Pendiente</option>
+                <option ${a.estatus==='En proceso' ?'selected':''}>En proceso</option>
+                <option ${a.estatus==='Completada' ?'selected':''}>Completada</option>
+              </select>
+            </td>
+          </tr>`).join('')}</tbody></table>` : '<p style="font-size:12px;color:var(--gris)">Sin acciones registradas.</p>';
+
+      document.getElementById('capa-det-contenido').innerHTML = `
+        <div class="nc-det-grid" style="margin-bottom:14px">
+          <div><label>Origen</label><span><span class="capa-origen-badge capa-origen-${c.origen_tipo}">${c.origen_tipo==='nc'?'NC':'RE'}</span> ${c.origen_ref||''}</span></div>
+          <div><label>Estatus</label><span><span class="${badgeCls[c.estatus]||''}">${c.estatus}</span></span></div>
+          <div><label>Responsable</label><span>${c.responsable}</span></div>
+          <div><label>Método de análisis</label><span>${metodoLabel[c.metodo_analisis]||c.metodo_analisis}</span></div>
+          <div><label>Fecha apertura</label><span>${String(c.fecha_apertura).slice(0,10)}</span></div>
+          <div><label>Fecha compromiso</label><span>${c.fecha_compromiso?String(c.fecha_compromiso).slice(0,10):'—'}</span></div>
+          ${c.fecha_cierre ? `<div><label>Fecha cierre</label><span>${String(c.fecha_cierre).slice(0,10)}</span></div>` : ''}
+          ${c.verificado_por ? `<div><label>Verificado por</label><span>${c.verificado_por}</span></div>` : ''}
+          <div class="full"><label>Descripción del problema</label><span>${c.descripcion_problema||'—'}</span></div>
+          ${c.observaciones ? `<div class="full"><label>Observaciones</label><span>${c.observaciones}</span></div>` : ''}
+        </div>
+        <div class="seccion-titulo">Análisis de Causa Raíz — ${metodoLabel[c.metodo_analisis]||''}</div>
+        ${analisisHtml}
+        <div class="seccion-titulo" style="margin-top:18px">Acciones Correctivas</div>
+        ${accionesHtml}`;
+
+      const btns = document.getElementById('capa-det-botones');
+      btns.innerHTML = '';
+      if (c.estatus === 'Abierta')    btns.innerHTML += `<button class="btn btn-secundario" onclick="modCAPA.cambiarEstatus(${c.id},'En proceso')">En proceso</button>`;
+      if (c.estatus !== 'Cerrada')    btns.innerHTML += `<button class="btn btn-primario"   onclick="modCAPA.cambiarEstatus(${c.id},'Cerrada')">Cerrar CAPA</button>`;
+      if (c.estatus === 'Cerrada')    btns.innerHTML += `<button class="btn btn-secundario" onclick="modCAPA.cambiarEstatus(${c.id},'Abierta')">Reabrir</button>`;
+      btns.innerHTML += `<span class="spacer"></span>
+        <button class="btn btn-secundario" onclick="modCAPA.abrirEditar(${c.id})">Editar</button>
+        <button class="btn" style="color:var(--rojo);border:1px solid var(--rojo);background:transparent"
+                onclick="modCAPA.eliminar(${c.id})">Eliminar</button>
+        <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-capa-detalle')">Cerrar</button>`;
+
+      ui.abrirModal('modal-capa-detalle');
+    } catch(e) { ui.notificar(e.error || 'Error al cargar CAPA.'); }
+  },
+
+  cambiarEstatus(id, estatus) {
+    if (estatus === 'Cerrada') {
+      ui.preguntar('Verificado por (nombre de quien cierra la CAPA):', '', async (val) => {
+        try {
+          await api.patch(`/api/capas/${id}/estatus`, { estatus, verificado_por: val });
+          ui.cerrarModal('modal-capa-detalle');
+          await this.cargar();
+        } catch(e) { ui.notificar(e.error || 'Error al cambiar estatus.'); }
+      }, 'Cerrar CAPA');
+    } else {
+      api.patch(`/api/capas/${id}/estatus`, { estatus })
+        .then(() => { ui.cerrarModal('modal-capa-detalle'); this.cargar(); })
+        .catch(e => ui.notificar(e.error || 'Error.'));
+    }
+  },
+
+  async cambiarEstatusAccion(capaId, accionId, estatus) {
+    try {
+      await api.patch(`/api/capas/${capaId}/acciones/${accionId}`, { estatus });
+    } catch(e) { ui.notificar(e.error || 'Error al actualizar acción.'); }
+  },
+
+  eliminar(id) {
+    ui.confirmar('Se eliminará la CAPA y todo su análisis de forma permanente.', async () => {
+      try {
+        await api.del(`/api/capas/${id}`);
+        ui.cerrarModal('modal-capa-detalle');
+        await this.cargar();
+      } catch(e) { ui.notificar(e.error || 'Error al eliminar.'); }
+    }, 'Eliminar CAPA');
+  },
+
+  _recopilarDatos() {
+    const metodo = document.querySelector('input[name="capa-metodo"]:checked').value;
+    const porques = metodo === '5porques' ? [1,2,3,4,5].map(i => ({
+      orden: i,
+      respuesta: (document.querySelector(`#capa-porques-tbody tr:nth-child(${i}) textarea`)?.value || '').trim(),
+    })) : [];
+    const ishikawa = metodo === 'ishikawa' ? [...document.querySelectorAll('#capa-ishi-grid input[data-cat]')]
+      .map(inp => ({ categoria: inp.dataset.cat, causa: inp.value.trim() }))
+      .filter(c => c.causa) : [];
+    const acciones = [...document.querySelectorAll('#capa-acciones-lista .capa-accion-fila')].map(fila => {
+      const inputs = fila.querySelectorAll('textarea,input,select');
+      return { accion: inputs[0].value.trim(), responsable: inputs[1].value.trim(),
+               fecha_compromiso: inputs[2].value || null, estatus: inputs[3].value };
+    }).filter(a => a.accion);
+    return { metodo, porques, ishikawa, acciones };
+  },
+};
+
+document.getElementById('form-capa').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-capa-guardar');
+  btn.disabled = true;
+  const id = document.getElementById('capa-edit-id').value;
+  const { metodo, porques, ishikawa, acciones } = modCAPA._recopilarDatos();
+  const body = {
+    origen_tipo:          document.getElementById('capa-origen-tipo').value,
+    origen_id:            parseInt(document.getElementById('capa-origen-id').value),
+    titulo:               document.getElementById('capa-titulo').value.trim(),
+    descripcion_problema: document.getElementById('capa-descripcion').value.trim(),
+    metodo_analisis:      metodo,
+    responsable:          document.getElementById('capa-responsable').value.trim(),
+    fecha_apertura:       document.getElementById('capa-fecha-apertura').value,
+    fecha_compromiso:     document.getElementById('capa-fecha-compromiso').value || null,
+    porques, ishikawa, acciones,
+  };
+  try {
+    if (id) { await api.put(`/api/capas/${id}`, body); }
+    else    { await api.post('/api/capas', body); }
+    ui.cerrarModal('modal-capa-form');
+    await modCAPA.cargar();
+  } catch(e) { ui.notificar(e.error || 'Error al guardar CAPA.'); }
+  finally { btn.disabled = false; }
+});
+
+// ================================================================
 // DASHBOARD
 // ================================================================
 const modDASH = {
@@ -2124,7 +2613,8 @@ const MODULOS = {
   dashboard:      { titulo: 'Dashboard',         modulo: 'modulo-dashboard',      nav: 'nav-dashboard',      onEnter: () => modDASH.init() },
   nc:             { titulo: 'No Conformidades',  modulo: 'modulo-nc',             nav: 'nav-nc',             onEnter: () => modNC.init() },
   recepciones:    { titulo: 'Recepciones',       modulo: 'modulo-recepciones',    nav: 'nav-recepciones',    onEnter: () => modREC.init() },
-  'rechazos-ext':   { titulo: 'Rechazos Externos', modulo: 'modulo-rechazos-ext',   nav: 'nav-rechazos-ext',   onEnter: () => modRE.init() },
+  'rechazos-ext':   { titulo: 'Rechazos Externos',              modulo: 'modulo-rechazos-ext',   nav: 'nav-rechazos-ext',   onEnter: () => modRE.init() },
+  'capas':          { titulo: 'Acciones Correctivas (CAPA)',   modulo: 'modulo-capas',          nav: 'nav-capas',          onEnter: () => modCAPA.init() },
   'organigrama-qc': { titulo: 'Organigrama QC',   modulo: 'modulo-organigrama-qc', nav: 'nav-organigrama-qc', onEnter: () => modORG.init() },
   'calendario':     { titulo: 'Calendario',       modulo: 'modulo-calendario',     nav: 'nav-calendario',     onEnter: () => modCAL.init() },
   usuarios:         { titulo: 'Usuarios',          modulo: 'modulo-usuarios',       nav: 'nav-usuarios',       onEnter: () => modUSR.renderTabla() },
@@ -2254,7 +2744,10 @@ const modNC = {
         <td>${r.tipo}</td>
         <td><span class="badge ${badgeSev[r.severidad] || ''}">${r.severidad}</span></td>
         <td>${r.registrado_por}</td>
-        <td><button class="btn-accion" onclick="event.stopPropagation();modNC.abrirDetalle(${r.id})">Ver &rarr;</button></td>
+        <td>
+          ${parseInt(r.cnt_capas) > 0 ? `<span class="badge badge-proceso-capa" style="font-size:10px;margin-right:4px">CAPA&nbsp;${r.cnt_capas}</span>` : ''}
+          <button class="btn-accion" onclick="event.stopPropagation();modNC.abrirDetalle(${r.id})">Ver &rarr;</button>
+        </td>
       </tr>`;
     }).join('');
   },
@@ -2289,7 +2782,13 @@ const modNC = {
       </button>`
     ).join('');
 
-    html += `<span class="spacer"></span>
+    const capasLabelNC = parseInt(r.cnt_capas) > 0
+      ? `Ver CAPAs (${r.cnt_capas})`
+      : '+ Crear CAPA';
+    html += `<button class="btn btn-secundario"
+               onclick="ui.cerrarModal('modal-nc-detalle');modCAPA.abrirFormulario('nc',${r.id})"
+             >${capasLabelNC}</button>
+      <span class="spacer"></span>
       <button class="btn" style="color:var(--rojo);border:1px solid var(--rojo);background:transparent"
               onclick="modNC.eliminar(${r.id})">Eliminar</button>
       <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-nc-detalle')">Cerrar</button>`;
@@ -2868,6 +3367,7 @@ const modRE = {
         <td>${r.processed_by}</td>
         <td><span class="badge badge-proceso">${r.cnt_problemas || 0}</span></td>
         <td>
+          ${parseInt(r.cnt_capas) > 0 ? `<span class="badge badge-proceso-capa" style="font-size:10px;margin-right:4px">CAPA&nbsp;${r.cnt_capas}</span>` : ''}
           <button class="btn-accion" onclick="modRE.abrirDetalle(${r.id})">Ver</button>
           <button class="btn-accion" onclick="modRE.abrirEditar(${r.id})">Editar</button>
           <button class="btn-accion rojo" onclick="modRE.eliminar(${r.id})">Eliminar</button>
@@ -2945,9 +3445,15 @@ const modRE = {
           ).join('');
       } else { accsEl.innerHTML = ''; }
 
+      const capasLabelRE = parseInt(r.cnt_capas) > 0
+        ? `Ver CAPAs (${r.cnt_capas})`
+        : '+ Crear CAPA';
       document.getElementById('re-det-botones').innerHTML = `
         <button class="btn btn-secundario" onclick="modRE.abrirEditar(${r.id})">Editar</button>
         <button class="btn btn-primario" onclick="modRE.generarPDF(${r.id},'${r.license_plate.replace(/'/g,"\\'")}')">Generar PDF</button>
+        <button class="btn btn-secundario"
+                onclick="ui.cerrarModal('modal-re-detalle');modCAPA.abrirFormulario('re',${r.id})"
+        >${capasLabelRE}</button>
         <span class="spacer"></span>
         <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-re-detalle')">Cerrar</button>`;
       ui.abrirModal('modal-re-detalle');

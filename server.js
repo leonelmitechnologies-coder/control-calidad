@@ -235,6 +235,56 @@ async function initDB() {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS capas (
+      id                   SERIAL PRIMARY KEY,
+      origen_tipo          VARCHAR(5)   NOT NULL,
+      origen_id            INTEGER      NOT NULL,
+      titulo               TEXT         NOT NULL DEFAULT '',
+      descripcion_problema TEXT         NOT NULL DEFAULT '',
+      metodo_analisis      VARCHAR(10)  NOT NULL DEFAULT '5porques',
+      responsable          VARCHAR(100) NOT NULL DEFAULT '',
+      fecha_apertura       DATE         NOT NULL,
+      fecha_compromiso     DATE,
+      fecha_cierre         DATE,
+      estatus              VARCHAR(20)  NOT NULL DEFAULT 'Abierta',
+      verificado_por       VARCHAR(100) NOT NULL DEFAULT '',
+      observaciones        TEXT         NOT NULL DEFAULT '',
+      registrado_por       VARCHAR(100) NOT NULL DEFAULT '',
+      created_at           TIMESTAMP    DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS capa_5porques (
+      id        SERIAL PRIMARY KEY,
+      capa_id   INTEGER  NOT NULL,
+      orden     SMALLINT NOT NULL,
+      respuesta TEXT     NOT NULL DEFAULT ''
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS capa_ishikawa (
+      id        SERIAL PRIMARY KEY,
+      capa_id   INTEGER     NOT NULL,
+      categoria VARCHAR(50) NOT NULL,
+      causa     TEXT        NOT NULL DEFAULT ''
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS capa_acciones (
+      id               SERIAL PRIMARY KEY,
+      capa_id          INTEGER      NOT NULL,
+      accion           TEXT         NOT NULL DEFAULT '',
+      responsable      VARCHAR(100) NOT NULL DEFAULT '',
+      fecha_compromiso DATE,
+      estatus          VARCHAR(20)  NOT NULL DEFAULT 'Pendiente',
+      created_at       TIMESTAMP    DEFAULT NOW()
+    )
+  `);
+
   // Festivos oficiales México (solo si la tabla está vacía)
   const { rows: fRows } = await pool.query('SELECT COUNT(*) FROM calendario_festivos');
   if (parseInt(fRows[0].count) === 0) {
@@ -297,10 +347,21 @@ app.get('/api/me', (req, res) => {
 app.get('/api/nc', auth, async (req, res) => {
   const fecha = req.query.fecha || new Date().toISOString().slice(0, 10);
   try {
-    const { rows } = await pool.query(
-      'SELECT * FROM no_conformidades WHERE fecha = $1 ORDER BY hora',
-      [fecha]
-    );
+    let rows;
+    if (fecha === 'todos') {
+      ({ rows } = await pool.query(
+        `SELECT nc.*,
+           (SELECT COUNT(*) FROM capas WHERE origen_tipo='nc' AND origen_id=nc.id) AS cnt_capas
+         FROM no_conformidades nc ORDER BY fecha DESC, hora DESC`
+      ));
+    } else {
+      ({ rows } = await pool.query(
+        `SELECT nc.*,
+           (SELECT COUNT(*) FROM capas WHERE origen_tipo='nc' AND origen_id=nc.id) AS cnt_capas
+         FROM no_conformidades nc WHERE fecha = $1 ORDER BY hora`,
+        [fecha]
+      ));
+    }
     res.json(rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -402,7 +463,8 @@ app.get('/api/rechazos-externos', auth, async (req, res) => {
     const { rows } = await pool.query(`
       SELECT re.*,
         (SELECT COUNT(*) FROM re_problem_descriptions WHERE rechazo_id = re.id) AS cnt_problemas,
-        (SELECT COUNT(*) FROM re_corrective_actions   WHERE rechazo_id = re.id) AS cnt_acciones
+        (SELECT COUNT(*) FROM re_corrective_actions   WHERE rechazo_id = re.id) AS cnt_acciones,
+        (SELECT COUNT(*) FROM capas WHERE origen_tipo='re' AND origen_id=re.id) AS cnt_capas
       FROM rechazos_externos re
       ORDER BY re.created_at DESC
     `);
@@ -729,6 +791,164 @@ ${accsHtml}
 
 </body></html>`;
 }
+
+// ── CAPAS (Acciones Correctivas) ──────────────────────────────
+app.get('/api/capas', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT c.*,
+        CASE c.origen_tipo
+          WHEN 'nc' THEN (SELECT CONCAT('NC — ', area, ' / ', tipo) FROM no_conformidades WHERE id = c.origen_id)
+          WHEN 're' THEN (SELECT CONCAT('RE — ', license_plate)     FROM rechazos_externos  WHERE id = c.origen_id)
+        END AS origen_ref
+      FROM capas c
+      ORDER BY c.created_at DESC
+    `);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/capas/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const [resCapa, resPorques, resIshikawa, resAcciones] = await Promise.all([
+      pool.query(`SELECT c.*,
+        CASE c.origen_tipo
+          WHEN 'nc' THEN (SELECT CONCAT('NC — ', area, ' / ', tipo) FROM no_conformidades WHERE id = c.origen_id)
+          WHEN 're' THEN (SELECT CONCAT('RE — ', license_plate)     FROM rechazos_externos  WHERE id = c.origen_id)
+        END AS origen_ref
+        FROM capas c WHERE c.id=$1`, [id]),
+      pool.query('SELECT * FROM capa_5porques  WHERE capa_id=$1 ORDER BY orden', [id]),
+      pool.query('SELECT * FROM capa_ishikawa  WHERE capa_id=$1', [id]),
+      pool.query('SELECT * FROM capa_acciones  WHERE capa_id=$1 ORDER BY id', [id]),
+    ]);
+    if (!resCapa.rows[0]) return res.status(404).json({ error: 'CAPA no encontrada' });
+    res.json({ ...resCapa.rows[0], porques: resPorques.rows, ishikawa: resIshikawa.rows, acciones: resAcciones.rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/capas', auth, async (req, res) => {
+  const { origen_tipo, origen_id, titulo, descripcion_problema, metodo_analisis,
+          responsable, fecha_apertura, fecha_compromiso, porques, ishikawa, acciones } = req.body;
+  const registrado_por = req.session.usuario.nombre;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: [capa] } = await client.query(
+      `INSERT INTO capas (origen_tipo,origen_id,titulo,descripcion_problema,metodo_analisis,
+         responsable,fecha_apertura,fecha_compromiso,registrado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+      [origen_tipo, origen_id, titulo, descripcion_problema, metodo_analisis,
+       responsable, fecha_apertura, fecha_compromiso || null, registrado_por]
+    );
+    const cid = capa.id;
+    if (metodo_analisis === '5porques' && Array.isArray(porques)) {
+      for (const p of porques) {
+        await client.query('INSERT INTO capa_5porques (capa_id,orden,respuesta) VALUES ($1,$2,$3)',
+          [cid, p.orden, p.respuesta || '']);
+      }
+    }
+    if (metodo_analisis === 'ishikawa' && Array.isArray(ishikawa)) {
+      for (const c of ishikawa) {
+        if (c.causa && c.causa.trim()) {
+          await client.query('INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)',
+            [cid, c.categoria, c.causa]);
+        }
+      }
+    }
+    if (Array.isArray(acciones)) {
+      for (const a of acciones) {
+        if (a.accion && a.accion.trim()) {
+          await client.query(
+            'INSERT INTO capa_acciones (capa_id,accion,responsable,fecha_compromiso,estatus) VALUES ($1,$2,$3,$4,$5)',
+            [cid, a.accion, a.responsable || '', a.fecha_compromiso || null, a.estatus || 'Pendiente']);
+        }
+      }
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ id: cid });
+  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
+  finally { client.release(); }
+});
+
+app.put('/api/capas/:id', auth, async (req, res) => {
+  const { titulo, descripcion_problema, metodo_analisis, responsable,
+          fecha_apertura, fecha_compromiso, porques, ishikawa, acciones } = req.body;
+  const cid = req.params.id;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `UPDATE capas SET titulo=$1,descripcion_problema=$2,metodo_analisis=$3,responsable=$4,
+         fecha_apertura=$5,fecha_compromiso=$6 WHERE id=$7`,
+      [titulo, descripcion_problema, metodo_analisis, responsable,
+       fecha_apertura, fecha_compromiso || null, cid]
+    );
+    await client.query('DELETE FROM capa_5porques WHERE capa_id=$1', [cid]);
+    await client.query('DELETE FROM capa_ishikawa  WHERE capa_id=$1', [cid]);
+    await client.query('DELETE FROM capa_acciones  WHERE capa_id=$1', [cid]);
+    if (metodo_analisis === '5porques' && Array.isArray(porques)) {
+      for (const p of porques) {
+        await client.query('INSERT INTO capa_5porques (capa_id,orden,respuesta) VALUES ($1,$2,$3)',
+          [cid, p.orden, p.respuesta || '']);
+      }
+    }
+    if (metodo_analisis === 'ishikawa' && Array.isArray(ishikawa)) {
+      for (const c of ishikawa) {
+        if (c.causa && c.causa.trim()) {
+          await client.query('INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)',
+            [cid, c.categoria, c.causa]);
+        }
+      }
+    }
+    if (Array.isArray(acciones)) {
+      for (const a of acciones) {
+        if (a.accion && a.accion.trim()) {
+          await client.query(
+            'INSERT INTO capa_acciones (capa_id,accion,responsable,fecha_compromiso,estatus) VALUES ($1,$2,$3,$4,$5)',
+            [cid, a.accion, a.responsable || '', a.fecha_compromiso || null, a.estatus || 'Pendiente']);
+        }
+      }
+    }
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
+  finally { client.release(); }
+});
+
+app.patch('/api/capas/:id/estatus', auth, async (req, res) => {
+  const { estatus, verificado_por, observaciones } = req.body;
+  try {
+    const fechaCierre = estatus === 'Cerrada' ? new Date().toISOString().slice(0,10) : null;
+    await pool.query(
+      `UPDATE capas SET estatus=$1, verificado_por=COALESCE($2,verificado_por),
+         observaciones=COALESCE($3,observaciones),
+         fecha_cierre=CASE WHEN $1='Cerrada' THEN $4::date ELSE fecha_cierre END
+       WHERE id=$5`,
+      [estatus, verificado_por || null, observaciones || null, fechaCierre, req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/capas/:id/acciones/:aid', auth, async (req, res) => {
+  const { estatus } = req.body;
+  try {
+    await pool.query('UPDATE capa_acciones SET estatus=$1 WHERE id=$2 AND capa_id=$3',
+      [estatus, req.params.aid, req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/capas/:id', auth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM capa_5porques WHERE capa_id=$1', [req.params.id]);
+    await pool.query('DELETE FROM capa_ishikawa  WHERE capa_id=$1', [req.params.id]);
+    await pool.query('DELETE FROM capa_acciones  WHERE capa_id=$1', [req.params.id]);
+    await pool.query('DELETE FROM capas WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // ── DASHBOARD ─────────────────────────────────────────────────
 app.get('/api/dashboard', auth, async (req, res) => {
