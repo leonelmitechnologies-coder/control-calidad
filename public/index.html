@@ -1855,7 +1855,16 @@ const api = {
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(data);
     }
-    const r    = await fetch(url, opts);
+    const r = await fetch(url, opts);
+    if (r.status === 401 && sesionActual !== null) {
+      sesionActual = null;
+      document.getElementById('vista-app').style.display   = 'none';
+      document.getElementById('vista-login').style.display = 'flex';
+      document.getElementById('login-usuario').value       = '';
+      document.getElementById('login-pass').value          = '';
+      document.getElementById('login-error').textContent   = 'Tu sesión expiró. Inicia sesión nuevamente.';
+      throw { error: 'Sesión expirada' };
+    }
     const json = await r.json();
     if (!r.ok) throw json;
     return json;
