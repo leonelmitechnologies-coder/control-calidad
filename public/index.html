@@ -1807,7 +1807,7 @@
               onclick="document.getElementById('ri-file-input').click()">+ Subir fotos</button>
       <input type="file" id="ri-file-input" multiple accept="image/*" style="display:none"
              onchange="modRI.agregarImagenesPreview(this.files);this.value=''">
-      <div id="ri-imagenes-nuevas" class="re-imagenes-preview"></div>
+      <div id="ri-imagenes-nuevas" class="re-thumbs"></div>
 
       <div class="seccion-titulo" style="margin-top:18px;margin-bottom:8px">Firma de Recibido</div>
       <p style="font-size:11px;color:var(--gris);margin-bottom:6px">Firma del responsable de recibir el reproceso</p>
@@ -2315,9 +2315,9 @@ const modRI = {
       const idx = this._imagenesNuevas.length - 1;
       const url = URL.createObjectURL(file);
       const div = document.createElement('div');
-      div.className = 're-imagen-wrap';
-      div.innerHTML = `<img src="${url}" class="re-imagen-thumb">
-        <button type="button" class="re-imagen-del" onclick="modRI._quitarImagen(${idx},this.parentElement)">&#x2715;</button>`;
+      div.className = 're-thumb';
+      div.innerHTML = `<img src="${url}">
+        <button type="button" class="re-thumb-del" onclick="modRI._quitarImagen(${idx},this.parentElement)">&#x2715;</button>`;
       wrap.appendChild(div);
     });
   },
@@ -2386,9 +2386,10 @@ const modRI = {
       const imgsEl = document.getElementById('ri-det-imagenes');
       if (r.images?.length) {
         imgsEl.innerHTML = '<div class="seccion-titulo" style="margin-bottom:10px">Fotos del Producto</div>' +
-          `<div class="re-det-imagenes">${r.images.map(img =>
-            `<img src="/uploads/rechazos-internos/${img.filename}" class="re-imagen-thumb" style="cursor:pointer"
-                  onclick="window.open(this.src,'_blank')">`
+          `<div class="re-thumbs">${r.images.map(img =>
+            `<div class="re-thumb" style="cursor:pointer" onclick="window.open('/uploads/rechazos-internos/${img.filename}','_blank')">
+               <img src="/uploads/rechazos-internos/${img.filename}">
+             </div>`
           ).join('')}</div>`;
       } else { imgsEl.innerHTML = ''; }
 
