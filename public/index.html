@@ -321,6 +321,7 @@
     input[type=password],
     input[type=time],
     input[type=email],
+    input[type=datetime-local],
     select,
     textarea {
       width: 100%;
@@ -695,6 +696,113 @@
 
     .nc-det-acciones .spacer { flex: 1; }
 
+    /* ── RECHAZOS EXTERNOS ─────────────────────────────── */
+    .re-chip {
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      text-align: center;
+      transition: opacity 0.15s;
+    }
+
+    .re-item-fila {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .re-item-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gris);
+      padding-top: 11px;
+      min-width: 20px;
+      flex-shrink: 0;
+    }
+
+    .re-item-fila textarea { flex: 1; min-height: 60px; }
+
+    .re-dept-card {
+      border: 1px solid var(--gris-claro);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .re-upload-zona {
+      display: block;
+      border: 2px dashed var(--gris-claro);
+      padding: 16px;
+      text-align: center;
+      color: var(--gris);
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      font-family: inherit;
+    }
+
+    .re-upload-zona:hover { border-color: var(--azul); color: var(--azul); }
+
+    .re-thumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .re-thumb {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+    }
+
+    .re-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border: 1px solid var(--gris-claro);
+      display: block;
+    }
+
+    .re-thumb-del {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 10px;
+      padding: 2px 5px;
+      line-height: 1.4;
+      font-family: inherit;
+    }
+
+    .re-det-imagenes a img {
+      width: 110px;
+      height: 85px;
+      object-fit: cover;
+      border: 1px solid var(--gris-claro);
+      transition: opacity 0.15s;
+    }
+
+    .re-det-imagenes a:hover img { opacity: 0.8; }
+
+    .re-dept-card-titulo {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--azul);
+      margin-bottom: 10px;
+    }
+
     @media (max-width: 700px) {
       .sidebar { width: 185px; }
       .contenido-principal { margin-left: 185px; }
@@ -703,6 +811,23 @@
       .nc-det-grid { grid-template-columns: 1fr; }
       .nc-det-grid .full { grid-column: 1; }
     }
+    /* ── Organigrama QC ── */
+    .org-wrap       { display:flex; flex-direction:column; align-items:center; padding:32px 16px 40px; }
+    .org-conector-v { width:2px; height:28px; background:var(--gris-claro); }
+    .org-nivel      { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .org-ramas      { display:flex; gap:60px; justify-content:center; align-items:flex-start; flex-wrap:wrap; }
+    .org-rama       { display:flex; flex-direction:column; align-items:center; }
+    .org-card       { border:1px solid var(--gris-claro); padding:12px 14px; min-width:152px; max-width:192px;
+                      text-align:center; cursor:pointer; background:#fff;
+                      transition:border-color .15s, box-shadow .15s; }
+    .org-card:hover { border-color:var(--azul); box-shadow:0 2px 8px rgba(13,43,78,.1); }
+    .org-card-nombre{ font-size:12px; font-weight:700; color:var(--azul); }
+    .org-card-puesto{ font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--gris); margin-top:3px; }
+    .org-card-info  { font-size:10px; color:var(--gris); margin-top:2px; }
+    .org-placeholder{ border:1px dashed var(--gris-claro); padding:10px 20px; font-size:10px;
+                      color:var(--gris); text-transform:uppercase; letter-spacing:.5px; min-width:140px; text-align:center; }
+    .org-nivel-label{ font-size:9px; font-weight:700; text-transform:uppercase;
+                      letter-spacing:.8px; color:var(--gris); margin-bottom:8px; text-align:center; }
   </style>
 </head>
 <body>
@@ -745,7 +870,9 @@
       <nav class="sidebar-nav">
         <div class="nav-seccion">Modulos</div>
         <a class="nav-item" id="nav-nc"           href="/nc"           onclick="event.preventDefault();app.navegar('nc')">No Conformidades</a>
-        <a class="nav-item" id="nav-recepciones" href="/recepciones"  onclick="event.preventDefault();app.navegar('recepciones')">Recepciones</a>
+        <a class="nav-item" id="nav-recepciones"  href="/recepciones"   onclick="event.preventDefault();app.navegar('recepciones')">Recepciones</a>
+        <a class="nav-item" id="nav-rechazos-ext"   href="/rechazos-ext"    onclick="event.preventDefault();app.navegar('rechazos-ext')">Rechazos Externos</a>
+        <a class="nav-item" id="nav-organigrama-qc" href="/organigrama-qc"  onclick="event.preventDefault();app.navegar('organigrama-qc')">Organigrama QC</a>
         <a class="nav-item" id="nav-usuarios"    href="/usuarios"     onclick="event.preventDefault();app.navegar('usuarios')" style="display:none">Usuarios</a>
       </nav>
 
@@ -941,6 +1068,52 @@
         </div>
       </div>
 
+      <!-- MODULO: RECHAZOS EXTERNOS -->
+      <div class="modulo" id="modulo-rechazos-ext">
+        <div class="card">
+          <div class="card-header-con-filtro" style="margin-bottom:16px">
+            <div class="seccion-titulo" style="border-bottom:none;margin-bottom:0">Registros</div>
+            <button class="btn btn-primario" onclick="modRE.abrirFormulario()" style="font-size:12px;padding:8px 18px;">+ Agregar</button>
+          </div>
+          <div class="tabla-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Return Order</th>
+                  <th>License Plate</th>
+                  <th>Classification</th>
+                  <th>SKU</th>
+                  <th>Brand</th>
+                  <th>Plant Entry</th>
+                  <th>Plant Exit</th>
+                  <th>Time in Plant</th>
+                  <th>Processed By</th>
+                  <th>Problemas</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="re-tabla-cuerpo"></tbody>
+            </table>
+            <div id="re-tabla-vacio" class="vacio" style="display:none">
+              No hay registros de rechazos externos.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODULO: ORGANIGRAMA QC -->
+      <div class="modulo" id="modulo-organigrama-qc">
+        <div class="card">
+          <div class="card-header-con-filtro" style="margin-bottom:0">
+            <div class="seccion-titulo">Organigrama del Departamento de Calidad</div>
+            <button class="btn btn-primario" onclick="modORG.abrirFormulario()">+ Agregar</button>
+          </div>
+          <div id="org-arbol"></div>
+          <div id="org-vacio" class="vacio">Sin colaboradores registrados.</div>
+        </div>
+      </div>
+
       <!-- MODULO: USUARIOS -->
       <div class="modulo" id="modulo-usuarios">
 
@@ -1129,6 +1302,176 @@
       <div><label>Estatus</label><span id="rec-det-estatus"></span></div>
     </div>
     <div class="nc-det-acciones" id="rec-det-acciones"></div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVO / EDITAR RECHAZO EXTERNO -->
+<div class="modal-overlay" id="modal-re-form">
+  <div class="modal" style="max-width:720px;width:95vw">
+    <div class="modal-titulo" id="modal-re-form-titulo">Nuevo Rechazo Externo</div>
+    <form id="form-re">
+      <input type="hidden" id="re-edit-id">
+
+      <div class="seccion-titulo" style="margin-bottom:14px">Datos del Rechazo</div>
+      <div class="form-grid">
+        <div><label>Return Order</label><input type="text" id="re-return-order" required></div>
+        <div><label>License Plate</label><input type="text" id="re-license-plate" required></div>
+        <div><label>Classification</label><input type="text" id="re-classification" placeholder="Ej. GRB"></div>
+        <div><label>Inches</label><input type="text" id="re-inches" placeholder="Ej. 55"></div>
+        <div><label>Sales Channel</label><input type="text" id="re-sales-channel"></div>
+        <div><label>SKU</label><input type="text" id="re-sku"></div>
+        <div><label>Brand</label><input type="text" id="re-brand"></div>
+        <div><label>Outbound Order</label><input type="text" id="re-outbound-order"></div>
+        <div><label>Plant Entry</label><input type="datetime-local" id="re-plant-entry" oninput="modRE.calcularTiempoEnPlanta()" required></div>
+        <div><label>Plant Exit</label><input type="datetime-local" id="re-plant-exit" oninput="modRE.calcularTiempoEnPlanta()"></div>
+        <div class="full"><label>Total Time in Plant</label><input type="text" id="re-total-time" readonly style="background:#f4f6f9;color:var(--gris-oscuro)" placeholder="Calculado automaticamente"></div>
+        <div class="full"><label>Processed By</label><input type="text" id="re-processed-by" required placeholder="Ej. FFT Area and Open Cell Area"></div>
+        <div><label>Registration Date</label><input type="date" id="re-registration-date"></div>
+        <div><label>Sale Price</label><input type="number" id="re-sale-price" step="0.01" min="0" placeholder="0.00"></div>
+      </div>
+
+      <div class="seccion-titulo" style="margin:20px 0 14px">Problem Description</div>
+      <div id="re-problemas-lista"></div>
+      <button type="button" class="btn btn-secundario" style="font-size:11px;padding:6px 14px;margin-top:6px"
+              onclick="modRE.agregarProblema()">+ Agregar punto</button>
+
+      <div class="seccion-titulo" style="margin:20px 0 14px">Corrective Actions</div>
+      <div style="margin-bottom:12px">
+        <label style="margin-bottom:8px;display:block">Departamentos afectados</label>
+        <div id="re-chips-departamentos" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div>
+      </div>
+      <div id="re-acciones-lista"></div>
+
+      <div class="seccion-titulo" style="margin:20px 0 14px">Evidencia Fotografica</div>
+      <div class="re-thumbs" id="re-imagenes-existentes"></div>
+      <div class="re-thumbs" id="re-imagenes-nuevas"></div>
+      <label class="re-upload-zona" for="re-file-input">
+        Haz clic para agregar imagenes (JPG, PNG, WEBP — max 10MB c/u)
+        <input type="file" id="re-file-input" multiple accept="image/*" style="display:none" onchange="modRE.agregarImagenes(this)">
+      </label>
+
+      <div class="btn-grupo" style="margin-top:22px">
+        <button type="submit" class="btn btn-primario" id="btn-re-registrar">Registrar</button>
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-re-form')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE RECHAZO EXTERNO -->
+<div class="modal-overlay" id="modal-re-detalle">
+  <div class="modal" style="max-width:720px;width:95vw">
+    <div class="modal-titulo" id="re-det-titulo">Rechazo Externo</div>
+    <div class="nc-det-grid">
+      <div><label>Return Order</label><span id="re-det-return-order"></span></div>
+      <div><label>License Plate</label><span id="re-det-license-plate"></span></div>
+      <div><label>Classification</label><span id="re-det-classification"></span></div>
+      <div><label>Inches</label><span id="re-det-inches"></span></div>
+      <div><label>Sales Channel</label><span id="re-det-sales-channel"></span></div>
+      <div><label>SKU</label><span id="re-det-sku"></span></div>
+      <div><label>Brand</label><span id="re-det-brand"></span></div>
+      <div><label>Outbound Order</label><span id="re-det-outbound-order"></span></div>
+      <div><label>Plant Entry</label><span id="re-det-plant-entry"></span></div>
+      <div><label>Plant Exit</label><span id="re-det-plant-exit"></span></div>
+      <div><label>Total Time in Plant</label><span id="re-det-total-time"></span></div>
+      <div><label>Processed By</label><span id="re-det-processed-by"></span></div>
+      <div><label>Registration Date</label><span id="re-det-registration-date"></span></div>
+      <div><label>Sale Price</label><span id="re-det-sale-price"></span></div>
+      <div><label>Registrado por</label><span id="re-det-registrado"></span></div>
+    </div>
+    <div id="re-det-imagenes" class="re-det-imagenes" style="margin-top:16px"></div>
+    <div id="re-det-problemas" style="margin-top:16px"></div>
+    <div id="re-det-acciones" style="margin-top:16px"></div>
+    <div class="nc-det-acciones" id="re-det-botones"></div>
+  </div>
+</div>
+
+<!-- MODAL: FORMULARIO ORGANIGRAMA QC -->
+<div class="modal-overlay" id="modal-org-form">
+  <div class="modal" style="max-width:680px;width:95vw">
+    <div class="modal-titulo" id="modal-org-form-titulo">Agregar Colaborador</div>
+    <form id="form-org">
+      <input type="hidden" id="org-edit-id">
+      <div class="seccion-titulo" style="margin-bottom:12px">Información del Colaborador</div>
+      <div class="form-grid">
+        <div><label>Nombre Completo *</label><input type="text" id="org-nombre" required placeholder="Nombre completo"></div>
+        <div><label>No. Empleado</label><input type="text" id="org-no-empleado" placeholder="Número de empleado"></div>
+        <div><label>Puesto *</label>
+          <select id="org-puesto" required>
+            <option value="">Seleccionar puesto</option>
+            <option>Ingeniero de Calidad</option>
+            <option>Supervisor de Calidad</option>
+            <option>Tecnico de Calidad</option>
+            <option>Especialista de Calidad</option>
+            <option>Inspector de Calidad</option>
+          </select>
+        </div>
+        <div><label>Área</label>
+          <select id="org-area">
+            <option value="">Seleccionar área</option>
+            <option>Incoming</option>
+            <option>Sorting</option>
+            <option>FFT</option>
+            <option>Paletizado</option>
+            <option>Almacen</option>
+            <option>Shipping</option>
+          </select>
+        </div>
+        <div><label>Turno</label>
+          <select id="org-turno">
+            <option value="">Seleccionar turno</option>
+            <option>Turno 1</option>
+            <option>Turno 2</option>
+          </select>
+        </div>
+        <div><label>Estatus</label>
+          <select id="org-estatus">
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </div>
+        <div><label>Fecha de Ingreso</label><input type="date" id="org-fecha-ingreso"></div>
+        <div><label>Sexo</label>
+          <select id="org-sexo">
+            <option value="">Seleccionar</option>
+            <option>Masculino</option>
+            <option>Femenino</option>
+            <option>Prefiero no decir</option>
+          </select>
+        </div>
+        <div><label>Fecha de Nacimiento</label><input type="date" id="org-fecha-nacimiento"></div>
+        <div><label>Teléfono</label><input type="text" id="org-telefono" placeholder="Teléfono"></div>
+        <div class="full"><label>Correo Electrónico</label><input type="email" id="org-correo" placeholder="correo@ejemplo.com"></div>
+        <div><label>Contacto de Emergencia</label><input type="text" id="org-contacto-emergencia" placeholder="Nombre del contacto"></div>
+        <div><label>Tel. Emergencia</label><input type="text" id="org-tel-emergencia" placeholder="Teléfono de emergencia"></div>
+      </div>
+      <div class="modal-footer" style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-org-form')">Cancelar</button>
+        <button type="submit" id="btn-org-guardar" class="btn btn-primario">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE ORGANIGRAMA QC -->
+<div class="modal-overlay" id="modal-org-detalle">
+  <div class="modal" style="max-width:520px;width:95vw">
+    <div class="modal-titulo" id="org-det-titulo">Colaborador</div>
+    <div class="nc-det-grid">
+      <div><label>No. Empleado</label><span id="org-det-no-empleado"></span></div>
+      <div><label>Puesto</label><span id="org-det-puesto"></span></div>
+      <div><label>Área</label><span id="org-det-area"></span></div>
+      <div><label>Turno</label><span id="org-det-turno"></span></div>
+      <div><label>Estatus</label><span id="org-det-estatus"></span></div>
+      <div><label>Fecha de Ingreso</label><span id="org-det-fecha-ingreso"></span></div>
+      <div><label>Sexo</label><span id="org-det-sexo"></span></div>
+      <div><label>Fecha de Nacimiento</label><span id="org-det-fecha-nacimiento"></span></div>
+      <div><label>Teléfono</label><span id="org-det-telefono"></span></div>
+      <div><label>Correo</label><span id="org-det-correo"></span></div>
+      <div><label>Contacto Emergencia</label><span id="org-det-contacto-emergencia"></span></div>
+      <div><label>Tel. Emergencia</label><span id="org-det-tel-emergencia"></span></div>
+    </div>
+    <div class="nc-det-acciones" id="org-det-botones"></div>
   </div>
 </div>
 
@@ -1339,9 +1682,11 @@ const auth = {
 // APP (NAVEGACION)
 // ================================================================
 const MODULOS = {
-  nc:          { titulo: 'No Conformidades', modulo: 'modulo-nc',          nav: 'nav-nc',          onEnter: () => modNC.init() },
-  recepciones: { titulo: 'Recepciones',      modulo: 'modulo-recepciones', nav: 'nav-recepciones', onEnter: () => modREC.init() },
-  usuarios:    { titulo: 'Usuarios',         modulo: 'modulo-usuarios',    nav: 'nav-usuarios',    onEnter: () => modUSR.renderTabla() },
+  nc:             { titulo: 'No Conformidades',  modulo: 'modulo-nc',             nav: 'nav-nc',             onEnter: () => modNC.init() },
+  recepciones:    { titulo: 'Recepciones',       modulo: 'modulo-recepciones',    nav: 'nav-recepciones',    onEnter: () => modREC.init() },
+  'rechazos-ext':   { titulo: 'Rechazos Externos', modulo: 'modulo-rechazos-ext',   nav: 'nav-rechazos-ext',   onEnter: () => modRE.init() },
+  'organigrama-qc': { titulo: 'Organigrama QC',   modulo: 'modulo-organigrama-qc', nav: 'nav-organigrama-qc', onEnter: () => modORG.init() },
+  usuarios:         { titulo: 'Usuarios',          modulo: 'modulo-usuarios',       nav: 'nav-usuarios',       onEnter: () => modUSR.renderTabla() },
 };
 
 const app = {
@@ -1777,6 +2122,683 @@ document.getElementById('form-rec').addEventListener('submit', async function(e)
     await modREC.cargar();
   } catch (err) {
     ui.notificar(err.error || 'Error al guardar la recepcion.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ================================================================
+// MODULO: RECHAZOS EXTERNOS
+// ================================================================
+const DEPARTAMENTOS_RE = ['INCOMING','SORTING','FFT','PALETIZADO','OPEN CELL','ALMACEN','SHIPPING B2C','SHIPPING B2B'];
+
+const modRE = {
+  registros: [],
+  _deptActivos: new Set(),
+  _imagenesNuevas: [],
+  _imagenesExistentes: [],
+
+  async init() { await this.cargar(); },
+
+  async cargar() {
+    try {
+      this.registros = await api.get('/api/rechazos-externos');
+      this.renderTabla();
+    } catch (e) { console.error('Error cargando rechazos externos:', e); }
+  },
+
+  abrirFormulario() {
+    document.getElementById('form-re').reset();
+    document.getElementById('re-edit-id').value = '';
+    document.getElementById('modal-re-form-titulo').textContent = 'Nuevo Rechazo Externo';
+    document.getElementById('btn-re-registrar').textContent = 'Registrar';
+    this._deptActivos = new Set();
+    this._imagenesNuevas = [];
+    this._imagenesExistentes = [];
+    document.getElementById('re-problemas-lista').innerHTML = '';
+    document.getElementById('re-acciones-lista').innerHTML = '';
+    document.getElementById('re-imagenes-existentes').innerHTML = '';
+    document.getElementById('re-imagenes-nuevas').innerHTML = '';
+    this.renderChips();
+    this.agregarProblema(false);
+    ui.abrirModal('modal-re-form');
+  },
+
+  async abrirEditar(id) {
+    try {
+      const r = await api.get(`/api/rechazos-externos/${id}`);
+      document.getElementById('form-re').reset();
+      document.getElementById('re-edit-id').value = r.id;
+      document.getElementById('modal-re-form-titulo').textContent = `Editar Rechazo Externo #${r.id}`;
+      document.getElementById('btn-re-registrar').textContent = 'Guardar cambios';
+
+      document.getElementById('re-return-order').value   = r.return_order   || '';
+      document.getElementById('re-license-plate').value  = r.license_plate  || '';
+      document.getElementById('re-classification').value = r.classification || '';
+      document.getElementById('re-inches').value         = r.inches         || '';
+      document.getElementById('re-sales-channel').value  = r.sales_channel  || '';
+      document.getElementById('re-sku').value            = r.sku            || '';
+      document.getElementById('re-brand').value          = r.brand          || '';
+      document.getElementById('re-outbound-order').value = r.outbound_order || '';
+      document.getElementById('re-processed-by').value      = r.processed_by      || '';
+      document.getElementById('re-registration-date').value = r.registration_date ? String(r.registration_date).slice(0, 10) : '';
+      document.getElementById('re-sale-price').value        = r.sale_price != null ? r.sale_price : '';
+
+      if (r.plant_entry) document.getElementById('re-plant-entry').value = new Date(r.plant_entry).toISOString().slice(0, 16);
+      if (r.plant_exit)  document.getElementById('re-plant-exit').value  = new Date(r.plant_exit).toISOString().slice(0, 16);
+      this.calcularTiempoEnPlanta();
+
+      document.getElementById('re-problemas-lista').innerHTML = '';
+      const probs = r.problem_descriptions || [];
+      if (probs.length) {
+        probs.forEach(p => {
+          this.agregarProblema(false);
+          document.getElementById('re-problemas-lista').lastElementChild.querySelector('textarea').value = p.descripcion;
+        });
+      } else { this.agregarProblema(false); }
+
+      this._deptActivos = new Set();
+      document.getElementById('re-acciones-lista').innerHTML = '';
+      const deptMap = {};
+      (r.corrective_actions || []).forEach(a => {
+        if (!deptMap[a.departamento]) deptMap[a.departamento] = [];
+        deptMap[a.departamento].push(a.accion);
+      });
+      Object.keys(deptMap).forEach(dept => this._deptActivos.add(dept));
+      this.renderChips();
+      this.renderTarjetasAcciones();
+      Object.entries(deptMap).forEach(([dept, acciones]) => {
+        const tarjeta = document.querySelector(`#re-acciones-lista [data-dept="${dept}"]`);
+        if (!tarjeta) return;
+        const listaAcc = tarjeta.querySelector('.re-acciones-dept');
+        acciones.forEach(accion => this._crearFilaAccion(listaAcc, dept, accion));
+        this._actualizarBotonesEliminarAcciones(tarjeta);
+      });
+
+      this._imagenesNuevas = [];
+      this._imagenesExistentes = r.images || [];
+      document.getElementById('re-imagenes-nuevas').innerHTML = '';
+      this._renderImagenesExistentes(r.id);
+
+      ui.cerrarModal('modal-re-detalle');
+      ui.abrirModal('modal-re-form');
+    } catch (e) { ui.notificar('Error al cargar el registro.'); }
+  },
+
+  calcularTiempoEnPlanta() {
+    const entrada = document.getElementById('re-plant-entry').value;
+    const salida  = document.getElementById('re-plant-exit').value;
+    const campo   = document.getElementById('re-total-time');
+    if (!entrada || !salida) { campo.value = ''; return; }
+    const ms = new Date(salida) - new Date(entrada);
+    if (ms <= 0) { campo.value = 'Fecha de salida invalida'; return; }
+    const mins = Math.floor(ms / 60000);
+    const hh   = Math.floor(mins / 60);
+    const mm   = mins % 60;
+    campo.value = hh > 0 ? `${hh}d ${mm > 0 ? mm + 'm' : ''}`.trim() : `${mm}m`;
+    // Convert to days if >=24h
+    if (hh >= 24) {
+      const dias = Math.floor(hh / 24);
+      const hRest = hh % 24;
+      campo.value = hRest > 0 ? `${dias}d ${hRest}h` : `${dias}d`;
+    } else if (hh > 0) {
+      campo.value = mm > 0 ? `${hh}h ${mm}m` : `${hh}h`;
+    }
+  },
+
+  agregarProblema(conFoco = true) {
+    const lista = document.getElementById('re-problemas-lista');
+    const idx   = lista.children.length + 1;
+    const div   = document.createElement('div');
+    div.className = 're-item-fila';
+    div.innerHTML = `<span class="re-item-num">${idx}.</span>
+      <textarea placeholder="Describir el problema..."></textarea>
+      <button type="button" class="btn-accion rojo" onclick="modRE.eliminarProblema(this)">&#x2715;</button>`;
+    lista.appendChild(div);
+    this._actualizarBotonesEliminarProblemas();
+    if (conFoco) div.querySelector('textarea').focus();
+  },
+
+  eliminarProblema(btn) {
+    btn.closest('.re-item-fila').remove();
+    this._renumerarProblemas();
+    this._actualizarBotonesEliminarProblemas();
+  },
+
+  _renumerarProblemas() {
+    document.querySelectorAll('#re-problemas-lista .re-item-num').forEach((el, i) => {
+      el.textContent = (i + 1) + '.';
+    });
+  },
+
+  _actualizarBotonesEliminarProblemas() {
+    const filas = document.querySelectorAll('#re-problemas-lista .re-item-fila');
+    filas.forEach(fila => {
+      const btn = fila.querySelector('.btn-accion.rojo');
+      if (btn) btn.style.visibility = filas.length > 1 ? 'visible' : 'hidden';
+    });
+  },
+
+  toggleDepartamento(dept) {
+    if (this._deptActivos.has(dept)) {
+      const tarjeta = document.querySelector(`#re-acciones-lista [data-dept="${dept}"]`);
+      const tieneContenido = tarjeta && [...tarjeta.querySelectorAll('textarea')].some(t => t.value.trim() !== '');
+      if (tieneContenido) {
+        ui.confirmar(
+          `El departamento ${dept} tiene acciones capturadas. Deseas eliminarlo?`,
+          () => { this._deptActivos.delete(dept); this.renderChips(); this.renderTarjetasAcciones(); }
+        );
+      } else {
+        this._deptActivos.delete(dept);
+        this.renderChips();
+        this.renderTarjetasAcciones();
+      }
+    } else {
+      this._deptActivos.add(dept);
+      this.renderChips();
+      this.renderTarjetasAcciones();
+      this.agregarAccion(dept);
+    }
+  },
+
+  renderChips() {
+    const container = document.getElementById('re-chips-departamentos');
+    container.innerHTML = DEPARTAMENTOS_RE.map(dept => {
+      const activo = this._deptActivos.has(dept);
+      return `<button type="button" class="btn ${activo ? 'btn-primario' : 'btn-secundario'} re-chip"
+        onclick="modRE.toggleDepartamento('${dept}')">${dept}</button>`;
+    }).join('');
+  },
+
+  renderTarjetasAcciones() {
+    const lista = document.getElementById('re-acciones-lista');
+    [...lista.querySelectorAll('[data-dept]')].forEach(card => {
+      if (!this._deptActivos.has(card.dataset.dept)) card.remove();
+    });
+    this._deptActivos.forEach(dept => {
+      if (!lista.querySelector(`[data-dept="${dept}"]`)) {
+        const card = document.createElement('div');
+        card.className = 're-dept-card';
+        card.dataset.dept = dept;
+        card.innerHTML = `<div class="re-dept-card-titulo">${dept}</div>
+          <div class="re-acciones-dept"></div>
+          <button type="button" class="btn btn-secundario" style="font-size:11px;padding:5px 12px;margin-top:8px"
+            onclick="modRE.agregarAccion('${dept}')">+ Accion</button>`;
+        lista.appendChild(card);
+      }
+    });
+  },
+
+  _crearFilaAccion(listaAcciones, dept, valor = '') {
+    const fila = document.createElement('div');
+    fila.className = 're-item-fila';
+    fila.innerHTML = `<textarea placeholder="Describir la accion correctiva...">${valor}</textarea>
+      <button type="button" class="btn-accion rojo" onclick="modRE.eliminarAccion(this,'${dept}')">&#x2715;</button>`;
+    listaAcciones.appendChild(fila);
+    const tarjeta = listaAcciones.closest('[data-dept]');
+    if (tarjeta) this._actualizarBotonesEliminarAcciones(tarjeta);
+  },
+
+  agregarAccion(dept) {
+    const tarjeta = document.querySelector(`#re-acciones-lista [data-dept="${dept}"]`);
+    if (!tarjeta) return;
+    this._crearFilaAccion(tarjeta.querySelector('.re-acciones-dept'), dept);
+  },
+
+  eliminarAccion(btn, dept) {
+    const tarjeta = btn.closest('[data-dept]');
+    btn.closest('.re-item-fila').remove();
+    this._actualizarBotonesEliminarAcciones(tarjeta);
+  },
+
+  _actualizarBotonesEliminarAcciones(tarjeta) {
+    const filas = tarjeta.querySelectorAll('.re-acciones-dept .re-item-fila');
+    filas.forEach(fila => {
+      const btn = fila.querySelector('.btn-accion.rojo');
+      if (btn) btn.style.visibility = filas.length > 1 ? 'visible' : 'hidden';
+    });
+  },
+
+  agregarImagenes(input) {
+    this._imagenesNuevas.push(...input.files);
+    this._renderImagenesNuevas();
+    input.value = '';
+  },
+
+  _renderImagenesNuevas() {
+    const container = document.getElementById('re-imagenes-nuevas');
+    container.innerHTML = [...this._imagenesNuevas].map((file, i) => {
+      const url = URL.createObjectURL(file);
+      return `<div class="re-thumb">
+        <img src="${url}" title="${file.name}">
+        <button type="button" class="re-thumb-del" onclick="modRE.quitarImagenNueva(${i})">&#x2715;</button>
+      </div>`;
+    }).join('');
+  },
+
+  quitarImagenNueva(idx) {
+    this._imagenesNuevas.splice(idx, 1);
+    this._renderImagenesNuevas();
+  },
+
+  _renderImagenesExistentes(rechId) {
+    const container = document.getElementById('re-imagenes-existentes');
+    container.innerHTML = this._imagenesExistentes.map(img =>
+      `<div class="re-thumb">
+        <img src="/uploads/rechazos/${img.filename}" title="Imagen existente">
+        <button type="button" class="re-thumb-del" onclick="modRE.eliminarImagenExistente(${rechId},${img.id})">&#x2715;</button>
+      </div>`
+    ).join('');
+  },
+
+  async eliminarImagenExistente(rechId, imgId) {
+    try {
+      await api.del(`/api/rechazos-externos/${rechId}/images/${imgId}`);
+      this._imagenesExistentes = this._imagenesExistentes.filter(i => i.id !== imgId);
+      this._renderImagenesExistentes(rechId);
+    } catch (e) { ui.notificar('Error al eliminar la imagen.'); }
+  },
+
+  renderTabla() {
+    const cuerpo = document.getElementById('re-tabla-cuerpo');
+    const vacio  = document.getElementById('re-tabla-vacio');
+    if (!this.registros.length) { cuerpo.innerHTML = ''; vacio.style.display = 'block'; return; }
+    vacio.style.display = 'none';
+    cuerpo.innerHTML = this.registros.map((r, i) => {
+      const entry  = r.plant_entry ? new Date(r.plant_entry).toLocaleString('es-MX') : '—';
+      const exit_  = r.plant_exit  ? new Date(r.plant_exit).toLocaleString('es-MX')  : '—';
+      const mins   = r.total_time_minutes;
+      let tiempo   = '—';
+      if (mins != null) {
+        const dias = Math.floor(mins / 1440);
+        const hh   = Math.floor((mins % 1440) / 60);
+        tiempo = dias > 0 ? `${dias}d ${hh > 0 ? hh + 'h' : ''}`.trim() : `${hh}h ${mins % 60}m`;
+      }
+      return `<tr onmouseover="this.style.background='#f0f4f9'" onmouseout="this.style.background=''">
+        <td>${i + 1}</td>
+        <td>${r.return_order}</td>
+        <td>${r.license_plate}</td>
+        <td>${r.classification || '—'}</td>
+        <td>${r.sku || '—'}</td>
+        <td>${r.brand || '—'}</td>
+        <td>${entry}</td>
+        <td>${exit_}</td>
+        <td>${tiempo}</td>
+        <td>${r.processed_by}</td>
+        <td><span class="badge badge-proceso">${r.cnt_problemas || 0}</span></td>
+        <td>
+          <button class="btn-accion" onclick="modRE.abrirDetalle(${r.id})">Ver</button>
+          <button class="btn-accion" onclick="modRE.abrirEditar(${r.id})">Editar</button>
+          <button class="btn-accion rojo" onclick="modRE.eliminar(${r.id})">Eliminar</button>
+        </td>
+      </tr>`;
+    }).join('');
+  },
+
+  async abrirDetalle(id) {
+    try {
+      const r = await api.get(`/api/rechazos-externos/${id}`);
+      document.getElementById('re-det-titulo').textContent        = `Rechazo Externo #${r.id}`;
+      document.getElementById('re-det-return-order').textContent  = r.return_order   || '—';
+      document.getElementById('re-det-license-plate').textContent = r.license_plate  || '—';
+      document.getElementById('re-det-classification').textContent= r.classification || '—';
+      document.getElementById('re-det-inches').textContent        = r.inches         || '—';
+      document.getElementById('re-det-sales-channel').textContent = r.sales_channel  || '—';
+      document.getElementById('re-det-sku').textContent           = r.sku            || '—';
+      document.getElementById('re-det-brand').textContent         = r.brand          || '—';
+      document.getElementById('re-det-outbound-order').textContent= r.outbound_order || '—';
+      document.getElementById('re-det-plant-entry').textContent   = r.plant_entry ? new Date(r.plant_entry).toLocaleString('es-MX') : '—';
+      document.getElementById('re-det-plant-exit').textContent    = r.plant_exit  ? new Date(r.plant_exit).toLocaleString('es-MX')  : '—';
+      document.getElementById('re-det-processed-by').textContent  = r.processed_by   || '—';
+      document.getElementById('re-det-registrado').textContent    = r.registrado_por || '—';
+      document.getElementById('re-det-registration-date').textContent = r.registration_date ? String(r.registration_date).slice(0, 10) : '—';
+      document.getElementById('re-det-sale-price').textContent        = r.sale_price != null ? `$${parseFloat(r.sale_price).toLocaleString('es-MX', { minimumFractionDigits: 2 })}` : '—';
+
+      const mins = r.total_time_minutes;
+      let tiempo = '—';
+      if (mins != null) {
+        const dias = Math.floor(mins / 1440);
+        const hh   = Math.floor((mins % 1440) / 60);
+        tiempo = dias > 0 ? `${dias}d ${hh > 0 ? hh + 'h' : ''}`.trim() : `${hh}h ${mins % 60}m`;
+      }
+      document.getElementById('re-det-total-time').textContent = tiempo;
+
+      const imgsEl = document.getElementById('re-det-imagenes');
+      if (r.images?.length) {
+        imgsEl.innerHTML = '<div class="seccion-titulo" style="margin-bottom:10px">Evidencia Fotografica</div>' +
+          `<div style="display:flex;flex-wrap:wrap;gap:8px">` +
+          r.images.map(img =>
+            `<a href="/uploads/rechazos/${img.filename}" target="_blank">
+              <img src="/uploads/rechazos/${img.filename}">
+            </a>`
+          ).join('') + '</div>';
+      } else { imgsEl.innerHTML = ''; }
+
+      const probsEl = document.getElementById('re-det-problemas');
+      if (r.problem_descriptions?.length) {
+        probsEl.innerHTML = '<div class="seccion-titulo" style="margin-bottom:10px">Problem Description</div>' +
+          r.problem_descriptions.map((p, i) =>
+            `<div style="display:flex;gap:8px;margin-bottom:8px">
+              <span style="font-size:11px;font-weight:700;color:var(--gris);min-width:20px;padding-top:2px;flex-shrink:0">${i + 1}.</span>
+              <p style="font-size:13px;color:var(--negro);line-height:1.6;margin:0">${p.descripcion}</p>
+            </div>`
+          ).join('');
+      } else { probsEl.innerHTML = ''; }
+
+      const accsEl = document.getElementById('re-det-acciones');
+      if (r.corrective_actions?.length) {
+        const grupos = {};
+        r.corrective_actions.forEach(a => {
+          if (!grupos[a.departamento]) grupos[a.departamento] = [];
+          grupos[a.departamento].push(a.accion);
+        });
+        accsEl.innerHTML = '<div class="seccion-titulo" style="margin-bottom:10px">Corrective Actions</div>' +
+          Object.entries(grupos).map(([dept, acciones]) =>
+            `<div class="re-dept-card">
+              <div class="re-dept-card-titulo">${dept}</div>
+              ${acciones.map((a, i) => `<div style="display:flex;gap:8px;margin-bottom:6px">
+                <span style="font-size:11px;font-weight:700;color:var(--gris);min-width:20px;padding-top:2px;flex-shrink:0">${i + 1}.</span>
+                <p style="font-size:13px;color:var(--negro);line-height:1.6;margin:0">${a}</p>
+              </div>`).join('')}
+            </div>`
+          ).join('');
+      } else { accsEl.innerHTML = ''; }
+
+      document.getElementById('re-det-botones').innerHTML = `
+        <button class="btn btn-secundario" onclick="modRE.abrirEditar(${r.id})">Editar</button>
+        <button class="btn btn-primario" onclick="modRE.generarPDF(${r.id},'${r.license_plate.replace(/'/g,"\\'")}')">Generar PDF</button>
+        <span class="spacer"></span>
+        <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-re-detalle')">Cerrar</button>`;
+      ui.abrirModal('modal-re-detalle');
+    } catch (e) { ui.notificar('Error al cargar el detalle.'); }
+  },
+
+  eliminar(id) {
+    ui.confirmar('Esta accion eliminara el registro de forma permanente.', async () => {
+      try {
+        await api.del(`/api/rechazos-externos/${id}`);
+        await modRE.cargar();
+      } catch (e) { ui.notificar(e.error || 'Error al eliminar.'); }
+    }, 'Eliminar registro');
+  },
+
+  generarPDF(id) {
+    ui.notificar('Abriendo PDF...');
+    window.open(`/api/rechazos-externos/${id}/pdf`, '_blank');
+  },
+};
+
+document.getElementById('form-re').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-re-registrar');
+  const id  = document.getElementById('re-edit-id').value;
+
+  const plantEntry = document.getElementById('re-plant-entry').value;
+  const plantExit  = document.getElementById('re-plant-exit').value;
+  let totalMins = null;
+  if (plantEntry && plantExit) {
+    const ms = new Date(plantExit) - new Date(plantEntry);
+    if (ms > 0) totalMins = Math.floor(ms / 60000);
+  }
+
+  const problemDescriptions = [...document.querySelectorAll('#re-problemas-lista .re-item-fila')]
+    .map((fila, i) => ({ orden: i + 1, descripcion: fila.querySelector('textarea').value.trim() }))
+    .filter(p => p.descripcion);
+
+  const correctiveActions = [];
+  document.querySelectorAll('#re-acciones-lista [data-dept]').forEach(tarjeta => {
+    const dept = tarjeta.dataset.dept;
+    [...tarjeta.querySelectorAll('.re-acciones-dept .re-item-fila')].forEach((fila, i) => {
+      const accion = fila.querySelector('textarea').value.trim();
+      if (accion) correctiveActions.push({ departamento: dept, orden: i + 1, accion });
+    });
+  });
+
+  const data = {
+    return_order:         document.getElementById('re-return-order').value.trim(),
+    license_plate:        document.getElementById('re-license-plate').value.trim(),
+    classification:       document.getElementById('re-classification').value.trim(),
+    inches:               document.getElementById('re-inches').value.trim(),
+    sales_channel:        document.getElementById('re-sales-channel').value.trim(),
+    sku:                  document.getElementById('re-sku').value.trim(),
+    brand:                document.getElementById('re-brand').value.trim(),
+    plant_entry:          plantEntry,
+    plant_exit:           plantExit || null,
+    total_time_minutes:   totalMins,
+    outbound_order:       document.getElementById('re-outbound-order').value.trim(),
+    processed_by:         document.getElementById('re-processed-by').value.trim(),
+    registration_date:    document.getElementById('re-registration-date').value || null,
+    sale_price:           document.getElementById('re-sale-price').value ? parseFloat(document.getElementById('re-sale-price').value) : null,
+    problem_descriptions: problemDescriptions,
+    corrective_actions:   correctiveActions,
+  };
+
+  btn.disabled = true;
+  try {
+    let registro;
+    if (id) {
+      registro = await api.put(`/api/rechazos-externos/${id}`, data);
+    } else {
+      registro = await api.post('/api/rechazos-externos', data);
+    }
+
+    if (modRE._imagenesNuevas.length > 0) {
+      const formData = new FormData();
+      modRE._imagenesNuevas.forEach(file => formData.append('images', file));
+      const r = await fetch(`/api/rechazos-externos/${registro.id}/images`, { method: 'POST', body: formData });
+      if (!r.ok) ui.notificar('Registro guardado, pero algunas imagenes no pudieron subirse.', 'Aviso');
+    }
+    modRE._imagenesNuevas = [];
+
+    ui.cerrarModal('modal-re-form');
+    await modRE.cargar();
+  } catch (err) {
+    ui.notificar(err.error || 'Error al guardar el rechazo externo.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ================================================================
+// MODULO: ORGANIGRAMA QC
+// ================================================================
+const PUESTOS_ORG = [
+  'Ingeniero de Calidad', 'Supervisor de Calidad',
+  'Tecnico de Calidad', 'Especialista de Calidad', 'Inspector de Calidad'
+];
+
+const modORG = {
+  registros: [],
+
+  async init()   { await this.cargar(); },
+
+  async cargar() {
+    try {
+      this.registros = await api.get('/api/organigrama-qc');
+      this.renderArbol();
+    } catch (e) { ui.notificar('Error cargando organigrama.'); }
+  },
+
+  renderArbol() {
+    const arbol  = document.getElementById('org-arbol');
+    const vacio  = document.getElementById('org-vacio');
+    if (!this.registros.length) {
+      arbol.innerHTML = '';
+      vacio.style.display = '';
+      return;
+    }
+    vacio.style.display = 'none';
+
+    const niv1  = this.registros.filter(r => r.puesto === 'Ingeniero de Calidad');
+    const niv2  = this.registros.filter(r => r.puesto === 'Supervisor de Calidad');
+    const niv3a = this.registros.filter(r => r.puesto === 'Tecnico de Calidad');
+    const niv3b = this.registros.filter(r => r.puesto === 'Especialista de Calidad');
+    const niv4  = this.registros.filter(r => r.puesto === 'Inspector de Calidad');
+
+    const nivelHtml = (personas, labelTexto) => {
+      const cards = personas.length
+        ? personas.map(r => this._cardHtml(r)).join('')
+        : `<div class="org-placeholder">${labelTexto}</div>`;
+      return `<div class="org-nivel-label">${labelTexto}</div><div class="org-nivel">${cards}</div>`;
+    };
+
+    const mostrarNiv2 = niv2.length || niv3a.length || niv3b.length || niv4.length;
+    const mostrarNiv3 = niv3a.length || niv3b.length || niv4.length;
+    const mostrarNiv4 = niv4.length;
+
+    let html = `<div class="org-wrap">`;
+
+    // Nivel 1
+    html += nivelHtml(niv1, 'Ingeniero de Calidad');
+
+    if (mostrarNiv2) {
+      html += `<div class="org-conector-v"></div>`;
+      html += nivelHtml(niv2, 'Supervisor de Calidad');
+    }
+
+    if (mostrarNiv3) {
+      html += `<div class="org-conector-v"></div>`;
+      html += `<div class="org-ramas">`;
+
+      // Rama izquierda: Técnico
+      html += `<div class="org-rama">${nivelHtml(niv3a, 'Tecnico de Calidad')}</div>`;
+
+      // Rama derecha: Especialista → Inspector
+      html += `<div class="org-rama">`;
+      html += nivelHtml(niv3b, 'Especialista de Calidad');
+      if (mostrarNiv4) {
+        html += `<div class="org-conector-v"></div>`;
+        html += nivelHtml(niv4, 'Inspector de Calidad');
+      }
+      html += `</div>`;
+
+      html += `</div>`; // .org-ramas
+    }
+
+    html += `</div>`; // .org-wrap
+    arbol.innerHTML = html;
+  },
+
+  _cardHtml(r) {
+    const badge = r.estatus === 'activo'
+      ? `<span class="badge badge-activo">Activo</span>`
+      : `<span class="badge badge-inactivo">Inactivo</span>`;
+    return `<div class="org-card" onclick="modORG.abrirDetalle(${r.id})">
+      <div class="org-card-nombre">${r.nombre_completo}</div>
+      <div class="org-card-puesto">${r.puesto}</div>
+      ${r.turno ? `<div class="org-card-info">${r.turno}</div>` : ''}
+      <div class="org-card-badges" style="margin-top:6px">${badge}</div>
+    </div>`;
+  },
+
+  abrirFormulario() {
+    document.getElementById('form-org').reset();
+    document.getElementById('org-edit-id').value = '';
+    document.getElementById('modal-org-form-titulo').textContent = 'Agregar Colaborador';
+    document.getElementById('btn-org-guardar').textContent = 'Guardar';
+    ui.abrirModal('modal-org-form');
+  },
+
+  abrirEditar(id) {
+    const r = this.registros.find(x => x.id === id);
+    if (!r) return;
+    document.getElementById('org-edit-id').value = r.id;
+    document.getElementById('org-nombre').value = r.nombre_completo;
+    document.getElementById('org-no-empleado').value = r.no_empleado || '';
+    document.getElementById('org-puesto').value = r.puesto;
+    document.getElementById('org-area').value = r.area || '';
+    document.getElementById('org-turno').value = r.turno || '';
+    document.getElementById('org-estatus').value = r.estatus || 'activo';
+    document.getElementById('org-fecha-ingreso').value = r.fecha_ingreso ? String(r.fecha_ingreso).slice(0,10) : '';
+    document.getElementById('org-sexo').value = r.sexo || '';
+    document.getElementById('org-fecha-nacimiento').value = r.fecha_nacimiento ? String(r.fecha_nacimiento).slice(0,10) : '';
+    document.getElementById('org-telefono').value = r.telefono || '';
+    document.getElementById('org-correo').value = r.correo || '';
+    document.getElementById('org-contacto-emergencia').value = r.contacto_emergencia || '';
+    document.getElementById('org-tel-emergencia').value = r.tel_emergencia || '';
+    document.getElementById('modal-org-form-titulo').textContent = `Editar — ${r.nombre_completo}`;
+    ui.cerrarModal('modal-org-detalle');
+    ui.abrirModal('modal-org-form');
+  },
+
+  abrirDetalle(id) {
+    const r = this.registros.find(x => x.id === id);
+    if (!r) return;
+    const fmtDate = d => d ? String(d).slice(0,10) : '—';
+    document.getElementById('org-det-titulo').textContent = r.nombre_completo;
+    document.getElementById('org-det-no-empleado').textContent = r.no_empleado || '—';
+    document.getElementById('org-det-puesto').textContent = r.puesto;
+    document.getElementById('org-det-area').textContent = r.area || '—';
+    document.getElementById('org-det-turno').textContent = r.turno || '—';
+    document.getElementById('org-det-estatus').innerHTML = r.estatus === 'activo'
+      ? '<span class="badge badge-activo">Activo</span>'
+      : '<span class="badge badge-inactivo">Inactivo</span>';
+    document.getElementById('org-det-fecha-ingreso').textContent = fmtDate(r.fecha_ingreso);
+    document.getElementById('org-det-sexo').textContent = r.sexo || '—';
+    document.getElementById('org-det-fecha-nacimiento').textContent = fmtDate(r.fecha_nacimiento);
+    document.getElementById('org-det-telefono').textContent = r.telefono || '—';
+    document.getElementById('org-det-correo').textContent = r.correo || '—';
+    document.getElementById('org-det-contacto-emergencia').textContent = r.contacto_emergencia || '—';
+    document.getElementById('org-det-tel-emergencia').textContent = r.tel_emergencia || '—';
+    const labelEstatus = r.estatus === 'activo' ? 'Desactivar' : 'Activar';
+    document.getElementById('org-det-botones').innerHTML = `
+      <button class="btn btn-secundario" onclick="modORG.abrirEditar(${r.id})">Editar</button>
+      <button class="btn btn-secundario" onclick="modORG.toggleEstatus(${r.id})">${labelEstatus}</button>
+      <span class="spacer"></span>
+      <button class="btn btn-rojo" onclick="modORG.eliminar(${r.id})">Eliminar</button>
+      <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-org-detalle')">Cerrar</button>`;
+    ui.abrirModal('modal-org-detalle');
+  },
+
+  async toggleEstatus(id) {
+    try {
+      await api.patch(`/api/organigrama-qc/${id}/estatus`, {});
+      ui.cerrarModal('modal-org-detalle');
+      await this.cargar();
+    } catch (e) { ui.notificar(e.error || 'Error al cambiar estatus.'); }
+  },
+
+  eliminar(id) {
+    ui.confirmar('Se eliminará el colaborador de forma permanente.', async () => {
+      try {
+        await api.del(`/api/organigrama-qc/${id}`);
+        ui.cerrarModal('modal-org-detalle');
+        await this.cargar();
+      } catch (e) { ui.notificar(e.error || 'Error al eliminar.'); }
+    }, 'Eliminar colaborador');
+  },
+};
+
+document.getElementById('form-org').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-org-guardar');
+  const id  = document.getElementById('org-edit-id').value;
+  const data = {
+    nombre_completo:     document.getElementById('org-nombre').value.trim(),
+    no_empleado:         document.getElementById('org-no-empleado').value.trim(),
+    puesto:              document.getElementById('org-puesto').value,
+    area:                document.getElementById('org-area').value.trim(),
+    turno:               document.getElementById('org-turno').value,
+    estatus:             document.getElementById('org-estatus').value,
+    fecha_ingreso:       document.getElementById('org-fecha-ingreso').value || null,
+    sexo:                document.getElementById('org-sexo').value,
+    fecha_nacimiento:    document.getElementById('org-fecha-nacimiento').value || null,
+    telefono:            document.getElementById('org-telefono').value.trim(),
+    correo:              document.getElementById('org-correo').value.trim(),
+    contacto_emergencia: document.getElementById('org-contacto-emergencia').value.trim(),
+    tel_emergencia:      document.getElementById('org-tel-emergencia').value.trim(),
+  };
+  btn.disabled = true;
+  try {
+    if (id) {
+      await api.put(`/api/organigrama-qc/${id}`, data);
+    } else {
+      await api.post('/api/organigrama-qc', data);
+    }
+    ui.cerrarModal('modal-org-form');
+    await modORG.cargar();
+  } catch (err) {
+    ui.notificar(err.error || 'Error al guardar el colaborador.');
   } finally {
     btn.disabled = false;
   }
