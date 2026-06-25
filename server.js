@@ -378,6 +378,17 @@ async function initDB() {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS catalogo_sku (
+      id          SERIAL PRIMARY KEY,
+      sku         TEXT NOT NULL UNIQUE,
+      marca       TEXT NOT NULL DEFAULT '',
+      modelo      TEXT NOT NULL DEFAULT '',
+      descripcion TEXT NOT NULL DEFAULT '',
+      pulgada     TEXT NOT NULL DEFAULT ''
+    )
+  `);
+
   // Festivos oficiales México (solo si la tabla está vacía)
   const { rows: fRows } = await pool.query('SELECT COUNT(*) FROM calendario_festivos');
   if (parseInt(fRows[0].count) === 0) {
@@ -996,6 +1007,18 @@ app.delete('/api/rechazos-internos/:id', auth, async (req, res) => {
     if (rec?.firma_filename) fs.unlink(path.join(uploadsIntDir, rec.firma_filename), () => {});
     await pool.query('DELETE FROM rechazos_internos WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── CATÁLOGO SKU ──────────────────────────────────────────────
+app.get('/api/catalogo-sku/:sku', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT marca, modelo, descripcion, pulgada FROM catalogo_sku WHERE UPPER(sku) = UPPER($1)',
+      [req.params.sku.trim()]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'SKU no encontrado' });
+    res.json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

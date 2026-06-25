@@ -1802,7 +1802,13 @@
       <div class="form-grid">
         <div><label>Fecha de Registro *</label><input type="date" id="ri-fecha" required></div>
         <div><label>License Plate *</label><input type="text" id="ri-license-plate" required placeholder="Ej. ABC-1234"></div>
-        <div><label>SKU</label><input type="text" id="ri-sku" placeholder="Código de producto"></div>
+        <div><label>SKU</label>
+          <div style="position:relative">
+            <input type="text" id="ri-sku" placeholder="Código de producto" autocomplete="off"
+                   oninput="catalogoSKU.buscar(this.value,'ri-marca','ri-modelo','ri-pulgada','ri-descripcion','ri-sku-status')">
+            <span id="ri-sku-status" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px"></span>
+          </div>
+        </div>
         <div><label>Marca</label><input type="text" id="ri-marca" placeholder="Ej. Samsung"></div>
         <div><label>Modelo</label><input type="text" id="ri-modelo" placeholder="Ej. UN55TU8000"></div>
         <div><label>Pulgada</label><input type="text" id="ri-pulgada" placeholder='Ej. 55"'></div>
@@ -1897,7 +1903,13 @@
             <option>BOX</option>
           </select>
         </div>
-        <div><label>SKU</label><input type="text" id="aql-sku" placeholder="Código de producto"></div>
+        <div><label>SKU</label>
+          <div style="position:relative">
+            <input type="text" id="aql-sku" placeholder="Código de producto" autocomplete="off"
+                   oninput="catalogoSKU.buscar(this.value,'aql-marca','aql-modelo','aql-pulgada','aql-descripcion','aql-sku-status')">
+            <span id="aql-sku-status" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px"></span>
+          </div>
+        </div>
         <div><label>Marca</label><input type="text" id="aql-marca" placeholder="Ej. Samsung"></div>
         <div><label>Modelo</label><input type="text" id="aql-modelo" placeholder="Ej. UN55TU8000"></div>
         <div><label>Pulgada</label><input type="text" id="aql-pulgada" placeholder='Ej. 55"'></div>
@@ -2486,6 +2498,48 @@ const auth = {
 
 // ================================================================
 // RECHAZOS INTERNOS
+// ================================================================
+// CATÁLOGO SKU — autocomplete compartido
+// ================================================================
+const catalogoSKU = {
+  _timer: null,
+  _cache: {},
+
+  buscar(sku, marcaId, modeloId, pulgadaId, descripcionId, statusId) {
+    clearTimeout(this._timer);
+    const status = document.getElementById(statusId);
+    if (!sku || sku.trim().length < 4) {
+      if (status) status.textContent = '';
+      return;
+    }
+    if (status) status.textContent = '⏳';
+    this._timer = setTimeout(() => this._lookup(sku.trim(), marcaId, modeloId, pulgadaId, descripcionId, status), 400);
+  },
+
+  async _lookup(sku, marcaId, modeloId, pulgadaId, descripcionId, status) {
+    if (this._cache[sku.toUpperCase()]) {
+      this._fill(this._cache[sku.toUpperCase()], marcaId, modeloId, pulgadaId, descripcionId, status);
+      return;
+    }
+    try {
+      const r = await api.get(`/api/catalogo-sku/${encodeURIComponent(sku)}`);
+      this._cache[sku.toUpperCase()] = r;
+      this._fill(r, marcaId, modeloId, pulgadaId, descripcionId, status);
+    } catch(e) {
+      if (status) { status.textContent = '✗'; status.style.color = 'var(--rojo)'; }
+    }
+  },
+
+  _fill(r, marcaId, modeloId, pulgadaId, descripcionId, status) {
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    set(marcaId,      r.marca);
+    set(modeloId,     r.modelo);
+    set(pulgadaId,    r.pulgada);
+    set(descripcionId,r.descripcion);
+    if (status) { status.textContent = '✓'; status.style.color = 'var(--verde)'; }
+  },
+};
+
 // ================================================================
 const RI_DEFECTOS = {
   'Duplicado':                { actividad: 'Verificacion de LPN correcto y Reproceso en Linea', costo: 105.00 },
