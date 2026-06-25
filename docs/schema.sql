@@ -1,7 +1,11 @@
 -- ============================================================
--- Control de Calidad — Esquema de base de datos
--- Base de datos: control_calidad (PostgreSQL)
--- Última actualización: 2026-06-24
+-- Control de Calidad — Esquema completo de base de datos
+-- Base de datos: control_calidad (PostgreSQL 14+)
+-- Última actualización: 2026-06-25
+-- ============================================================
+-- Nota: todas las tablas usan CREATE TABLE IF NOT EXISTS
+-- y las columnas añadidas posteriormente usan ALTER TABLE … ADD COLUMN IF NOT EXISTS
+-- para que el script sea idempotente al ejecutarse varias veces.
 -- ============================================================
 
 -- ── USUARIOS ──────────────────────────────────────────────────
@@ -21,7 +25,7 @@ CREATE TABLE IF NOT EXISTS no_conformidades (
   id             SERIAL PRIMARY KEY,
   hora           TIME         NOT NULL,
   area           VARCHAR(50)  NOT NULL,
-  tipo           VARCHAR(100) NOT NULL,
+  tipo           VARCHAR(100) NOT NULL,                    -- 'Producto no conforme' | 'Proceso fuera de parametro' | ...
   descripcion    TEXT         NOT NULL,
   severidad      VARCHAR(10)  NOT NULL,                    -- 'Alta' | 'Media' | 'Baja'
   responsable    VARCHAR(100) DEFAULT '—',
@@ -41,13 +45,15 @@ CREATE TABLE IF NOT EXISTS recepciones (
   cargo          VARCHAR(100) NOT NULL,
   unit_qty       INTEGER      NOT NULL DEFAULT 0,
   pallet_qty     INTEGER      NOT NULL DEFAULT 0,
-  tipo           VARCHAR(20)  NOT NULL DEFAULT 'Import',     -- 'Import' | 'Export'
-  estatus        VARCHAR(30)  NOT NULL DEFAULT 'Confirmado', -- 'Confirmado' | 'En descarga' | 'Descargado' | 'Rechazado'
+  tipo           VARCHAR(20)  NOT NULL DEFAULT 'Import',      -- 'Import' | 'Export'
+  estatus        VARCHAR(30)  NOT NULL DEFAULT 'Confirmado',  -- 'Confirmado' | 'En descarga' | 'Descargado' | 'Rechazado'
   registrado_por VARCHAR(100),
   fecha          DATE         NOT NULL,
   created_at     TIMESTAMP    DEFAULT NOW()
-  -- Nota: columna 'trailer' eliminada con ALTER TABLE DROP COLUMN
 );
+
+-- columna eliminada en producción:
+ALTER TABLE recepciones DROP COLUMN IF EXISTS trailer;
 
 -- ── RECHAZOS EXTERNOS ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS rechazos_externos (
@@ -65,14 +71,16 @@ CREATE TABLE IF NOT EXISTS rechazos_externos (
   outbound_order      VARCHAR(100) NOT NULL DEFAULT '',
   processed_by        VARCHAR(200) NOT NULL DEFAULT '',
   registrado_por      VARCHAR(100),
-  created_at          TIMESTAMP    DEFAULT NOW(),
-  registration_date   DATE,                                -- añadido vía ALTER TABLE
-  sale_price          NUMERIC(10,2)                        -- añadido vía ALTER TABLE; KPI principal
+  created_at          TIMESTAMP    DEFAULT NOW()
 );
+
+-- columnas añadidas posteriormente:
+ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS registration_date DATE;
+ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS sale_price NUMERIC(10,2); -- KPI principal (MXN)
 
 CREATE TABLE IF NOT EXISTS re_problem_descriptions (
   id          SERIAL PRIMARY KEY,
-  rechazo_id  INTEGER   NOT NULL REFERENCES rechazos_externos(id) ON DELETE CASCADE,
+  rechazo_id  INTEGER   NOT NULL,   -- referencia a rechazos_externos(id), sin FK formal
   orden       SMALLINT  NOT NULL DEFAULT 1,
   descripcion TEXT      NOT NULL,
   created_at  TIMESTAMP DEFAULT NOW()
@@ -80,18 +88,84 @@ CREATE TABLE IF NOT EXISTS re_problem_descriptions (
 
 CREATE TABLE IF NOT EXISTS re_images (
   id          SERIAL PRIMARY KEY,
-  rechazo_id  INTEGER      NOT NULL REFERENCES rechazos_externos(id) ON DELETE CASCADE,
-  filename    VARCHAR(255) NOT NULL,
+  rechazo_id  INTEGER      NOT NULL,   -- referencia a rechazos_externos(id), sin FK formal
+  filename    VARCHAR(255) NOT NULL,   -- archivo en /public/uploads/rechazos/
   created_at  TIMESTAMP    DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS re_corrective_actions (
   id           SERIAL PRIMARY KEY,
-  rechazo_id   INTEGER     NOT NULL REFERENCES rechazos_externos(id) ON DELETE CASCADE,
+  rechazo_id   INTEGER     NOT NULL,   -- referencia a rechazos_externos(id), sin FK formal
   departamento VARCHAR(50) NOT NULL,
   orden        SMALLINT    NOT NULL DEFAULT 1,
   accion       TEXT        NOT NULL,
   created_at   TIMESTAMP   DEFAULT NOW()
+);
+
+-- ── RECHAZOS INTERNOS ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS rechazos_internos (
+  id                 SERIAL PRIMARY KEY,
+  fecha_registro     DATE          NOT NULL,
+  license_plate      VARCHAR(50)   NOT NULL,
+  sku                VARCHAR(100)  NOT NULL DEFAULT '',
+  defecto            VARCHAR(100)  NOT NULL,
+  actividad_realizar TEXT          NOT NULL DEFAULT '', -- calculado automáticamente según defecto
+  costo_no_calidad   NUMERIC(10,2) NOT NULL DEFAULT 0, -- COPQ en MXN, calculado según defecto
+  origen_hallazgo    VARCHAR(50)   NOT NULL DEFAULT '',
+  inspector          VARCHAR(100)  NOT NULL DEFAULT '',
+  firma_filename     VARCHAR(255)  NOT NULL DEFAULT '', -- PNG en /public/uploads/rechazos-internos/
+  registrado_por     VARCHAR(100),
+  created_at         TIMESTAMP     DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS ri_images (
+  id          SERIAL PRIMARY KEY,
+  rechazo_id  INTEGER      NOT NULL REFERENCES rechazos_internos(id) ON DELETE CASCADE,
+  filename    VARCHAR(255) NOT NULL,   -- archivo en /public/uploads/rechazos-internos/
+  created_at  TIMESTAMP    DEFAULT NOW()
+);
+
+-- ── CAPAS (Corrective & Preventive Actions) ───────────────────
+CREATE TABLE IF NOT EXISTS capas (
+  id                   SERIAL PRIMARY KEY,
+  origen_tipo          VARCHAR(5)   NOT NULL,            -- 'nc' | 're'
+  origen_id            INTEGER      NOT NULL,            -- ID de no_conformidades o rechazos_externos
+  titulo               TEXT         NOT NULL DEFAULT '',
+  descripcion_problema TEXT         NOT NULL DEFAULT '',
+  metodo_analisis      VARCHAR(10)  NOT NULL DEFAULT '5porques', -- '5porques' | 'ishikawa'
+  responsable          VARCHAR(100) NOT NULL DEFAULT '',
+  fecha_apertura       DATE         NOT NULL,
+  fecha_compromiso     DATE,
+  fecha_cierre         DATE,                             -- se llena al cambiar estatus a 'Cerrada'
+  estatus              VARCHAR(20)  NOT NULL DEFAULT 'Abierta', -- 'Abierta' | 'En proceso' | 'Cerrada'
+  verificado_por       VARCHAR(100) NOT NULL DEFAULT '',
+  observaciones        TEXT         NOT NULL DEFAULT '',
+  registrado_por       VARCHAR(100) NOT NULL DEFAULT '',
+  created_at           TIMESTAMP    DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS capa_5porques (
+  id        SERIAL PRIMARY KEY,
+  capa_id   INTEGER  NOT NULL,      -- referencia a capas(id), sin FK formal
+  orden     SMALLINT NOT NULL,      -- 1 al 5
+  respuesta TEXT     NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS capa_ishikawa (
+  id        SERIAL PRIMARY KEY,
+  capa_id   INTEGER     NOT NULL,   -- referencia a capas(id), sin FK formal
+  categoria VARCHAR(50) NOT NULL,   -- 'Hombre' | 'Máquina' | 'Método' | 'Material' | 'Medición' | 'Medio Ambiente'
+  causa     TEXT        NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS capa_acciones (
+  id               SERIAL PRIMARY KEY,
+  capa_id          INTEGER      NOT NULL,   -- referencia a capas(id), sin FK formal
+  accion           TEXT         NOT NULL DEFAULT '',
+  responsable      VARCHAR(100) NOT NULL DEFAULT '',
+  fecha_compromiso DATE,
+  estatus          VARCHAR(20)  NOT NULL DEFAULT 'Pendiente', -- 'Pendiente' | 'En progreso' | 'Completada'
+  created_at       TIMESTAMP    DEFAULT NOW()
 );
 
 -- ── ORGANIGRAMA QC ────────────────────────────────────────────
@@ -100,7 +174,7 @@ CREATE TABLE IF NOT EXISTS organigrama_qc (
   id                  SERIAL PRIMARY KEY,
   nombre_completo     VARCHAR(200) NOT NULL,
   no_empleado         VARCHAR(50)  NOT NULL DEFAULT '',
-  puesto              VARCHAR(50)  NOT NULL, -- 'Ingeniero de Calidad' | 'Supervisor de Calidad' | 'Tecnico de Calidad' | 'Especialista de Calidad' | 'Inspector de Calidad'
+  puesto              VARCHAR(50)  NOT NULL,  -- 'Ingeniero de Calidad' | 'Supervisor de Calidad' | 'Tecnico de Calidad' | 'Especialista de Calidad' | 'Inspector de Calidad'
   area                VARCHAR(100) NOT NULL DEFAULT '', -- 'Incoming' | 'Sorting' | 'FFT' | 'Paletizado' | 'Almacen' | 'Shipping'
   turno               VARCHAR(50)  NOT NULL DEFAULT '', -- 'Turno 1' | 'Turno 2'
   estatus             VARCHAR(20)  NOT NULL DEFAULT 'activo', -- 'activo' | 'inactivo'
@@ -111,9 +185,11 @@ CREATE TABLE IF NOT EXISTS organigrama_qc (
   fecha_nacimiento    DATE,
   contacto_emergencia VARCHAR(200) NOT NULL DEFAULT '',
   tel_emergencia      VARCHAR(20)  NOT NULL DEFAULT '',
-  foto_filename       VARCHAR(255) NOT NULL DEFAULT '', -- añadido vía ALTER TABLE; ruta relativa a /uploads/organigrama/
   created_at          TIMESTAMP    DEFAULT NOW()
 );
+
+-- columna añadida posteriormente:
+ALTER TABLE organigrama_qc ADD COLUMN IF NOT EXISTS foto_filename VARCHAR(255) NOT NULL DEFAULT ''; -- en /public/uploads/organigrama/
 
 -- ── CALENDARIO ────────────────────────────────────────────────
 -- Gestión de permisos, vacaciones e incidencias del equipo QC
@@ -136,7 +212,7 @@ CREATE TABLE IF NOT EXISTS calendario_festivos (
   id         SERIAL PRIMARY KEY,
   nombre     VARCHAR(100) NOT NULL,
   fecha      DATE         NOT NULL,
-  recurrente BOOLEAN      DEFAULT true, -- true = repite cada año (solo compara mes+día)
+  recurrente BOOLEAN      DEFAULT true, -- true = repite cada año (compara solo mes+día)
   created_at TIMESTAMP    DEFAULT NOW()
 );
 
@@ -150,7 +226,7 @@ CREATE TABLE IF NOT EXISTS calendario_saldo (
 );
 
 -- ── DATOS INICIALES ───────────────────────────────────────────
--- Festivos oficiales México (precargados si la tabla está vacía al iniciar)
+-- Festivos oficiales México (se insertan por código en initDB() si la tabla está vacía)
 -- INSERT INTO calendario_festivos (nombre, fecha, recurrente) VALUES
 --   ('Año Nuevo',                  '2026-01-01', true),
 --   ('Día de la Constitución',     '2026-02-02', true),
@@ -160,5 +236,5 @@ CREATE TABLE IF NOT EXISTS calendario_saldo (
 --   ('Revolución Mexicana',        '2026-11-16', true),
 --   ('Navidad',                    '2026-12-25', true);
 
--- Usuario administrador inicial (creado por initDB() si tabla vacía)
--- usuario: admin  /  contraseña: admin123
+-- Usuario administrador inicial (se crea por código en initDB() si tabla está vacía)
+-- usuario: admin  /  contraseña: admin123  /  rol: Administrador
