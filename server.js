@@ -75,6 +75,21 @@ const uploadInt = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+const uploadsAqlDir = path.join(__dirname, 'public', 'uploads', 'aql');
+if (!fs.existsSync(uploadsAqlDir)) fs.mkdirSync(uploadsAqlDir, { recursive: true });
+
+const uploadAql = multer({
+  storage: multer.diskStorage({
+    destination: (_, __, cb) => cb(null, uploadsAqlDir),
+    filename:    (_, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+    },
+  }),
+  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
 function auth(req, res, next) {
   if (!req.session.usuario) return res.status(401).json({ error: 'No autorizado' });
   next();
@@ -323,6 +338,38 @@ async function initDB() {
       rechazo_id  INTEGER      NOT NULL REFERENCES rechazos_internos(id) ON DELETE CASCADE,
       filename    VARCHAR(255) NOT NULL,
       created_at  TIMESTAMP    DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS aql_registros (
+      id                       SERIAL PRIMARY KEY,
+      fecha_registro           DATE          NOT NULL,
+      license_plate            VARCHAR(50)   NOT NULL,
+      clasificacion            VARCHAR(10)   NOT NULL DEFAULT '',
+      sku                      VARCHAR(100)  NOT NULL DEFAULT '',
+      marca                    VARCHAR(100)  NOT NULL DEFAULT '',
+      modelo                   VARCHAR(100)  NOT NULL DEFAULT '',
+      descripcion              TEXT          NOT NULL DEFAULT '',
+      accesorios_presentes     VARCHAR(20)   NOT NULL DEFAULT '',
+      estado_accesorios        VARCHAR(20)   NOT NULL DEFAULT '',
+      accesorios_defectos      TEXT          NOT NULL DEFAULT '',
+      estado_bolsa             VARCHAR(20)   NOT NULL DEFAULT '',
+      bolsa_defectos           TEXT          NOT NULL DEFAULT '',
+      estado_audio             VARCHAR(20)   NOT NULL DEFAULT '',
+      audio_defectos           TEXT          NOT NULL DEFAULT '',
+      estado_video             VARCHAR(20)   NOT NULL DEFAULT '',
+      video_defectos           TEXT          NOT NULL DEFAULT '',
+      estado_fisico_pantalla   VARCHAR(20)   NOT NULL DEFAULT '',
+      fisico_pantalla_defectos TEXT          NOT NULL DEFAULT '',
+      estado_limpieza          VARCHAR(20)   NOT NULL DEFAULT '',
+      limpieza_defectos        TEXT          NOT NULL DEFAULT '',
+      estado_aql               VARCHAR(20)   NOT NULL DEFAULT '',
+      foto_lpn_filename        VARCHAR(255)  NOT NULL DEFAULT '',
+      foto_pantalla_filename   VARCHAR(255)  NOT NULL DEFAULT '',
+      inspector                VARCHAR(100)  NOT NULL DEFAULT '',
+      registrado_por           VARCHAR(100),
+      created_at               TIMESTAMP     DEFAULT NOW()
     )
   `);
 
@@ -942,6 +989,128 @@ app.delete('/api/rechazos-internos/:id', auth, async (req, res) => {
     );
     if (rec?.firma_filename) fs.unlink(path.join(uploadsIntDir, rec.firma_filename), () => {});
     await pool.query('DELETE FROM rechazos_internos WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── AQL ───────────────────────────────────────────────────────
+app.get('/api/aql', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM aql_registros ORDER BY fecha_registro DESC, created_at DESC`
+    );
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/aql/:id', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM aql_registros WHERE id=$1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/aql', auth, async (req, res) => {
+  const u = req.session.usuario;
+  const {
+    fecha_registro, license_plate, clasificacion, sku, marca, modelo, descripcion,
+    accesorios_presentes, estado_accesorios, accesorios_defectos,
+    estado_bolsa, bolsa_defectos,
+    estado_audio, audio_defectos,
+    estado_video, video_defectos,
+    estado_fisico_pantalla, fisico_pantalla_defectos,
+    estado_limpieza, limpieza_defectos,
+    estado_aql, inspector,
+  } = req.body;
+  try {
+    const { rows: [r] } = await pool.query(`
+      INSERT INTO aql_registros
+        (fecha_registro, license_plate, clasificacion, sku, marca, modelo, descripcion,
+         accesorios_presentes, estado_accesorios, accesorios_defectos,
+         estado_bolsa, bolsa_defectos,
+         estado_audio, audio_defectos,
+         estado_video, video_defectos,
+         estado_fisico_pantalla, fisico_pantalla_defectos,
+         estado_limpieza, limpieza_defectos,
+         estado_aql, inspector, registrado_por)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+      RETURNING *`,
+      [fecha_registro, license_plate, clasificacion||'', sku||'', marca||'', modelo||'', descripcion||'',
+       accesorios_presentes||'', estado_accesorios||'', accesorios_defectos||'',
+       estado_bolsa||'', bolsa_defectos||'',
+       estado_audio||'', audio_defectos||'',
+       estado_video||'', video_defectos||'',
+       estado_fisico_pantalla||'', fisico_pantalla_defectos||'',
+       estado_limpieza||'', limpieza_defectos||'',
+       estado_aql||'', inspector||u.nombre, u.nombre]
+    );
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/aql/:id', auth, async (req, res) => {
+  const {
+    fecha_registro, license_plate, clasificacion, sku, marca, modelo, descripcion,
+    accesorios_presentes, estado_accesorios, accesorios_defectos,
+    estado_bolsa, bolsa_defectos,
+    estado_audio, audio_defectos,
+    estado_video, video_defectos,
+    estado_fisico_pantalla, fisico_pantalla_defectos,
+    estado_limpieza, limpieza_defectos,
+    estado_aql, inspector,
+  } = req.body;
+  try {
+    const { rows: [r] } = await pool.query(`
+      UPDATE aql_registros SET
+        fecha_registro=$1, license_plate=$2, clasificacion=$3, sku=$4, marca=$5, modelo=$6,
+        descripcion=$7, accesorios_presentes=$8, estado_accesorios=$9, accesorios_defectos=$10,
+        estado_bolsa=$11, bolsa_defectos=$12,
+        estado_audio=$13, audio_defectos=$14,
+        estado_video=$15, video_defectos=$16,
+        estado_fisico_pantalla=$17, fisico_pantalla_defectos=$18,
+        estado_limpieza=$19, limpieza_defectos=$20,
+        estado_aql=$21, inspector=$22
+      WHERE id=$23 RETURNING *`,
+      [fecha_registro, license_plate, clasificacion||'', sku||'', marca||'', modelo||'', descripcion||'',
+       accesorios_presentes||'', estado_accesorios||'', accesorios_defectos||'',
+       estado_bolsa||'', bolsa_defectos||'',
+       estado_audio||'', audio_defectos||'',
+       estado_video||'', video_defectos||'',
+       estado_fisico_pantalla||'', fisico_pantalla_defectos||'',
+       estado_limpieza||'', limpieza_defectos||'',
+       estado_aql||'', inspector||'', req.params.id]
+    );
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/aql/:id/foto-lpn', auth, uploadAql.single('foto'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
+  try {
+    const { rows: [old] } = await pool.query('SELECT foto_lpn_filename FROM aql_registros WHERE id=$1', [req.params.id]);
+    if (old?.foto_lpn_filename) fs.unlink(path.join(uploadsAqlDir, old.foto_lpn_filename), () => {});
+    await pool.query('UPDATE aql_registros SET foto_lpn_filename=$1 WHERE id=$2', [req.file.filename, req.params.id]);
+    res.json({ foto_lpn_filename: req.file.filename });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/aql/:id/foto-pantalla', auth, uploadAql.single('foto'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
+  try {
+    const { rows: [old] } = await pool.query('SELECT foto_pantalla_filename FROM aql_registros WHERE id=$1', [req.params.id]);
+    if (old?.foto_pantalla_filename) fs.unlink(path.join(uploadsAqlDir, old.foto_pantalla_filename), () => {});
+    await pool.query('UPDATE aql_registros SET foto_pantalla_filename=$1 WHERE id=$2', [req.file.filename, req.params.id]);
+    res.json({ foto_pantalla_filename: req.file.filename });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/aql/:id', auth, async (req, res) => {
+  try {
+    const { rows: [rec] } = await pool.query('SELECT foto_lpn_filename, foto_pantalla_filename FROM aql_registros WHERE id=$1', [req.params.id]);
+    if (rec?.foto_lpn_filename)      fs.unlink(path.join(uploadsAqlDir, rec.foto_lpn_filename),      () => {});
+    if (rec?.foto_pantalla_filename) fs.unlink(path.join(uploadsAqlDir, rec.foto_pantalla_filename), () => {});
+    await pool.query('DELETE FROM aql_registros WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

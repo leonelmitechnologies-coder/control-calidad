@@ -906,6 +906,13 @@
     .ri-firma-img  { max-width:100%; border:1px solid var(--gris-claro); border-radius:6px; margin-top:6px; }
     .ri-readonly   { background:var(--fondo); color:var(--gris); cursor:default; }
 
+    /* ── AQL ── */
+    .aql-checks { display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:4px; }
+    .aql-checks label { display:flex; align-items:center; gap:5px; font-size:12px; font-weight:400; cursor:pointer; }
+    .aql-checks input[type=checkbox] { width:14px; height:14px; cursor:pointer; accent-color:var(--azul); }
+    .badge-verde { background:#d4edda; color:#155724; }
+    .badge-gris  { background:#e9ecef; color:#6c757d; }
+
     /* ── Dashboard ── */
     .dash-periodo     { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
     .dash-periodo-btn { padding:7px 18px; border:1px solid var(--gris-claro); background:#fff;
@@ -981,6 +988,7 @@
         <a class="nav-item" id="nav-recepciones"  href="/recepciones"   onclick="event.preventDefault();app.navegar('recepciones')">Recepciones</a>
         <a class="nav-item" id="nav-rechazos-ext"   href="/rechazos-ext"    onclick="event.preventDefault();app.navegar('rechazos-ext')">Rechazos Externos</a>
         <a class="nav-item" id="nav-rechazos-int"   href="/rechazos-int"    onclick="event.preventDefault();app.navegar('rechazos-int')">Rechazos Internos</a>
+        <a class="nav-item" id="nav-aql"             href="/aql"             onclick="event.preventDefault();app.navegar('aql')">Registro de AQL</a>
         <a class="nav-item" id="nav-capas" href="/capas" onclick="event.preventDefault();app.navegar('capas')">Acciones Correctivas</a>
         <a class="nav-item" id="nav-organigrama-qc" href="/organigrama-qc"  onclick="event.preventDefault();app.navegar('organigrama-qc')">Organigrama QC</a>
         <a class="nav-item" id="nav-calendario"    href="/calendario"     onclick="event.preventDefault();app.navegar('calendario')">Calendario</a>
@@ -1271,6 +1279,36 @@
               <tbody id="ri-tabla-cuerpo"></tbody>
             </table>
             <div id="ri-tabla-vacio" class="vacio" style="display:none">No hay registros de rechazos internos.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODULO: AQL -->
+      <div class="modulo" id="modulo-aql">
+        <div class="card">
+          <div class="card-header-con-filtro" style="margin-bottom:16px">
+            <div class="seccion-titulo" style="border-bottom:none;margin-bottom:0">Registros de AQL</div>
+            <button class="btn btn-primario" onclick="modAQL.abrirFormulario()" style="font-size:12px;padding:8px 18px;">+ Agregar</button>
+          </div>
+          <div class="tabla-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Fecha</th>
+                  <th>License Plate</th>
+                  <th>Clasificación</th>
+                  <th>SKU</th>
+                  <th>Marca</th>
+                  <th>Modelo</th>
+                  <th>Estado AQL</th>
+                  <th>Inspector</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="aql-tabla-cuerpo"></tbody>
+            </table>
+            <div id="aql-tabla-vacio" class="vacio" style="display:none">No hay registros de AQL.</div>
           </div>
         </div>
       </div>
@@ -1833,6 +1871,205 @@
     <div id="ri-det-imagenes" class="re-det-imagenes" style="margin-top:16px"></div>
     <div id="ri-det-firma" style="margin-top:16px"></div>
     <div class="nc-det-acciones" id="ri-det-botones"></div>
+  </div>
+</div>
+
+<!-- MODAL: FORMULARIO AQL -->
+<div class="modal-overlay" id="modal-aql-form">
+  <div class="modal" style="max-width:780px;width:95vw;max-height:90vh;overflow-y:auto">
+    <div class="modal-titulo" id="modal-aql-form-titulo">Nuevo Registro AQL</div>
+    <input type="hidden" id="aql-edit-id">
+    <form id="form-aql">
+
+      <div class="seccion-titulo" style="margin-bottom:10px">Información General</div>
+      <div class="form-grid">
+        <div><label>Fecha de Registro *</label><input type="date" id="aql-fecha" required></div>
+        <div><label>License Plate *</label><input type="text" id="aql-license-plate" required placeholder="Ej. ABC-1234"></div>
+        <div><label>Clasificación *</label>
+          <select id="aql-clasificacion" required>
+            <option value="">— Seleccionar —</option>
+            <option>NEW</option><option>GRA</option><option>GRB</option><option>GRC</option>
+            <option>ICB</option><option>ICC</option><option>ICD</option><option>ICX</option>
+            <option>BOX</option>
+          </select>
+        </div>
+        <div><label>SKU</label><input type="text" id="aql-sku" placeholder="Código de producto"></div>
+        <div><label>Marca</label><input type="text" id="aql-marca" placeholder="Ej. Samsung"></div>
+        <div><label>Modelo</label><input type="text" id="aql-modelo" placeholder="Ej. UN55TU8000"></div>
+        <div class="full"><label>Descripción</label><textarea id="aql-descripcion" rows="2" placeholder="Observaciones generales del producto"></textarea></div>
+      </div>
+
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Inspección de Accesorios</div>
+      <div class="form-grid">
+        <div><label>Accesorios Presentes</label>
+          <select id="aql-accesorios-presentes">
+            <option value="">— Seleccionar —</option>
+            <option>Presentes</option><option>Ausentes</option>
+          </select>
+        </div>
+        <div><label>Estado de Accesorios</label>
+          <select id="aql-estado-accesorios" onchange="modAQL._onEstado('estado-accesorios','Malos')">
+            <option value="">— Seleccionar —</option>
+            <option>Excelentes</option><option>Buenos</option><option>Malos</option>
+          </select>
+        </div>
+        <div class="full" id="aql-estado-accesorios-defectos-wrap" style="display:none">
+          <label style="margin-bottom:6px;display:block">Defectos de Accesorios</label>
+          <div class="aql-checks">
+            <label><input type="checkbox" name="accesorios_defectos" value="Daño Físico"> Daño Físico</label>
+            <label><input type="checkbox" name="accesorios_defectos" value="Faltante de Control"> Faltante de Control</label>
+            <label><input type="checkbox" name="accesorios_defectos" value="Faltante de Cable"> Faltante de Cable</label>
+            <label><input type="checkbox" name="accesorios_defectos" value="Faltante de Bases"> Faltante de Bases</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Condición del Producto</div>
+      <div class="form-grid">
+
+        <div><label>Estado de Bolsa Protectora</label>
+          <select id="aql-estado-bolsa" onchange="modAQL._onEstado('estado-bolsa','Malo')">
+            <option value="">— Seleccionar —</option>
+            <option>Excelente</option><option>Bueno</option><option>Malo</option>
+          </select>
+        </div>
+        <div id="aql-estado-bolsa-defectos-wrap" style="display:none">
+          <label style="margin-bottom:6px;display:block">Defectos de Bolsa</label>
+          <div class="aql-checks">
+            <label><input type="checkbox" name="bolsa_defectos" value="Dañada"> Dañada</label>
+            <label><input type="checkbox" name="bolsa_defectos" value="Faltante"> Faltante</label>
+            <label><input type="checkbox" name="bolsa_defectos" value="Mal acomodada"> Mal acomodada</label>
+          </div>
+        </div>
+
+        <div><label>Estado del Audio</label>
+          <select id="aql-estado-audio" onchange="modAQL._onEstado('estado-audio','Malo')">
+            <option value="">— Seleccionar —</option>
+            <option>Excelente</option><option>Bueno</option><option>Malo</option>
+          </select>
+        </div>
+        <div id="aql-estado-audio-defectos-wrap" style="display:none">
+          <label style="margin-bottom:6px;display:block">Defectos de Audio</label>
+          <div class="aql-checks">
+            <label><input type="checkbox" name="audio_defectos" value="Sin sonido"> Sin sonido</label>
+            <label><input type="checkbox" name="audio_defectos" value="Distorsión"> Distorsión</label>
+            <label><input type="checkbox" name="audio_defectos" value="Volumen deficiente"> Volumen deficiente</label>
+            <label><input type="checkbox" name="audio_defectos" value="Desincronización (lag)"> Desincronización (lag)</label>
+            <label><input type="checkbox" name="audio_defectos" value="Ruido de fondo"> Ruido de fondo</label>
+            <label><input type="checkbox" name="audio_defectos" value="Vibración excesiva"> Vibración excesiva</label>
+          </div>
+        </div>
+
+        <div><label>Estado del Video / Pantalla</label>
+          <select id="aql-estado-video" onchange="modAQL._onEstado('estado-video','Malo')">
+            <option value="">— Seleccionar —</option>
+            <option>Excelente</option><option>Bueno</option><option>Malo</option>
+          </select>
+        </div>
+        <div id="aql-estado-video-defectos-wrap" style="display:none">
+          <label style="margin-bottom:6px;display:block">Defectos de Video</label>
+          <div class="aql-checks">
+            <label><input type="checkbox" name="video_defectos" value="Píxeles muertos o atascados"> Píxeles muertos o atascados</label>
+            <label><input type="checkbox" name="video_defectos" value="Líneas verticales u horizontales"> Líneas verticales u horizontales</label>
+            <label><input type="checkbox" name="video_defectos" value="Fugas de luz (backlight bleeding)"> Fugas de luz (backlight bleeding)</label>
+            <label><input type="checkbox" name="video_defectos" value="Manchas o sombras en la imagen"> Manchas o sombras en la imagen</label>
+            <label><input type="checkbox" name="video_defectos" value="Parpadeo (flickering)"> Parpadeo (flickering)</label>
+            <label><input type="checkbox" name="video_defectos" value="Descalibración de color (tintes)"> Descalibración de color (tintes)</label>
+            <label><input type="checkbox" name="video_defectos" value="Daños físicos (rayones, grietas)"> Daños físicos (rayones, grietas)</label>
+            <label><input type="checkbox" name="video_defectos" value="Distorsión o artefactos de video"> Distorsión o artefactos de video</label>
+          </div>
+        </div>
+
+        <div><label>Estado Físico de la Pantalla</label>
+          <select id="aql-estado-fisico-pantalla" onchange="modAQL._onEstado('estado-fisico-pantalla','Malo')">
+            <option value="">— Seleccionar —</option>
+            <option>Excelente</option><option>Bueno</option><option>Malo</option>
+          </select>
+        </div>
+        <div id="aql-estado-fisico-pantalla-defectos-wrap" style="display:none">
+          <label style="margin-bottom:6px;display:block">Defectos Físicos</label>
+          <div class="aql-checks">
+            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Rayones o arañazos"> Rayones o arañazos</label>
+            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Grietas o fisuras"> Grietas o fisuras</label>
+            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Astillas en bordes"> Astillas en bordes</label>
+            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Marcas de presión (efecto mancha)"> Marcas de presión (efecto mancha)</label>
+            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Desprendimiento de marco o bisel"> Desprendimiento de marco o bisel</label>
+            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Residuos de adhesivo o pegamento"> Residuos de adhesivo o pegamento</label>
+            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Manchas imborrables o suciedad incrustada"> Manchas imborrables o suciedad incrustada</label>
+            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Deformaciones en el panel"> Deformaciones en el panel</label>
+          </div>
+        </div>
+
+        <div><label>Estado de Limpieza de TV</label>
+          <select id="aql-estado-limpieza" onchange="modAQL._onEstado('estado-limpieza','Malo')">
+            <option value="">— Seleccionar —</option>
+            <option>Excelente</option><option>Bueno</option><option>Malo</option>
+          </select>
+        </div>
+        <div id="aql-estado-limpieza-defectos-wrap" style="display:none">
+          <label style="margin-bottom:6px;display:block">Defectos de Limpieza</label>
+          <div class="aql-checks">
+            <label><input type="checkbox" name="limpieza_defectos" value="Huellas dactilares visibles"> Huellas dactilares visibles</label>
+            <label><input type="checkbox" name="limpieza_defectos" value="Polvo o partículas atrapadas"> Polvo o partículas atrapadas</label>
+            <label><input type="checkbox" name="limpieza_defectos" value="Residuos de grasa"> Residuos de grasa</label>
+            <label><input type="checkbox" name="limpieza_defectos" value="Manchas de líquidos"> Manchas de líquidos</label>
+            <label><input type="checkbox" name="limpieza_defectos" value="Pelusa o fibras"> Pelusa o fibras</label>
+            <label><input type="checkbox" name="limpieza_defectos" value="Restos de embalaje (espuma/unicel)"> Restos de embalaje (espuma/unicel)</label>
+            <label><input type="checkbox" name="limpieza_defectos" value="Marcas de manipulación"> Marcas de manipulación</label>
+            <label><input type="checkbox" name="limpieza_defectos" value="Vaho o humedad residual"> Vaho o humedad residual</label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Resultado de AQL</div>
+      <div class="form-grid">
+        <div><label>Estado de AQL *</label>
+          <select id="aql-estado-aql" required>
+            <option value="">— Seleccionar —</option>
+            <option>Aceptado</option><option>Rechazado</option>
+          </select>
+        </div>
+        <div><label>Inspector</label>
+          <input type="text" id="aql-inspector" placeholder="Usuario logueado" readonly class="ri-readonly">
+        </div>
+      </div>
+
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Fotografías</div>
+      <div class="form-grid">
+        <div>
+          <label>Foto de LPN</label>
+          <button type="button" class="btn btn-secundario" style="font-size:12px;margin-bottom:8px"
+                  onclick="document.getElementById('aql-foto-lpn-input').click()">Seleccionar foto</button>
+          <input type="file" id="aql-foto-lpn-input" accept="image/*" style="display:none"
+                 onchange="modAQL._previewFoto(this,'aql-foto-lpn-preview','_fotoLpn');this.value=''">
+          <div id="aql-foto-lpn-preview" class="re-thumbs"></div>
+        </div>
+        <div>
+          <label>Foto de Pantalla</label>
+          <button type="button" class="btn btn-secundario" style="font-size:12px;margin-bottom:8px"
+                  onclick="document.getElementById('aql-foto-pantalla-input').click()">Seleccionar foto</button>
+          <input type="file" id="aql-foto-pantalla-input" accept="image/*" style="display:none"
+                 onchange="modAQL._previewFoto(this,'aql-foto-pantalla-preview','_fotoPantalla');this.value=''">
+          <div id="aql-foto-pantalla-preview" class="re-thumbs"></div>
+        </div>
+      </div>
+
+      <div class="btn-grupo" style="margin-top:22px">
+        <button type="submit" class="btn btn-primario" id="btn-aql-guardar">Guardar</button>
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-aql-form')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE AQL -->
+<div class="modal-overlay" id="modal-aql-detalle">
+  <div class="modal" style="max-width:700px;width:95vw;max-height:90vh;overflow-y:auto">
+    <div class="modal-titulo" id="aql-det-titulo">Registro AQL</div>
+    <div class="nc-det-grid" id="aql-det-grid"></div>
+    <div id="aql-det-fotos" style="margin-top:16px"></div>
+    <div class="nc-det-acciones" id="aql-det-botones"></div>
   </div>
 </div>
 
@@ -2465,6 +2702,260 @@ document.getElementById('form-ri').addEventListener('submit', async function(e) 
 });
 
 // ================================================================
+// AQL — Registro de AQL
+// ================================================================
+const modAQL = {
+  registros: [],
+  _fotoLpn: null,
+  _fotoPantalla: null,
+  _editId: null,
+
+  async init() { await this.cargar(); },
+
+  async cargar() {
+    try {
+      this.registros = await api.get('/api/aql');
+      this.renderTabla();
+    } catch(e) { ui.notificar(e.error || 'Error al cargar registros AQL.'); }
+  },
+
+  renderTabla() {
+    const tbody = document.getElementById('aql-tabla-cuerpo');
+    const vacio = document.getElementById('aql-tabla-vacio');
+    if (!this.registros.length) { tbody.innerHTML = ''; vacio.style.display = 'block'; return; }
+    vacio.style.display = 'none';
+    tbody.innerHTML = this.registros.map((r, i) => {
+      const badgeColor = r.estado_aql === 'Aceptado' ? 'verde' : r.estado_aql === 'Rechazado' ? 'rojo' : 'gris';
+      return `<tr style="cursor:pointer" onclick="modAQL.abrirDetalle(${r.id})"
+                  onmouseover="this.style.background='#f0f4f9'" onmouseout="this.style.background=''">
+        <td>${i + 1}</td>
+        <td style="font-size:12px">${String(r.fecha_registro).slice(0,10)}</td>
+        <td>${r.license_plate}</td>
+        <td><span class="badge badge-proceso" style="font-size:10px">${r.clasificacion || '—'}</span></td>
+        <td style="font-size:11px">${r.sku || '—'}</td>
+        <td style="font-size:11px">${r.marca || '—'}</td>
+        <td style="font-size:11px">${r.modelo || '—'}</td>
+        <td><span class="badge badge-${badgeColor}" style="font-size:11px">${r.estado_aql || '—'}</span></td>
+        <td style="font-size:11px">${r.inspector || '—'}</td>
+        <td>
+          <button class="btn-accion" onclick="event.stopPropagation();modAQL.abrirDetalle(${r.id})">Ver</button>
+          <button class="btn-accion" onclick="event.stopPropagation();modAQL.abrirFormulario(${r.id})">Editar</button>
+          <button class="btn-accion rojo" onclick="event.stopPropagation();modAQL.eliminar(${r.id})">Eliminar</button>
+        </td>
+      </tr>`;
+    }).join('');
+  },
+
+  _onEstado(campo, valorMalo) {
+    const val = document.getElementById(`aql-${campo}`).value;
+    const wrap = document.getElementById(`aql-${campo}-defectos-wrap`);
+    wrap.style.display = val === valorMalo ? 'block' : 'none';
+    if (val !== valorMalo) wrap.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+  },
+
+  _getChecks(name) {
+    return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(cb => cb.value).join(', ');
+  },
+
+  _setChecks(name, csv) {
+    const vals = (csv || '').split(', ').map(v => v.trim()).filter(Boolean);
+    document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+      cb.checked = vals.includes(cb.value);
+    });
+  },
+
+  _previewFoto(input, previewId, prop) {
+    const file = input.files[0];
+    if (!file) return;
+    this[prop] = file;
+    const wrap = document.getElementById(previewId);
+    const url = URL.createObjectURL(file);
+    wrap.innerHTML = `<div class="re-thumb"><img src="${url}">
+      <button type="button" class="re-thumb-del" onclick="modAQL._quitarFoto('${previewId}','${prop}')">&#x2715;</button></div>`;
+  },
+
+  _quitarFoto(previewId, prop) {
+    this[prop] = null;
+    document.getElementById(previewId).innerHTML = '';
+  },
+
+  async abrirFormulario(id) {
+    this._editId = id || null;
+    this._fotoLpn = null;
+    this._fotoPantalla = null;
+    document.getElementById('aql-foto-lpn-preview').innerHTML = '';
+    document.getElementById('aql-foto-pantalla-preview').innerHTML = '';
+    document.getElementById('form-aql').reset();
+    document.getElementById('aql-edit-id').value = id || '';
+    document.getElementById('modal-aql-form-titulo').textContent = id ? 'Editar Registro AQL' : 'Nuevo Registro AQL';
+    ['estado-accesorios','estado-bolsa','estado-audio','estado-video','estado-fisico-pantalla','estado-limpieza'].forEach(c => {
+      const wrap = document.getElementById(`aql-${c}-defectos-wrap`);
+      if (wrap) wrap.style.display = 'none';
+    });
+    if (id) {
+      try {
+        const r = await api.get(`/api/aql/${id}`);
+        document.getElementById('aql-fecha').value               = String(r.fecha_registro).slice(0,10);
+        document.getElementById('aql-license-plate').value       = r.license_plate;
+        document.getElementById('aql-clasificacion').value       = r.clasificacion;
+        document.getElementById('aql-sku').value                 = r.sku || '';
+        document.getElementById('aql-marca').value               = r.marca || '';
+        document.getElementById('aql-modelo').value              = r.modelo || '';
+        document.getElementById('aql-descripcion').value         = r.descripcion || '';
+        document.getElementById('aql-accesorios-presentes').value = r.accesorios_presentes || '';
+        document.getElementById('aql-estado-accesorios').value   = r.estado_accesorios || '';
+        document.getElementById('aql-estado-bolsa').value        = r.estado_bolsa || '';
+        document.getElementById('aql-estado-audio').value        = r.estado_audio || '';
+        document.getElementById('aql-estado-video').value        = r.estado_video || '';
+        document.getElementById('aql-estado-fisico-pantalla').value = r.estado_fisico_pantalla || '';
+        document.getElementById('aql-estado-limpieza').value     = r.estado_limpieza || '';
+        document.getElementById('aql-estado-aql').value          = r.estado_aql || '';
+        document.getElementById('aql-inspector').value           = r.inspector || '';
+        this._onEstado('estado-accesorios','Malos');
+        this._onEstado('estado-bolsa','Malo');
+        this._onEstado('estado-audio','Malo');
+        this._onEstado('estado-video','Malo');
+        this._onEstado('estado-fisico-pantalla','Malo');
+        this._onEstado('estado-limpieza','Malo');
+        this._setChecks('accesorios_defectos',      r.accesorios_defectos);
+        this._setChecks('bolsa_defectos',           r.bolsa_defectos);
+        this._setChecks('audio_defectos',           r.audio_defectos);
+        this._setChecks('video_defectos',           r.video_defectos);
+        this._setChecks('fisico_pantalla_defectos', r.fisico_pantalla_defectos);
+        this._setChecks('limpieza_defectos',        r.limpieza_defectos);
+        if (r.foto_lpn_filename) {
+          document.getElementById('aql-foto-lpn-preview').innerHTML =
+            `<div class="re-thumb"><img src="/uploads/aql/${r.foto_lpn_filename}"></div>`;
+        }
+        if (r.foto_pantalla_filename) {
+          document.getElementById('aql-foto-pantalla-preview').innerHTML =
+            `<div class="re-thumb"><img src="/uploads/aql/${r.foto_pantalla_filename}"></div>`;
+        }
+      } catch(e) { ui.notificar(e.error || 'Error al cargar datos.'); return; }
+    } else {
+      document.getElementById('aql-fecha').value     = new Date().toISOString().slice(0,10);
+      document.getElementById('aql-inspector').value = sesionActual?.nombre || '';
+    }
+    ui.abrirModal('modal-aql-form');
+  },
+
+  async abrirDetalle(id) {
+    try {
+      const r = await api.get(`/api/aql/${id}`);
+      const badgeColor = r.estado_aql === 'Aceptado' ? 'verde' : 'rojo';
+      const estado = (val, malo, defs) => {
+        let html = `<span class="badge badge-${val==='Malo'||val==='Malos'?'rojo':val==='Bueno'||val==='Buenos'?'proceso':'verde'}">${val||'—'}</span>`;
+        if ((val==='Malo'||val==='Malos') && defs) html += `<br><small style="color:var(--gris);font-size:10px">${defs}</small>`;
+        return html;
+      };
+      document.getElementById('aql-det-titulo').textContent = `AQL — ${r.license_plate} (${r.clasificacion})`;
+      document.getElementById('aql-det-grid').innerHTML = `
+        <div><label>Fecha</label><span>${String(r.fecha_registro).slice(0,10)}</span></div>
+        <div><label>License Plate</label><span>${r.license_plate}</span></div>
+        <div><label>Clasificación</label><span>${r.clasificacion||'—'}</span></div>
+        <div><label>SKU</label><span>${r.sku||'—'}</span></div>
+        <div><label>Marca</label><span>${r.marca||'—'}</span></div>
+        <div><label>Modelo</label><span>${r.modelo||'—'}</span></div>
+        <div class="full"><label>Descripción</label><span>${r.descripcion||'—'}</span></div>
+        <div><label>Accesorios Presentes</label><span>${r.accesorios_presentes||'—'}</span></div>
+        <div><label>Estado Accesorios</label><span>${estado(r.estado_accesorios,'Malos',r.accesorios_defectos)}</span></div>
+        <div><label>Estado Bolsa Protectora</label><span>${estado(r.estado_bolsa,'Malo',r.bolsa_defectos)}</span></div>
+        <div><label>Estado Audio</label><span>${estado(r.estado_audio,'Malo',r.audio_defectos)}</span></div>
+        <div><label>Estado Video / Pantalla</label><span>${estado(r.estado_video,'Malo',r.video_defectos)}</span></div>
+        <div><label>Estado Físico Pantalla</label><span>${estado(r.estado_fisico_pantalla,'Malo',r.fisico_pantalla_defectos)}</span></div>
+        <div><label>Estado Limpieza</label><span>${estado(r.estado_limpieza,'Malo',r.limpieza_defectos)}</span></div>
+        <div><label>Estado AQL</label><span class="badge badge-${badgeColor}" style="font-size:13px">${r.estado_aql||'—'}</span></div>
+        <div><label>Inspector</label><span>${r.inspector||'—'}</span></div>
+        <div><label>Registrado por</label><span>${r.registrado_por||'—'}</span></div>`;
+      const fotosEl = document.getElementById('aql-det-fotos');
+      let fotosHtml = '';
+      if (r.foto_lpn_filename || r.foto_pantalla_filename) {
+        fotosHtml = '<div class="seccion-titulo" style="margin-bottom:10px">Fotografías</div><div class="re-thumbs">';
+        if (r.foto_lpn_filename) fotosHtml += `
+          <div class="re-thumb" style="cursor:pointer" onclick="window.open('/uploads/aql/${r.foto_lpn_filename}','_blank')">
+            <img src="/uploads/aql/${r.foto_lpn_filename}">
+            <small style="display:block;text-align:center;font-size:9px;margin-top:2px">LPN</small>
+          </div>`;
+        if (r.foto_pantalla_filename) fotosHtml += `
+          <div class="re-thumb" style="cursor:pointer" onclick="window.open('/uploads/aql/${r.foto_pantalla_filename}','_blank')">
+            <img src="/uploads/aql/${r.foto_pantalla_filename}">
+            <small style="display:block;text-align:center;font-size:9px;margin-top:2px">Pantalla</small>
+          </div>`;
+        fotosHtml += '</div>';
+      }
+      fotosEl.innerHTML = fotosHtml;
+      document.getElementById('aql-det-botones').innerHTML = `
+        <button class="btn btn-secundario" onclick="modAQL.abrirFormulario(${r.id});ui.cerrarModal('modal-aql-detalle')">Editar</button>
+        <span class="spacer"></span>
+        <button class="btn" style="color:var(--rojo);border:1px solid var(--rojo);background:transparent"
+                onclick="modAQL.eliminar(${r.id})">Eliminar</button>
+        <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-aql-detalle')">Cerrar</button>`;
+      ui.abrirModal('modal-aql-detalle');
+    } catch(e) { ui.notificar(e.error || 'Error al cargar detalle.'); }
+  },
+
+  eliminar(id) {
+    ui.confirmar('Se eliminará el registro y sus fotos de forma permanente.', async () => {
+      try {
+        await api.del(`/api/aql/${id}`);
+        ui.cerrarModal('modal-aql-detalle');
+        await this.cargar();
+      } catch(e) { ui.notificar(e.error || 'Error al eliminar.'); }
+    }, 'Eliminar Registro AQL');
+  },
+};
+
+document.getElementById('form-aql').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-aql-guardar');
+  btn.disabled = true;
+  const id = document.getElementById('aql-edit-id').value;
+  const body = {
+    fecha_registro:           document.getElementById('aql-fecha').value,
+    license_plate:            document.getElementById('aql-license-plate').value.trim(),
+    clasificacion:            document.getElementById('aql-clasificacion').value,
+    sku:                      document.getElementById('aql-sku').value.trim(),
+    marca:                    document.getElementById('aql-marca').value.trim(),
+    modelo:                   document.getElementById('aql-modelo').value.trim(),
+    descripcion:              document.getElementById('aql-descripcion').value.trim(),
+    accesorios_presentes:     document.getElementById('aql-accesorios-presentes').value,
+    estado_accesorios:        document.getElementById('aql-estado-accesorios').value,
+    accesorios_defectos:      modAQL._getChecks('accesorios_defectos'),
+    estado_bolsa:             document.getElementById('aql-estado-bolsa').value,
+    bolsa_defectos:           modAQL._getChecks('bolsa_defectos'),
+    estado_audio:             document.getElementById('aql-estado-audio').value,
+    audio_defectos:           modAQL._getChecks('audio_defectos'),
+    estado_video:             document.getElementById('aql-estado-video').value,
+    video_defectos:           modAQL._getChecks('video_defectos'),
+    estado_fisico_pantalla:   document.getElementById('aql-estado-fisico-pantalla').value,
+    fisico_pantalla_defectos: modAQL._getChecks('fisico_pantalla_defectos'),
+    estado_limpieza:          document.getElementById('aql-estado-limpieza').value,
+    limpieza_defectos:        modAQL._getChecks('limpieza_defectos'),
+    estado_aql:               document.getElementById('aql-estado-aql').value,
+    inspector:                document.getElementById('aql-inspector').value.trim(),
+  };
+  try {
+    let registro;
+    if (id) { registro = await api.put(`/api/aql/${id}`, body); }
+    else     { registro = await api.post('/api/aql', body); }
+
+    if (modAQL._fotoLpn) {
+      const fd = new FormData(); fd.append('foto', modAQL._fotoLpn);
+      const r = await fetch(`/api/aql/${registro.id}/foto-lpn`, { method: 'POST', body: fd });
+      if (!r.ok) ui.notificar('La foto de LPN no pudo subirse.', 'Aviso');
+    }
+    if (modAQL._fotoPantalla) {
+      const fd = new FormData(); fd.append('foto', modAQL._fotoPantalla);
+      const r = await fetch(`/api/aql/${registro.id}/foto-pantalla`, { method: 'POST', body: fd });
+      if (!r.ok) ui.notificar('La foto de pantalla no pudo subirse.', 'Aviso');
+    }
+    ui.cerrarModal('modal-aql-form');
+    await modAQL.cargar();
+  } catch(e) { ui.notificar(e.error || 'Error al guardar.'); }
+  finally { btn.disabled = false; }
+});
+
+// ================================================================
 // CAPA — Acciones Correctivas y Preventivas
 // ================================================================
 const ISHIKAWA_CATS = ['Mano de obra','Máquina','Método','Material','Medio ambiente','Medición'];
@@ -2964,6 +3455,7 @@ const MODULOS = {
   recepciones:    { titulo: 'Recepciones',       modulo: 'modulo-recepciones',    nav: 'nav-recepciones',    onEnter: () => modREC.init() },
   'rechazos-ext':   { titulo: 'Rechazos Externos',              modulo: 'modulo-rechazos-ext',   nav: 'nav-rechazos-ext',   onEnter: () => modRE.init() },
   'rechazos-int':   { titulo: 'Rechazos Internos',             modulo: 'modulo-rechazos-int',   nav: 'nav-rechazos-int',   onEnter: () => modRI.init() },
+  'aql':            { titulo: 'Registro de AQL',              modulo: 'modulo-aql',            nav: 'nav-aql',            onEnter: () => modAQL.init() },
   'capas':          { titulo: 'Acciones Correctivas (CAPA)',   modulo: 'modulo-capas',          nav: 'nav-capas',          onEnter: () => modCAPA.init() },
   'organigrama-qc': { titulo: 'Organigrama QC',   modulo: 'modulo-organigrama-qc', nav: 'nav-organigrama-qc', onEnter: () => modORG.init() },
   'calendario':     { titulo: 'Calendario',       modulo: 'modulo-calendario',     nav: 'nav-calendario',     onEnter: () => modCAL.init() },
