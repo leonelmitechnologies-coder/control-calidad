@@ -151,6 +151,10 @@ async function initDB() {
   `);
 
   await pool.query('ALTER TABLE recepciones DROP COLUMN IF EXISTS trailer');
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS marca       VARCHAR(100) NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS modelo      VARCHAR(100) NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS pulgada     VARCHAR(20)  NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS descripcion TEXT         NOT NULL DEFAULT ''`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS rechazos_externos (
@@ -906,17 +910,17 @@ app.get('/api/rechazos-internos/:id', auth, async (req, res) => {
 });
 
 app.post('/api/rechazos-internos', auth, async (req, res) => {
-  const { fecha_registro, license_plate, sku, defecto, actividad_realizar,
-          costo_no_calidad, origen_hallazgo, inspector } = req.body;
+  const { fecha_registro, license_plate, sku, marca, modelo, pulgada, descripcion,
+          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector } = req.body;
   const registrado_por = req.session.usuario.nombre;
   try {
     const { rows } = await pool.query(
       `INSERT INTO rechazos_internos
-         (fecha_registro, license_plate, sku, defecto, actividad_realizar,
-          costo_no_calidad, origen_hallazgo, inspector, registrado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-      [fecha_registro, license_plate, sku || '', defecto,
-       actividad_realizar || '', costo_no_calidad || 0,
+         (fecha_registro, license_plate, sku, marca, modelo, pulgada, descripcion,
+          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector, registrado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+      [fecha_registro, license_plate, sku || '', marca || '', modelo || '', pulgada || '', descripcion || '',
+       defecto, actividad_realizar || '', costo_no_calidad || 0,
        origen_hallazgo || '', inspector || registrado_por, registrado_por]
     );
     res.json(rows[0]);
@@ -924,16 +928,17 @@ app.post('/api/rechazos-internos', auth, async (req, res) => {
 });
 
 app.put('/api/rechazos-internos/:id', auth, async (req, res) => {
-  const { fecha_registro, license_plate, sku, defecto, actividad_realizar,
-          costo_no_calidad, origen_hallazgo, inspector } = req.body;
+  const { fecha_registro, license_plate, sku, marca, modelo, pulgada, descripcion,
+          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE rechazos_internos SET
-         fecha_registro=$1, license_plate=$2, sku=$3, defecto=$4,
-         actividad_realizar=$5, costo_no_calidad=$6, origen_hallazgo=$7, inspector=$8
-       WHERE id=$9 RETURNING *`,
-      [fecha_registro, license_plate, sku || '', defecto,
-       actividad_realizar || '', costo_no_calidad || 0,
+         fecha_registro=$1, license_plate=$2, sku=$3, marca=$4, modelo=$5,
+         pulgada=$6, descripcion=$7, defecto=$8, actividad_realizar=$9,
+         costo_no_calidad=$10, origen_hallazgo=$11, inspector=$12
+       WHERE id=$13 RETURNING *`,
+      [fecha_registro, license_plate, sku || '', marca || '', modelo || '', pulgada || '', descripcion || '',
+       defecto, actividad_realizar || '', costo_no_calidad || 0,
        origen_hallazgo || '', inspector || '', req.params.id]
     );
     res.json(rows[0]);

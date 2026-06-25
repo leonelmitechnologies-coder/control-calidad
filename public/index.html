@@ -1803,6 +1803,10 @@
         <div><label>Fecha de Registro *</label><input type="date" id="ri-fecha" required></div>
         <div><label>License Plate *</label><input type="text" id="ri-license-plate" required placeholder="Ej. ABC-1234"></div>
         <div><label>SKU</label><input type="text" id="ri-sku" placeholder="Código de producto"></div>
+        <div><label>Marca</label><input type="text" id="ri-marca" placeholder="Ej. Samsung"></div>
+        <div><label>Modelo</label><input type="text" id="ri-modelo" placeholder="Ej. UN55TU8000"></div>
+        <div><label>Pulgada</label><input type="text" id="ri-pulgada" placeholder='Ej. 55"'></div>
+        <div class="full"><label>Descripción</label><textarea id="ri-descripcion" rows="2" placeholder="Observaciones del producto"></textarea></div>
         <div><label>Defecto *</label>
           <select id="ri-defecto" required onchange="modRI._onDefectoChange()">
             <option value="">— Seleccionar defecto —</option>
@@ -2579,6 +2583,10 @@ const modRI = {
         document.getElementById('ri-fecha').value          = String(r.fecha_registro).slice(0,10);
         document.getElementById('ri-license-plate').value  = r.license_plate;
         document.getElementById('ri-sku').value            = r.sku || '';
+        document.getElementById('ri-marca').value          = r.marca || '';
+        document.getElementById('ri-modelo').value         = r.modelo || '';
+        document.getElementById('ri-pulgada').value        = r.pulgada || '';
+        document.getElementById('ri-descripcion').value    = r.descripcion || '';
         document.getElementById('ri-defecto').value        = r.defecto;
         document.getElementById('ri-actividad').value      = r.actividad_realizar;
         document.getElementById('ri-costo').value          = r.costo_no_calidad;
@@ -2614,6 +2622,10 @@ const modRI = {
         <div><label>Fecha</label><span>${String(r.fecha_registro).slice(0,10)}</span></div>
         <div><label>License Plate</label><span>${r.license_plate}</span></div>
         <div><label>SKU</label><span>${r.sku || '—'}</span></div>
+        <div><label>Marca</label><span>${r.marca || '—'}</span></div>
+        <div><label>Modelo</label><span>${r.modelo || '—'}</span></div>
+        <div><label>Pulgada</label><span>${r.pulgada || '—'}</span></div>
+        <div class="full"><label>Descripción</label><span>${r.descripcion || '—'}</span></div>
         <div><label>Defecto</label><span>${r.defecto}</span></div>
         <div class="full"><label>Actividad a Realizar</label><span>${r.actividad_realizar || '—'}</span></div>
         <div><label>Costo de No Calidad</label><span style="font-weight:700;color:var(--azul)">$${parseFloat(r.costo_no_calidad).toFixed(2)}</span></div>
@@ -2668,6 +2680,10 @@ document.getElementById('form-ri').addEventListener('submit', async function(e) 
     fecha_registro:    document.getElementById('ri-fecha').value,
     license_plate:     document.getElementById('ri-license-plate').value.trim(),
     sku:               document.getElementById('ri-sku').value.trim(),
+    marca:             document.getElementById('ri-marca').value.trim(),
+    modelo:            document.getElementById('ri-modelo').value.trim(),
+    pulgada:           document.getElementById('ri-pulgada').value.trim(),
+    descripcion:       document.getElementById('ri-descripcion').value.trim(),
     defecto:           document.getElementById('ri-defecto').value,
     actividad_realizar:document.getElementById('ri-actividad').value,
     costo_no_calidad:  parseFloat(document.getElementById('ri-costo').value) || 0,
