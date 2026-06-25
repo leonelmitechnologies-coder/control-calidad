@@ -913,6 +913,17 @@
     .badge-verde { background:#d4edda; color:#155724; }
     .badge-gris  { background:#e9ecef; color:#6c757d; }
 
+    /* ── SKU Autocomplete dropdown ── */
+    .sku-dropdown { position:absolute; background:#fff; border:1px solid var(--borde);
+                    border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,.15); z-index:9999;
+                    max-height:260px; overflow-y:auto; }
+    .sku-dd-item  { padding:8px 12px; cursor:pointer; border-bottom:1px solid var(--borde);
+                    display:flex; flex-direction:column; gap:2px; }
+    .sku-dd-item:last-child { border-bottom:none; }
+    .sku-dd-item:hover, .sku-dd-item.activo { background:var(--fondo); }
+    .sku-dd-item strong { font-size:13px; color:var(--texto); }
+    .sku-dd-item span   { font-size:11px; color:var(--texto-sec); }
+
     /* ── Dashboard ── */
     .dash-periodo     { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
     .dash-periodo-btn { padding:7px 18px; border:1px solid var(--gris-claro); background:#fff;
@@ -1805,7 +1816,8 @@
         <div><label>SKU</label>
           <div style="position:relative">
             <input type="text" id="ri-sku" placeholder="Código de producto" autocomplete="off"
-                   oninput="catalogoSKU.buscar(this.value,'ri-marca','ri-modelo','ri-pulgada','ri-descripcion','ri-sku-status')">
+                   oninput="catalogoSKU.buscar(this.value,'ri-marca','ri-modelo','ri-pulgada','ri-descripcion','ri-sku-status',this)"
+                   onkeydown="catalogoSKU.tecla(event)">
             <span id="ri-sku-status" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px"></span>
           </div>
         </div>
@@ -1906,7 +1918,8 @@
         <div><label>SKU</label>
           <div style="position:relative">
             <input type="text" id="aql-sku" placeholder="Código de producto" autocomplete="off"
-                   oninput="catalogoSKU.buscar(this.value,'aql-marca','aql-modelo','aql-pulgada','aql-descripcion','aql-sku-status')">
+                   oninput="catalogoSKU.buscar(this.value,'aql-marca','aql-modelo','aql-pulgada','aql-descripcion','aql-sku-status',this)"
+                   onkeydown="catalogoSKU.tecla(event)">
             <span id="aql-sku-status" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px"></span>
           </div>
         </div>
@@ -2502,41 +2515,113 @@ const auth = {
 // CATÁLOGO SKU — autocomplete compartido
 // ================================================================
 const catalogoSKU = {
-  _timer: null,
-  _cache: {},
+  _timer:    null,
+  _cache:    {},
+  _dd:       null,
+  _inputEl:  null,
+  _campos:   null,   // { marcaId, modeloId, pulgadaId, descripcionId, statusId }
+  _focusIdx: -1,
 
-  buscar(sku, marcaId, modeloId, pulgadaId, descripcionId, statusId) {
+  buscar(sku, marcaId, modeloId, pulgadaId, descripcionId, statusId, inputEl) {
     clearTimeout(this._timer);
-    const status = document.getElementById(statusId);
-    if (!sku || sku.trim().length < 4) {
-      if (status) status.textContent = '';
+    this._inputEl = inputEl;
+    this._campos  = { marcaId, modeloId, pulgadaId, descripcionId, statusId };
+    const status  = document.getElementById(statusId);
+    if (!sku || sku.trim().length < 3) {
+      this._cerrar();
+      if (status) { status.textContent = ''; }
       return;
     }
-    if (status) status.textContent = '⏳';
-    this._timer = setTimeout(() => this._lookup(sku.trim(), marcaId, modeloId, pulgadaId, descripcionId, status), 400);
+    if (status) { status.textContent = '⏳'; status.style.color = ''; }
+    this._timer = setTimeout(() => this._buscarSugerencias(sku.trim()), 350);
   },
 
-  async _lookup(sku, marcaId, modeloId, pulgadaId, descripcionId, status) {
-    if (this._cache[sku.toUpperCase()]) {
-      this._fill(this._cache[sku.toUpperCase()], marcaId, modeloId, pulgadaId, descripcionId, status);
-      return;
+  tecla(e) {
+    if (!this._dd) return;
+    const items = this._dd.querySelectorAll('.sku-dd-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this._focusIdx = Math.min(this._focusIdx + 1, items.length - 1);
+      this._marcarActivo(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this._focusIdx = Math.max(this._focusIdx - 1, 0);
+      this._marcarActivo(items);
+    } else if (e.key === 'Enter' && this._focusIdx >= 0) {
+      e.preventDefault();
+      items[this._focusIdx].dispatchEvent(new MouseEvent('mousedown'));
+    } else if (e.key === 'Escape') {
+      this._cerrar();
     }
-    try {
-      const r = await api.get(`/api/catalogo-sku/${encodeURIComponent(sku)}`);
-      this._cache[sku.toUpperCase()] = r;
-      this._fill(r, marcaId, modeloId, pulgadaId, descripcionId, status);
-    } catch(e) {
+  },
+
+  _marcarActivo(items) {
+    items.forEach((el, i) => el.classList.toggle('activo', i === this._focusIdx));
+    if (this._focusIdx >= 0) items[this._focusIdx].scrollIntoView({ block: 'nearest' });
+  },
+
+  async _buscarSugerencias(q) {
+    const key = 'q:' + q.toUpperCase();
+    let resultados = this._cache[key];
+    if (!resultados) {
+      try {
+        resultados = await api.get(`/api/catalogo-sku?q=${encodeURIComponent(q)}`);
+        this._cache[key] = resultados;
+      } catch(e) {
+        const status = document.getElementById(this._campos.statusId);
+        if (status) { status.textContent = '✗'; status.style.color = 'var(--rojo)'; }
+        this._cerrar();
+        return;
+      }
+    }
+    const status = document.getElementById(this._campos.statusId);
+    if (!resultados.length) {
       if (status) { status.textContent = '✗'; status.style.color = 'var(--rojo)'; }
+      this._cerrar();
+      return;
     }
+    if (status) { status.textContent = ''; }
+    this._mostrar(resultados);
   },
 
-  _fill(r, marcaId, modeloId, pulgadaId, descripcionId, status) {
-    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
-    set(marcaId,      r.marca);
-    set(modeloId,     r.modelo);
-    set(pulgadaId,    r.pulgada);
-    set(descripcionId,r.descripcion);
+  _mostrar(items) {
+    this._cerrar();
+    const dd = document.createElement('div');
+    dd.className = 'sku-dropdown';
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'sku-dd-item';
+      const info = [item.marca, item.modelo, item.pulgada ? '(' + item.pulgada + ')' : ''].filter(Boolean).join(' ');
+      div.innerHTML = `<strong>${item.sku}</strong><span>${info}</span>`;
+      div.addEventListener('mousedown', e => { e.preventDefault(); this._seleccionar(item); });
+      dd.appendChild(div);
+    });
+    const rect = this._inputEl.getBoundingClientRect();
+    dd.style.top   = (rect.bottom + window.scrollY + 2) + 'px';
+    dd.style.left  = (rect.left   + window.scrollX)     + 'px';
+    dd.style.width = rect.width + 'px';
+    document.body.appendChild(dd);
+    this._dd = dd;
+    this._focusIdx = -1;
+    const cerrarFuera = e => { if (!dd.contains(e.target)) this._cerrar(); };
+    document.addEventListener('mousedown', cerrarFuera, { once: true });
+  },
+
+  _seleccionar(item) {
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    set(this._campos.marcaId,       item.marca);
+    set(this._campos.modeloId,      item.modelo);
+    set(this._campos.pulgadaId,     item.pulgada);
+    set(this._campos.descripcionId, item.descripcion);
+    if (this._inputEl) this._inputEl.value = item.sku;
+    const status = document.getElementById(this._campos.statusId);
     if (status) { status.textContent = '✓'; status.style.color = 'var(--verde)'; }
+    this._cerrar();
+  },
+
+  _cerrar() {
+    if (this._dd) { this._dd.remove(); this._dd = null; }
+    this._focusIdx = -1;
   },
 };
 

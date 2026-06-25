@@ -1011,6 +1011,24 @@ app.delete('/api/rechazos-internos/:id', auth, async (req, res) => {
 });
 
 // ── CATÁLOGO SKU ──────────────────────────────────────────────
+// Búsqueda parcial por prefijo — devuelve hasta 10 resultados
+app.get('/api/catalogo-sku', auth, async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (q.length < 3) return res.json([]);
+    const { rows } = await pool.query(
+      `SELECT sku, marca, modelo, pulgada, descripcion
+       FROM catalogo_sku
+       WHERE UPPER(sku) LIKE UPPER($1)
+       ORDER BY sku
+       LIMIT 10`,
+      [q.toUpperCase() + '%']
+    );
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Búsqueda exacta por SKU
 app.get('/api/catalogo-sku/:sku', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
