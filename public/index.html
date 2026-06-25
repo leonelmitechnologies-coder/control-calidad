@@ -2611,8 +2611,8 @@ const catalogoSKU = {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
     set(this._campos.marcaId,       item.marca);
     set(this._campos.modeloId,      item.modelo);
-    set(this._campos.pulgadaId,     item.pulgada);
-    set(this._campos.descripcionId, item.descripcion);
+    set(this._campos.pulgadaId,     item.descripcion);
+    set(this._campos.descripcionId, item.pulgada);
     if (this._inputEl) this._inputEl.value = item.sku;
     const status = document.getElementById(this._campos.statusId);
     if (status) { status.textContent = '✓'; status.style.color = 'var(--verde)'; }
