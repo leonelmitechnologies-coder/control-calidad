@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:prod": "node server.js >> logs/server.log 2>> logs/server.err",
     "dev": "node --watch server.js"
   },
   "dependencies": {

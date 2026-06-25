@@ -128,8 +128,9 @@ Rol:        Administrador
 ## Scripts
 
 ```bash
-npm start       # Producción
-npm run dev     # Desarrollo con hot-reload (node --watch)
+npm start            # Servidor (output a consola)
+npm run start:prod   # Servidor en producción (output redirigido a logs/)
+npm run dev          # Desarrollo con hot-reload (node --watch)
 ```
 
 ---

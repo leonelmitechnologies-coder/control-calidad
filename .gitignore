@@ -7,9 +7,11 @@ node_modules/
 .env.production
 
 # Logs de runtime
-logs/
+logs/*
+!logs/.gitkeep
 *.log
 *.err
+server_*.txt
 
 # Sistema operativo
 .DS_Store
