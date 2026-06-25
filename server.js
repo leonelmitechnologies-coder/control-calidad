@@ -350,6 +350,7 @@ async function initDB() {
       sku                      VARCHAR(100)  NOT NULL DEFAULT '',
       marca                    VARCHAR(100)  NOT NULL DEFAULT '',
       modelo                   VARCHAR(100)  NOT NULL DEFAULT '',
+      pulgada                  VARCHAR(20)   NOT NULL DEFAULT '',
       descripcion              TEXT          NOT NULL DEFAULT '',
       accesorios_presentes     VARCHAR(20)   NOT NULL DEFAULT '',
       estado_accesorios        VARCHAR(20)   NOT NULL DEFAULT '',
@@ -1014,7 +1015,7 @@ app.get('/api/aql/:id', auth, async (req, res) => {
 app.post('/api/aql', auth, async (req, res) => {
   const u = req.session.usuario;
   const {
-    fecha_registro, license_plate, clasificacion, sku, marca, modelo, descripcion,
+    fecha_registro, license_plate, clasificacion, sku, marca, modelo, pulgada, descripcion,
     accesorios_presentes, estado_accesorios, accesorios_defectos,
     estado_bolsa, bolsa_defectos,
     estado_audio, audio_defectos,
@@ -1026,7 +1027,7 @@ app.post('/api/aql', auth, async (req, res) => {
   try {
     const { rows: [r] } = await pool.query(`
       INSERT INTO aql_registros
-        (fecha_registro, license_plate, clasificacion, sku, marca, modelo, descripcion,
+        (fecha_registro, license_plate, clasificacion, sku, marca, modelo, pulgada, descripcion,
          accesorios_presentes, estado_accesorios, accesorios_defectos,
          estado_bolsa, bolsa_defectos,
          estado_audio, audio_defectos,
@@ -1034,9 +1035,9 @@ app.post('/api/aql', auth, async (req, res) => {
          estado_fisico_pantalla, fisico_pantalla_defectos,
          estado_limpieza, limpieza_defectos,
          estado_aql, inspector, registrado_por)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
       RETURNING *`,
-      [fecha_registro, license_plate, clasificacion||'', sku||'', marca||'', modelo||'', descripcion||'',
+      [fecha_registro, license_plate, clasificacion||'', sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
        accesorios_presentes||'', estado_accesorios||'', accesorios_defectos||'',
        estado_bolsa||'', bolsa_defectos||'',
        estado_audio||'', audio_defectos||'',
@@ -1051,7 +1052,7 @@ app.post('/api/aql', auth, async (req, res) => {
 
 app.put('/api/aql/:id', auth, async (req, res) => {
   const {
-    fecha_registro, license_plate, clasificacion, sku, marca, modelo, descripcion,
+    fecha_registro, license_plate, clasificacion, sku, marca, modelo, pulgada, descripcion,
     accesorios_presentes, estado_accesorios, accesorios_defectos,
     estado_bolsa, bolsa_defectos,
     estado_audio, audio_defectos,
@@ -1064,15 +1065,15 @@ app.put('/api/aql/:id', auth, async (req, res) => {
     const { rows: [r] } = await pool.query(`
       UPDATE aql_registros SET
         fecha_registro=$1, license_plate=$2, clasificacion=$3, sku=$4, marca=$5, modelo=$6,
-        descripcion=$7, accesorios_presentes=$8, estado_accesorios=$9, accesorios_defectos=$10,
-        estado_bolsa=$11, bolsa_defectos=$12,
-        estado_audio=$13, audio_defectos=$14,
-        estado_video=$15, video_defectos=$16,
-        estado_fisico_pantalla=$17, fisico_pantalla_defectos=$18,
-        estado_limpieza=$19, limpieza_defectos=$20,
-        estado_aql=$21, inspector=$22
-      WHERE id=$23 RETURNING *`,
-      [fecha_registro, license_plate, clasificacion||'', sku||'', marca||'', modelo||'', descripcion||'',
+        pulgada=$7, descripcion=$8, accesorios_presentes=$9, estado_accesorios=$10,
+        accesorios_defectos=$11, estado_bolsa=$12, bolsa_defectos=$13,
+        estado_audio=$14, audio_defectos=$15,
+        estado_video=$16, video_defectos=$17,
+        estado_fisico_pantalla=$18, fisico_pantalla_defectos=$19,
+        estado_limpieza=$20, limpieza_defectos=$21,
+        estado_aql=$22, inspector=$23
+      WHERE id=$24 RETURNING *`,
+      [fecha_registro, license_plate, clasificacion||'', sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
        accesorios_presentes||'', estado_accesorios||'', accesorios_defectos||'',
        estado_bolsa||'', bolsa_defectos||'',
        estado_audio||'', audio_defectos||'',

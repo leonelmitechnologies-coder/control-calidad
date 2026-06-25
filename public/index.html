@@ -1896,6 +1896,7 @@
         <div><label>SKU</label><input type="text" id="aql-sku" placeholder="Código de producto"></div>
         <div><label>Marca</label><input type="text" id="aql-marca" placeholder="Ej. Samsung"></div>
         <div><label>Modelo</label><input type="text" id="aql-modelo" placeholder="Ej. UN55TU8000"></div>
+        <div><label>Pulgada</label><input type="text" id="aql-pulgada" placeholder='Ej. 55"'></div>
         <div class="full"><label>Descripción</label><textarea id="aql-descripcion" rows="2" placeholder="Observaciones generales del producto"></textarea></div>
       </div>
 
@@ -2801,6 +2802,7 @@ const modAQL = {
         document.getElementById('aql-sku').value                 = r.sku || '';
         document.getElementById('aql-marca').value               = r.marca || '';
         document.getElementById('aql-modelo').value              = r.modelo || '';
+        document.getElementById('aql-pulgada').value             = r.pulgada || '';
         document.getElementById('aql-descripcion').value         = r.descripcion || '';
         document.getElementById('aql-accesorios-presentes').value = r.accesorios_presentes || '';
         document.getElementById('aql-estado-accesorios').value   = r.estado_accesorios || '';
@@ -2856,6 +2858,7 @@ const modAQL = {
         <div><label>SKU</label><span>${r.sku||'—'}</span></div>
         <div><label>Marca</label><span>${r.marca||'—'}</span></div>
         <div><label>Modelo</label><span>${r.modelo||'—'}</span></div>
+        <div><label>Pulgada</label><span>${r.pulgada||'—'}</span></div>
         <div class="full"><label>Descripción</label><span>${r.descripcion||'—'}</span></div>
         <div><label>Accesorios Presentes</label><span>${r.accesorios_presentes||'—'}</span></div>
         <div><label>Estado Accesorios</label><span>${estado(r.estado_accesorios,'Malos',r.accesorios_defectos)}</span></div>
@@ -2917,6 +2920,7 @@ document.getElementById('form-aql').addEventListener('submit', async function(e)
     sku:                      document.getElementById('aql-sku').value.trim(),
     marca:                    document.getElementById('aql-marca').value.trim(),
     modelo:                   document.getElementById('aql-modelo').value.trim(),
+    pulgada:                  document.getElementById('aql-pulgada').value.trim(),
     descripcion:              document.getElementById('aql-descripcion').value.trim(),
     accesorios_presentes:     document.getElementById('aql-accesorios-presentes').value,
     estado_accesorios:        document.getElementById('aql-estado-accesorios').value,
