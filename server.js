@@ -90,6 +90,21 @@ const uploadAql = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+const uploadsShipDir = path.join(__dirname, 'public', 'uploads', 'shipping');
+if (!fs.existsSync(uploadsShipDir)) fs.mkdirSync(uploadsShipDir, { recursive: true });
+
+const uploadShip = multer({
+  storage: multer.diskStorage({
+    destination: (_, __, cb) => cb(null, uploadsShipDir),
+    filename:    (_, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+    },
+  }),
+  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
 function auth(req, res, next) {
   if (!req.session.usuario) return res.status(401).json({ error: 'No autorizado' });
   next();
@@ -386,6 +401,38 @@ async function initDB() {
       modelo      TEXT NOT NULL DEFAULT '',
       descripcion TEXT NOT NULL DEFAULT '',
       pulgada     TEXT NOT NULL DEFAULT ''
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS liberacion_shipping (
+      id                      SERIAL PRIMARY KEY,
+      fecha                   DATE          NOT NULL,
+      numero_orden            VARCHAR(100)  NOT NULL DEFAULT '',
+      hora_inicio             TIME          NOT NULL DEFAULT '00:00',
+      hora_fin                TIME          NOT NULL DEFAULT '00:00',
+      destino                 VARCHAR(50)   NOT NULL DEFAULT '',
+      tipo_envio              VARCHAR(20)   NOT NULL DEFAULT '',
+      tipo_orden              VARCHAR(50)   NOT NULL DEFAULT '',
+      paqueteria              VARCHAR(50)   NOT NULL DEFAULT '',
+      numero_contenedor       VARCHAR(100)  NOT NULL DEFAULT '',
+      numero_sello            VARCHAR(100)  NOT NULL DEFAULT '',
+      cantidad_pallets        INTEGER       NOT NULL DEFAULT 0,
+      cantidad_manifiesto     INTEGER       NOT NULL DEFAULT 0,
+      cantidad_fisica         INTEGER       NOT NULL DEFAULT 0,
+      estado                  VARCHAR(30)   NOT NULL DEFAULT '',
+      cantidad_diferencia     INTEGER       NOT NULL DEFAULT 0,
+      resultado_inspeccion    VARCHAR(20)   NOT NULL DEFAULT '',
+      foto_contenedor_vacio   VARCHAR(255)  NOT NULL DEFAULT '',
+      foto_contenedor_cargado VARCHAR(255)  NOT NULL DEFAULT '',
+      foto_caja_sellada       VARCHAR(255)  NOT NULL DEFAULT '',
+      foto_placas             VARCHAR(255)  NOT NULL DEFAULT '',
+      foto_manifiesto         VARCHAR(255)  NOT NULL DEFAULT '',
+      inspector               VARCHAR(100)  NOT NULL DEFAULT '',
+      estatus_carga           VARCHAR(30)   NOT NULL DEFAULT '',
+      comentarios             TEXT          NOT NULL DEFAULT '',
+      registrado_por          VARCHAR(100),
+      created_at              TIMESTAMP     DEFAULT NOW()
     )
   `);
 
@@ -1658,6 +1705,110 @@ app.delete('/api/usuarios/:id', auth, admin, async (req, res) => {
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// ── LIBERACIÓN SHIPPING ───────────────────────────────────────
+app.get('/api/liberacion-shipping', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM liberacion_shipping ORDER BY fecha DESC, created_at DESC`
+    );
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/liberacion-shipping/:id', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM liberacion_shipping WHERE id=$1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/liberacion-shipping', auth, async (req, res) => {
+  const u = req.session.usuario;
+  const {
+    fecha, numero_orden, hora_inicio, hora_fin,
+    destino, tipo_envio, tipo_orden, paqueteria,
+    numero_contenedor, numero_sello, cantidad_pallets,
+    cantidad_manifiesto, cantidad_fisica, estado, cantidad_diferencia,
+    resultado_inspeccion, inspector, estatus_carga, comentarios,
+  } = req.body;
+  try {
+    const { rows: [r] } = await pool.query(`
+      INSERT INTO liberacion_shipping
+        (fecha, numero_orden, hora_inicio, hora_fin,
+         destino, tipo_envio, tipo_orden, paqueteria,
+         numero_contenedor, numero_sello, cantidad_pallets,
+         cantidad_manifiesto, cantidad_fisica, estado, cantidad_diferencia,
+         resultado_inspeccion, inspector, estatus_carga, comentarios, registrado_por)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+      RETURNING *`,
+      [fecha, numero_orden||'', hora_inicio||'00:00', hora_fin||'00:00',
+       destino||'', tipo_envio||'', tipo_orden||'', paqueteria||'',
+       numero_contenedor||'', numero_sello||'', parseInt(cantidad_pallets)||0,
+       parseInt(cantidad_manifiesto)||0, parseInt(cantidad_fisica)||0,
+       estado||'', parseInt(cantidad_diferencia)||0,
+       resultado_inspeccion||'', inspector||u.nombre, estatus_carga||'', comentarios||'', u.nombre]
+    );
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/liberacion-shipping/:id', auth, async (req, res) => {
+  const {
+    fecha, numero_orden, hora_inicio, hora_fin,
+    destino, tipo_envio, tipo_orden, paqueteria,
+    numero_contenedor, numero_sello, cantidad_pallets,
+    cantidad_manifiesto, cantidad_fisica, estado, cantidad_diferencia,
+    resultado_inspeccion, inspector, estatus_carga, comentarios,
+  } = req.body;
+  try {
+    const { rows: [r] } = await pool.query(`
+      UPDATE liberacion_shipping SET
+        fecha=$1, numero_orden=$2, hora_inicio=$3, hora_fin=$4,
+        destino=$5, tipo_envio=$6, tipo_orden=$7, paqueteria=$8,
+        numero_contenedor=$9, numero_sello=$10, cantidad_pallets=$11,
+        cantidad_manifiesto=$12, cantidad_fisica=$13, estado=$14, cantidad_diferencia=$15,
+        resultado_inspeccion=$16, inspector=$17, estatus_carga=$18, comentarios=$19
+      WHERE id=$20 RETURNING *`,
+      [fecha, numero_orden||'', hora_inicio||'00:00', hora_fin||'00:00',
+       destino||'', tipo_envio||'', tipo_orden||'', paqueteria||'',
+       numero_contenedor||'', numero_sello||'', parseInt(cantidad_pallets)||0,
+       parseInt(cantidad_manifiesto)||0, parseInt(cantidad_fisica)||0,
+       estado||'', parseInt(cantidad_diferencia)||0,
+       resultado_inspeccion||'', inspector||'', estatus_carga||'', comentarios||'',
+       req.params.id]
+    );
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/liberacion-shipping/:id', auth, async (req, res) => {
+  try {
+    const { rows: [rec] } = await pool.query('SELECT * FROM liberacion_shipping WHERE id=$1', [req.params.id]);
+    const fotos = ['foto_contenedor_vacio','foto_contenedor_cargado','foto_caja_sellada','foto_placas','foto_manifiesto'];
+    if (rec) fotos.forEach(f => { if (rec[f]) fs.unlink(path.join(uploadsShipDir, rec[f]), () => {}); });
+    await pool.query('DELETE FROM liberacion_shipping WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Endpoints de fotos — patrón: borrar anterior, guardar nuevo
+const _shipFotoEndpoint = (col) => async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
+  try {
+    const { rows: [old] } = await pool.query(`SELECT ${col} FROM liberacion_shipping WHERE id=$1`, [req.params.id]);
+    if (old?.[col]) fs.unlink(path.join(uploadsShipDir, old[col]), () => {});
+    await pool.query(`UPDATE liberacion_shipping SET ${col}=$1 WHERE id=$2`, [req.file.filename, req.params.id]);
+    res.json({ [col]: req.file.filename });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+};
+
+app.post('/api/liberacion-shipping/:id/foto-contenedor-vacio',   auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_contenedor_vacio'));
+app.post('/api/liberacion-shipping/:id/foto-contenedor-cargado', auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_contenedor_cargado'));
+app.post('/api/liberacion-shipping/:id/foto-caja-sellada',       auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_caja_sellada'));
+app.post('/api/liberacion-shipping/:id/foto-placas',             auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_placas'));
+app.post('/api/liberacion-shipping/:id/foto-manifiesto',         auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_manifiesto'));
 
 // ── Catch-all SPA ─────────────────────────────────────────────
 app.get('*', (req, res) => {

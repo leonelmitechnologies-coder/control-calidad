@@ -913,6 +913,12 @@
     .badge-verde { background:#d4edda; color:#155724; }
     .badge-gris  { background:#e9ecef; color:#6c757d; }
 
+    /* ── Zona foto shipping ── */
+    .foto-upload-zona { position:relative; border:2px dashed var(--gris-claro); border-radius:6px;
+                        min-height:90px; display:flex; align-items:center; justify-content:center;
+                        cursor:pointer; overflow:hidden; transition:border-color .2s; }
+    .foto-upload-zona:hover { border-color:var(--azul); }
+
     /* ── SKU Autocomplete dropdown ── */
     .sku-dropdown { position:absolute; background:#fff; border:1px solid var(--borde);
                     border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,.15); z-index:9999;
@@ -1000,6 +1006,7 @@
         <a class="nav-item" id="nav-rechazos-ext"   href="/rechazos-ext"    onclick="event.preventDefault();app.navegar('rechazos-ext')">Rechazos Externos</a>
         <a class="nav-item" id="nav-rechazos-int"   href="/rechazos-int"    onclick="event.preventDefault();app.navegar('rechazos-int')">Rechazos Internos</a>
         <a class="nav-item" id="nav-aql"             href="/aql"             onclick="event.preventDefault();app.navegar('aql')">Registro de AQL</a>
+        <a class="nav-item" id="nav-liberacion-shipping" href="/liberacion-shipping" onclick="event.preventDefault();app.navegar('liberacion-shipping')">Liberación Shipping</a>
         <a class="nav-item" id="nav-capas" href="/capas" onclick="event.preventDefault();app.navegar('capas')">Acciones Correctivas</a>
         <a class="nav-item" id="nav-organigrama-qc" href="/organigrama-qc"  onclick="event.preventDefault();app.navegar('organigrama-qc')">Organigrama QC</a>
         <a class="nav-item" id="nav-calendario"    href="/calendario"     onclick="event.preventDefault();app.navegar('calendario')">Calendario</a>
@@ -1320,6 +1327,37 @@
               <tbody id="aql-tabla-cuerpo"></tbody>
             </table>
             <div id="aql-tabla-vacio" class="vacio" style="display:none">No hay registros de AQL.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODULO: LIBERACIÓN SHIPPING -->
+      <div class="modulo" id="modulo-liberacion-shipping">
+        <div class="card">
+          <div class="card-header-con-filtro" style="margin-bottom:16px">
+            <div class="seccion-titulo" style="border-bottom:none;margin-bottom:0">Liberaciones de Shipping</div>
+            <button class="btn btn-primario" onclick="modLS.abrirFormulario()" style="font-size:12px;padding:8px 18px;">+ Nueva Liberación</button>
+          </div>
+          <div class="tabla-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Fecha</th>
+                  <th>No. Orden</th>
+                  <th>Destino</th>
+                  <th>Tipo Envío</th>
+                  <th>Tipo Orden</th>
+                  <th>Estado</th>
+                  <th>Resultado</th>
+                  <th>Estatus Carga</th>
+                  <th>Inspector</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="ls-tabla-cuerpo"></tbody>
+            </table>
+            <div id="ls-tabla-vacio" class="vacio" style="display:none">No hay registros de liberación.</div>
           </div>
         </div>
       </div>
@@ -2100,6 +2138,171 @@
     <div class="nc-det-grid" id="aql-det-grid"></div>
     <div id="aql-det-fotos" style="margin-top:16px"></div>
     <div class="nc-det-acciones" id="aql-det-botones"></div>
+  </div>
+</div>
+
+<!-- MODAL: FORMULARIO LIBERACIÓN SHIPPING -->
+<div class="modal-overlay" id="modal-ls-form">
+  <div class="modal" style="max-width:780px;width:95vw;max-height:90vh;overflow-y:auto">
+    <div class="modal-titulo" id="ls-form-titulo">Nueva Liberación Shipping</div>
+    <input type="hidden" id="ls-edit-id">
+    <form id="form-ls">
+
+      <div class="seccion-titulo" style="margin-bottom:12px">Información General</div>
+      <div class="form-grid">
+        <div><label>Fecha *</label><input type="date" id="ls-fecha" required></div>
+        <div><label>No. de Orden *</label><input type="text" id="ls-numero-orden" required placeholder="Ej. ORD-2026-001"></div>
+        <div><label>Hora de Inicio *</label><input type="time" id="ls-hora-inicio" required></div>
+        <div><label>Hora de Fin *</label><input type="time" id="ls-hora-fin" required></div>
+      </div>
+
+      <div class="seccion-titulo" style="margin:16px 0 12px">Datos de Envío</div>
+      <div class="form-grid">
+        <div><label>Destino *</label>
+          <select id="ls-destino" required>
+            <option value="">— Seleccionar —</option>
+            <option>Tijuana</option>
+            <option>Manzanillo</option>
+            <option>Texas</option>
+            <option>Local</option>
+            <option>Bodega (FRM)</option>
+            <option>CEDIS</option>
+            <option>Guadalajara</option>
+          </select>
+        </div>
+        <div><label>Tipo de Envío *</label>
+          <select id="ls-tipo-envio" required onchange="modLS._onTipoEnvio()">
+            <option value="">— Seleccionar —</option>
+            <option>B2B</option>
+            <option>B2C</option>
+            <option>Reciclaje</option>
+          </select>
+        </div>
+        <div id="ls-paqueteria-wrap" style="display:none" class="full"><label>Paquetería *</label>
+          <select id="ls-paqueteria">
+            <option value="">— Seleccionar —</option>
+            <option>Mercado Libre</option>
+            <option>Paquete Express</option>
+            <option>Amazon</option>
+            <option>Estafeta</option>
+            <option>Fedex</option>
+            <option>DHL</option>
+            <option>Paqueteria 3 Guerras</option>
+          </select>
+        </div>
+        <div><label>Tipo de Orden *</label>
+          <select id="ls-tipo-orden" required>
+            <option value="">— Seleccionar —</option>
+            <option>Orden Entry</option>
+            <option>FULL</option>
+            <option>FBA</option>
+            <option>UPT</option>
+            <option>HIGHVALUE</option>
+            <option>TRG Consignment</option>
+            <option>Venta a Colaboradores</option>
+          </select>
+        </div>
+        <div><label>No. de Contenedor</label><input type="text" id="ls-numero-contenedor" placeholder="Ej. MSKU1234567"></div>
+        <div><label>No. de Sello</label><input type="text" id="ls-numero-sello" placeholder="Ej. S-000123"></div>
+        <div><label>Cantidad de Pallets</label><input type="number" id="ls-cantidad-pallets" min="0" value="0"></div>
+      </div>
+
+      <div class="seccion-titulo" style="margin:16px 0 12px">Cantidades</div>
+      <div class="form-grid">
+        <div><label>Cant. en Manifiesto *</label>
+          <input type="number" id="ls-cantidad-manifiesto" min="0" value="0" required oninput="modLS._calcularEstado()">
+        </div>
+        <div><label>Cant. Física *</label>
+          <input type="number" id="ls-cantidad-fisica" min="0" value="0" required oninput="modLS._calcularEstado()">
+        </div>
+        <div><label>Estado (automático)</label>
+          <input type="text" id="ls-estado" readonly style="font-weight:700;cursor:default">
+        </div>
+        <div><label>Piezas que no coinciden (automático)</label>
+          <input type="text" id="ls-diferencia" readonly style="cursor:default">
+        </div>
+      </div>
+
+      <div class="seccion-titulo" style="margin:16px 0 12px">Resultado de Inspección</div>
+      <div class="form-grid">
+        <div><label>Resultado *</label>
+          <select id="ls-resultado-inspeccion" required>
+            <option value="">— Seleccionar —</option>
+            <option>Aceptado</option>
+            <option>Rechazado</option>
+          </select>
+        </div>
+        <div><label>Estatus de Carga *</label>
+          <select id="ls-estatus-carga" required>
+            <option value="">— Seleccionar —</option>
+            <option>Pendiente en inspección</option>
+            <option>Cargada y no enviada</option>
+            <option>Cargada y enviada</option>
+          </select>
+        </div>
+        <div><label>Inspector</label><input type="text" id="ls-inspector" placeholder="Nombre del inspector"></div>
+        <div class="full"><label>Comentarios</label><textarea id="ls-comentarios" rows="2" placeholder="Observaciones adicionales"></textarea></div>
+      </div>
+
+      <div class="seccion-titulo" style="margin:16px 0 12px">Evidencia Fotográfica</div>
+      <div class="form-grid">
+        <div>
+          <label>Foto Contenedor Vacío</label>
+          <input type="file" id="ls-foto-contenedor-vacio-input" accept="image/*" style="display:none"
+                 onchange="modLS._previewFoto(this,'ls-prev-contenedor-vacio','contenedorVacio')">
+          <div id="ls-prev-contenedor-vacio" class="foto-upload-zona" onclick="document.getElementById('ls-foto-contenedor-vacio-input').click()">
+            <span style="font-size:11px;color:var(--gris)">Seleccionar foto</span>
+          </div>
+        </div>
+        <div>
+          <label>Foto Contenedor Cargado</label>
+          <input type="file" id="ls-foto-contenedor-cargado-input" accept="image/*" style="display:none"
+                 onchange="modLS._previewFoto(this,'ls-prev-contenedor-cargado','contenedorCargado')">
+          <div id="ls-prev-contenedor-cargado" class="foto-upload-zona" onclick="document.getElementById('ls-foto-contenedor-cargado-input').click()">
+            <span style="font-size:11px;color:var(--gris)">Seleccionar foto</span>
+          </div>
+        </div>
+        <div>
+          <label>Foto Caja Sellada</label>
+          <input type="file" id="ls-foto-caja-sellada-input" accept="image/*" style="display:none"
+                 onchange="modLS._previewFoto(this,'ls-prev-caja-sellada','cajaSellada')">
+          <div id="ls-prev-caja-sellada" class="foto-upload-zona" onclick="document.getElementById('ls-foto-caja-sellada-input').click()">
+            <span style="font-size:11px;color:var(--gris)">Seleccionar foto</span>
+          </div>
+        </div>
+        <div>
+          <label>Foto de Placas</label>
+          <input type="file" id="ls-foto-placas-input" accept="image/*" style="display:none"
+                 onchange="modLS._previewFoto(this,'ls-prev-placas','placas')">
+          <div id="ls-prev-placas" class="foto-upload-zona" onclick="document.getElementById('ls-foto-placas-input').click()">
+            <span style="font-size:11px;color:var(--gris)">Seleccionar foto</span>
+          </div>
+        </div>
+        <div class="full">
+          <label>Foto Manifiesto / Orden / CheckList / Acuse</label>
+          <input type="file" id="ls-foto-manifiesto-input" accept="image/*" style="display:none"
+                 onchange="modLS._previewFoto(this,'ls-prev-manifiesto','manifiesto')">
+          <div id="ls-prev-manifiesto" class="foto-upload-zona" onclick="document.getElementById('ls-foto-manifiesto-input').click()">
+            <span style="font-size:11px;color:var(--gris)">Seleccionar foto</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px">
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-ls-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primario">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE LIBERACIÓN SHIPPING -->
+<div class="modal-overlay" id="modal-ls-detalle">
+  <div class="modal" style="max-width:720px;width:95vw;max-height:90vh;overflow-y:auto">
+    <div class="modal-titulo" id="ls-det-titulo">Liberación Shipping</div>
+    <div class="nc-det-grid" id="ls-det-grid"></div>
+    <div id="ls-det-fotos" style="margin-top:16px"></div>
+    <div class="nc-det-acciones" id="ls-det-botones"></div>
   </div>
 </div>
 
@@ -3115,6 +3318,252 @@ document.getElementById('form-aql').addEventListener('submit', async function(e)
 });
 
 // ================================================================
+// LIBERACIÓN SHIPPING
+// ================================================================
+const _LS_FOTOS_MAP = [
+  { key: 'contenedorVacio',   col: 'foto_contenedor_vacio',   endpoint: 'foto-contenedor-vacio',   inputId: 'ls-foto-contenedor-vacio-input',   previewId: 'ls-prev-contenedor-vacio',   label: 'Contenedor Vacío' },
+  { key: 'contenedorCargado', col: 'foto_contenedor_cargado', endpoint: 'foto-contenedor-cargado', inputId: 'ls-foto-contenedor-cargado-input', previewId: 'ls-prev-contenedor-cargado', label: 'Contenedor Cargado' },
+  { key: 'cajaSellada',       col: 'foto_caja_sellada',       endpoint: 'foto-caja-sellada',       inputId: 'ls-foto-caja-sellada-input',       previewId: 'ls-prev-caja-sellada',       label: 'Caja Sellada' },
+  { key: 'placas',            col: 'foto_placas',             endpoint: 'foto-placas',             inputId: 'ls-foto-placas-input',             previewId: 'ls-prev-placas',             label: 'Placas' },
+  { key: 'manifiesto',        col: 'foto_manifiesto',         endpoint: 'foto-manifiesto',         inputId: 'ls-foto-manifiesto-input',         previewId: 'ls-prev-manifiesto',         label: 'Manifiesto / Orden / CheckList' },
+];
+
+const modLS = {
+  registros: [],
+  _editId: null,
+  _fotos: { contenedorVacio: null, contenedorCargado: null, cajaSellada: null, placas: null, manifiesto: null },
+
+  async init() { await this.cargar(); },
+
+  async cargar() {
+    try {
+      this.registros = await api.get('/api/liberacion-shipping');
+      this.renderTabla();
+    } catch(e) { ui.notificar('Error al cargar liberaciones.'); }
+  },
+
+  renderTabla() {
+    const tbody = document.getElementById('ls-tabla-cuerpo');
+    const vacio = document.getElementById('ls-tabla-vacio');
+    if (!this.registros.length) { tbody.innerHTML = ''; vacio.style.display = ''; return; }
+    vacio.style.display = 'none';
+    tbody.innerHTML = this.registros.map((r, i) => {
+      const estadoClass = r.estado === 'CANTIDADES CORRECTAS' ? 'badge-cerrada' : r.estado === 'FALTARON' ? 'badge-abierta' : 'badge-media';
+      const resClass    = r.resultado_inspeccion === 'Aceptado' ? 'badge-cerrada' : 'badge-abierta';
+      const estatusClass = r.estatus_carga === 'Cargada y enviada' ? 'badge-cerrada' : r.estatus_carga === 'Cargada y no enviada' ? 'badge-proceso' : 'badge-media';
+      return `<tr onclick="modLS.abrirDetalle(${r.id})" style="cursor:pointer">
+        <td>${i+1}</td>
+        <td>${r.fecha ? r.fecha.split('T')[0] : ''}</td>
+        <td>${r.numero_orden}</td>
+        <td>${r.destino}</td>
+        <td>${r.tipo_envio}</td>
+        <td>${r.tipo_orden}</td>
+        <td><span class="badge ${estadoClass}">${r.estado||'—'}</span></td>
+        <td><span class="badge ${resClass}">${r.resultado_inspeccion||'—'}</span></td>
+        <td><span class="badge ${estatusClass}" style="white-space:nowrap">${r.estatus_carga||'—'}</span></td>
+        <td>${r.inspector}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-accion" onclick="event.stopPropagation();modLS.abrirDetalle(${r.id})">Ver</button>
+          <button class="btn-accion" onclick="event.stopPropagation();modLS.abrirFormulario(${r.id})">Editar</button>
+          <button class="btn-accion rojo" onclick="event.stopPropagation();modLS.eliminar(${r.id})">Eliminar</button>
+        </td>
+      </tr>`;
+    }).join('');
+  },
+
+  _onTipoEnvio() {
+    const val = document.getElementById('ls-tipo-envio').value;
+    const wrap = document.getElementById('ls-paqueteria-wrap');
+    wrap.style.display = val === 'B2C' ? '' : 'none';
+    if (val !== 'B2C') document.getElementById('ls-paqueteria').value = '';
+  },
+
+  _calcularEstado() {
+    const man  = parseInt(document.getElementById('ls-cantidad-manifiesto').value) || 0;
+    const fis  = parseInt(document.getElementById('ls-cantidad-fisica').value)     || 0;
+    const diff = Math.abs(man - fis);
+    const estado = man > fis ? 'FALTARON' : man < fis ? 'SOBRARON' : 'CANTIDADES CORRECTAS';
+    const estadoEl = document.getElementById('ls-estado');
+    estadoEl.value = estado;
+    estadoEl.style.color = { 'FALTARON': 'var(--rojo)', 'SOBRARON': 'var(--amarillo)', 'CANTIDADES CORRECTAS': 'var(--verde)' }[estado];
+    document.getElementById('ls-diferencia').value = diff;
+  },
+
+  _previewFoto(input, previewId, key) {
+    const file = input.files[0];
+    if (!file) return;
+    this._fotos[key] = file;
+    const prev = document.getElementById(previewId);
+    const url  = URL.createObjectURL(file);
+    prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:4px">
+      <button type="button" class="re-thumb-del" onclick="modLS._quitarFoto('${previewId}','${key}')">&#x2715;</button>`;
+  },
+
+  _quitarFoto(previewId, key) {
+    this._fotos[key] = null;
+    const prev = document.getElementById(previewId);
+    prev.innerHTML = '<span style="font-size:11px;color:var(--gris)">Seleccionar foto</span>';
+    const inputId = _LS_FOTOS_MAP.find(f => f.key === key)?.inputId;
+    if (inputId) document.getElementById(inputId).value = '';
+  },
+
+  _resetFotos() {
+    _LS_FOTOS_MAP.forEach(f => {
+      this._fotos[f.key] = null;
+      const prev = document.getElementById(f.previewId);
+      if (prev) prev.innerHTML = '<span style="font-size:11px;color:var(--gris)">Seleccionar foto</span>';
+      const inp = document.getElementById(f.inputId);
+      if (inp) inp.value = '';
+    });
+  },
+
+  async abrirFormulario(id) {
+    this._editId = id || null;
+    this._resetFotos();
+    document.getElementById('ls-edit-id').value = id || '';
+    document.getElementById('ls-form-titulo').textContent = id ? 'Editar Liberación Shipping' : 'Nueva Liberación Shipping';
+    document.getElementById('form-ls').reset();
+    document.getElementById('ls-paqueteria-wrap').style.display = 'none';
+    document.getElementById('ls-estado').value = '';
+    document.getElementById('ls-estado').style.color = '';
+    document.getElementById('ls-diferencia').value = '';
+
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('ls-fecha').value = hoy;
+
+    if (id) {
+      try {
+        const r = await api.get(`/api/liberacion-shipping/${id}`);
+        document.getElementById('ls-fecha').value              = r.fecha ? r.fecha.split('T')[0] : hoy;
+        document.getElementById('ls-numero-orden').value       = r.numero_orden || '';
+        document.getElementById('ls-hora-inicio').value        = r.hora_inicio  || '';
+        document.getElementById('ls-hora-fin').value           = r.hora_fin     || '';
+        document.getElementById('ls-destino').value            = r.destino      || '';
+        document.getElementById('ls-tipo-envio').value         = r.tipo_envio   || '';
+        this._onTipoEnvio();
+        document.getElementById('ls-paqueteria').value         = r.paqueteria   || '';
+        document.getElementById('ls-tipo-orden').value         = r.tipo_orden   || '';
+        document.getElementById('ls-numero-contenedor').value  = r.numero_contenedor || '';
+        document.getElementById('ls-numero-sello').value       = r.numero_sello      || '';
+        document.getElementById('ls-cantidad-pallets').value   = r.cantidad_pallets  || 0;
+        document.getElementById('ls-cantidad-manifiesto').value= r.cantidad_manifiesto|| 0;
+        document.getElementById('ls-cantidad-fisica').value    = r.cantidad_fisica   || 0;
+        this._calcularEstado();
+        document.getElementById('ls-resultado-inspeccion').value = r.resultado_inspeccion || '';
+        document.getElementById('ls-estatus-carga').value         = r.estatus_carga       || '';
+        document.getElementById('ls-inspector').value             = r.inspector           || '';
+        document.getElementById('ls-comentarios').value           = r.comentarios         || '';
+        _LS_FOTOS_MAP.forEach(f => {
+          if (r[f.col]) {
+            const prev = document.getElementById(f.previewId);
+            prev.innerHTML = `<img src="/uploads/shipping/${r[f.col]}" style="width:100%;height:100%;object-fit:cover;border-radius:4px">
+              <button type="button" class="re-thumb-del" onclick="modLS._quitarFoto('${f.previewId}','${f.key}')">&#x2715;</button>`;
+          }
+        });
+      } catch(e) { ui.notificar('Error al cargar datos.'); return; }
+    }
+    ui.abrirModal('modal-ls-form');
+  },
+
+  async abrirDetalle(id) {
+    const r = this.registros.find(x => x.id === id) || await api.get(`/api/liberacion-shipping/${id}`);
+    const estadoColor = { 'FALTARON':'var(--rojo)', 'SOBRARON':'var(--amarillo)', 'CANTIDADES CORRECTAS':'var(--verde)' }[r.estado] || '';
+    document.getElementById('ls-det-titulo').textContent = `Liberación: ${r.numero_orden}`;
+    document.getElementById('ls-det-grid').innerHTML = `
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Fecha</span><span>${r.fecha ? r.fecha.split('T')[0] : ''}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">No. Orden</span><span>${r.numero_orden}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Hora Inicio</span><span>${r.hora_inicio||'—'}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Hora Fin</span><span>${r.hora_fin||'—'}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Destino</span><span>${r.destino}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Tipo de Envío</span><span>${r.tipo_envio}</span></div>
+      ${r.paqueteria ? `<div class="nc-det-campo"><span class="nc-det-etiqueta">Paquetería</span><span>${r.paqueteria}</span></div>` : ''}
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Tipo de Orden</span><span>${r.tipo_orden}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">No. Contenedor</span><span>${r.numero_contenedor||'—'}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">No. Sello</span><span>${r.numero_sello||'—'}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Pallets Cargados</span><span>${r.cantidad_pallets}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Cant. Manifiesto</span><span>${r.cantidad_manifiesto}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Cant. Física</span><span>${r.cantidad_fisica}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Estado</span><span style="font-weight:700;color:${estadoColor}">${r.estado||'—'}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Piezas que no coinciden</span><span>${r.cantidad_diferencia}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Resultado de Inspección</span><span>${r.resultado_inspeccion||'—'}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Estatus de Carga</span><span>${r.estatus_carga||'—'}</span></div>
+      <div class="nc-det-campo"><span class="nc-det-etiqueta">Inspector</span><span>${r.inspector}</span></div>
+      ${r.comentarios ? `<div class="nc-det-campo" style="grid-column:1/-1"><span class="nc-det-etiqueta">Comentarios</span><span>${r.comentarios}</span></div>` : ''}
+    `;
+    const fotosHtml = _LS_FOTOS_MAP
+      .filter(f => r[f.col])
+      .map(f => `<div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--gris-oscuro);margin-bottom:4px;text-transform:uppercase">${f.label}</div>
+        <a href="/uploads/shipping/${r[f.col]}" target="_blank">
+          <img src="/uploads/shipping/${r[f.col]}" style="max-width:100%;max-height:220px;object-fit:contain;border-radius:6px;border:1px solid var(--borde)">
+        </a>
+      </div>`).join('');
+    document.getElementById('ls-det-fotos').innerHTML = fotosHtml;
+    document.getElementById('ls-det-botones').innerHTML = `
+      <button class="btn btn-secundario" onclick="modLS.abrirFormulario(${r.id});ui.cerrarModal('modal-ls-detalle')">Editar</button>
+      <button class="btn btn-secundario rojo"
+              onclick="ui.confirmar('¿Eliminar esta liberación?',()=>{modLS.eliminar(${r.id});ui.cerrarModal('modal-ls-detalle')})">Eliminar</button>
+      <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-ls-detalle')">Cerrar</button>`;
+    ui.abrirModal('modal-ls-detalle');
+  },
+
+  eliminar(id) {
+    ui.confirmar('¿Eliminar esta liberación? Se borrarán las fotos adjuntas.', async () => {
+      try {
+        await api.del(`/api/liberacion-shipping/${id}`);
+        await this.cargar();
+        ui.notificar('Liberación eliminada.', 'Éxito');
+      } catch(e) { ui.notificar('Error al eliminar.'); }
+    });
+  },
+};
+
+document.getElementById('form-ls').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = this.querySelector('[type=submit]');
+  btn.disabled = true;
+  try {
+    const id = document.getElementById('ls-edit-id').value;
+    const body = {
+      fecha:                  document.getElementById('ls-fecha').value,
+      numero_orden:           document.getElementById('ls-numero-orden').value,
+      hora_inicio:            document.getElementById('ls-hora-inicio').value,
+      hora_fin:               document.getElementById('ls-hora-fin').value,
+      destino:                document.getElementById('ls-destino').value,
+      tipo_envio:             document.getElementById('ls-tipo-envio').value,
+      tipo_orden:             document.getElementById('ls-tipo-orden').value,
+      paqueteria:             document.getElementById('ls-paqueteria').value,
+      numero_contenedor:      document.getElementById('ls-numero-contenedor').value,
+      numero_sello:           document.getElementById('ls-numero-sello').value,
+      cantidad_pallets:       document.getElementById('ls-cantidad-pallets').value,
+      cantidad_manifiesto:    document.getElementById('ls-cantidad-manifiesto').value,
+      cantidad_fisica:        document.getElementById('ls-cantidad-fisica').value,
+      estado:                 document.getElementById('ls-estado').value,
+      cantidad_diferencia:    document.getElementById('ls-diferencia').value,
+      resultado_inspeccion:   document.getElementById('ls-resultado-inspeccion').value,
+      estatus_carga:          document.getElementById('ls-estatus-carga').value,
+      inspector:              document.getElementById('ls-inspector').value,
+      comentarios:            document.getElementById('ls-comentarios').value,
+    };
+    const registro = id
+      ? await api.put(`/api/liberacion-shipping/${id}`, body)
+      : await api.post('/api/liberacion-shipping', body);
+
+    for (const f of _LS_FOTOS_MAP) {
+      if (modLS._fotos[f.key]) {
+        const fd = new FormData();
+        fd.append('foto', modLS._fotos[f.key]);
+        const r = await fetch(`/api/liberacion-shipping/${registro.id}/${f.endpoint}`, { method: 'POST', body: fd });
+        if (!r.ok) ui.notificar(`La foto de ${f.label} no pudo subirse.`, 'Aviso');
+      }
+    }
+    ui.cerrarModal('modal-ls-form');
+    await modLS.cargar();
+  } catch(e) { ui.notificar(e.error || 'Error al guardar.'); }
+  finally { btn.disabled = false; }
+});
+
+// ================================================================
 // CAPA — Acciones Correctivas y Preventivas
 // ================================================================
 const ISHIKAWA_CATS = ['Mano de obra','Máquina','Método','Material','Medio ambiente','Medición'];
@@ -3614,7 +4063,8 @@ const MODULOS = {
   recepciones:    { titulo: 'Recepciones',       modulo: 'modulo-recepciones',    nav: 'nav-recepciones',    onEnter: () => modREC.init() },
   'rechazos-ext':   { titulo: 'Rechazos Externos',              modulo: 'modulo-rechazos-ext',   nav: 'nav-rechazos-ext',   onEnter: () => modRE.init() },
   'rechazos-int':   { titulo: 'Rechazos Internos',             modulo: 'modulo-rechazos-int',   nav: 'nav-rechazos-int',   onEnter: () => modRI.init() },
-  'aql':            { titulo: 'Registro de AQL',              modulo: 'modulo-aql',            nav: 'nav-aql',            onEnter: () => modAQL.init() },
+  'aql':                  { titulo: 'Registro de AQL',         modulo: 'modulo-aql',                  nav: 'nav-aql',                  onEnter: () => modAQL.init() },
+  'liberacion-shipping':  { titulo: 'Liberación Shipping',     modulo: 'modulo-liberacion-shipping',  nav: 'nav-liberacion-shipping',  onEnter: () => modLS.init() },
   'capas':          { titulo: 'Acciones Correctivas (CAPA)',   modulo: 'modulo-capas',          nav: 'nav-capas',          onEnter: () => modCAPA.init() },
   'organigrama-qc': { titulo: 'Organigrama QC',   modulo: 'modulo-organigrama-qc', nav: 'nav-organigrama-qc', onEnter: () => modORG.init() },
   'calendario':     { titulo: 'Calendario',       modulo: 'modulo-calendario',     nav: 'nav-calendario',     onEnter: () => modCAL.init() },
