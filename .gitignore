@@ -17,5 +17,12 @@ server_*.txt
 .DS_Store
 Thumbs.db
 
+# Build output
+dist/
+
+# Uploads (van a MinIO S3 en producción)
+public/uploads/**
+!public/uploads/.gitkeep
+
 # Herramientas internas
 .superpowers/

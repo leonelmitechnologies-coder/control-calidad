@@ -1,0 +1,39 @@
+{
+  "app": {
+    "title": "Sistema de Control de Calidad",
+    "subtitle": "MI Technologies"
+  },
+  "nav": {
+    "dashboard": "Panel Principal",
+    "nc": "No Conformidades",
+    "recepciones": "Recepciones",
+    "rechazos_ext": "Rechazos Externos",
+    "rechazos_int": "Rechazos Internos",
+    "capas": "Acciones Correctivas",
+    "aql": "AQL",
+    "liberacion_shipping": "Liberación Shipping",
+    "organigrama": "Organigrama",
+    "calendario": "Calendario"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "loginRequired": "Se requiere iniciar sesión para acceder a esta página",
+    "user": "Usuario"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "success": "Éxito",
+    "delete_confirm": "¿Estás seguro de que deseas eliminar?",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "edit": "Editar",
+    "close": "Cerrar"
+  },
+  "layout": {
+    "menu": "Menú",
+    "language": "Idioma"
+  }
+}

@@ -1,16 +1,16 @@
-import React from "react";
-import { createRoot } from "react-dom/client";
-import "./index.css";
+/**
+ * React App Entry Point
+ * Mounts the React application to the DOM
+ */
 
-function App() {
-  return (
-    <main className="min-h-screen flex items-center justify-center font-sans">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold">stack-template</h1>
-        <p className="text-muted">Replace this with your app.</p>
-      </div>
-    </main>
-  );
-}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import App from './App';
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = createRoot(document.getElementById('root')!);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

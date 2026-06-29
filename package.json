@@ -19,6 +19,8 @@
     "lint": "eslint . --ext .ts,.tsx"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.554.0",
+    "@aws-sdk/s3-request-presigner": "^3.554.0",
     "bcrypt": "^5.1.1",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
@@ -34,6 +36,7 @@
     "react-i18next": "^15.0.0",
     "i18next": "^23.12.0",
     "passport": "^0.7.0",
+    "passport-openidconnect": "^0.1.1",
     "openid-client": "^5.7.0",
     "pm2": "^5.4.2"
   },

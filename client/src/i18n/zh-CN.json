@@ -1,0 +1,39 @@
+{
+  "app": {
+    "title": "质量控制系统",
+    "subtitle": "MI Technologies"
+  },
+  "nav": {
+    "dashboard": "仪表板",
+    "nc": "不符合项",
+    "recepciones": "接收",
+    "rechazos_ext": "外部拒收",
+    "rechazos_int": "内部拒收",
+    "capas": "纠正措施",
+    "aql": "AQL",
+    "liberacion_shipping": "发货放行",
+    "organigrama": "组织结构",
+    "calendario": "日历"
+  },
+  "auth": {
+    "login": "登录",
+    "logout": "退出登录",
+    "loginRequired": "需要登录才能访问此页面",
+    "user": "用户"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "发生错误",
+    "success": "成功",
+    "delete_confirm": "确定要删除吗？",
+    "cancel": "取消",
+    "delete": "删除",
+    "save": "保存",
+    "edit": "编辑",
+    "close": "关闭"
+  },
+  "layout": {
+    "menu": "菜单",
+    "language": "语言"
+  }
+}
