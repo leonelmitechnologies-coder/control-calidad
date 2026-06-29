@@ -1,242 +1,111 @@
-# Control de Calidad — Progress Tracker
+# Phase 2 Implementation Progress — React UI Migration
 
-**Proyecto:** Migration to MI Stack  
-**Rama activa:** `stack-migration`  
-**Última actualización:** 2026-06-29
-
----
-
-## Fase 1 — Migración Base ✅ COMPLETADA
-
-### 1A — Drizzle Schema ✅
-- [x] 20 tablas traducidas a Drizzle ORM
-- [x] Tipos exactos (serial, varchar, text, integer, date, timestamp, decimal)
-- [x] Defaults precisos según DATABASE.md
-- [x] Relaciones FK formales (ri_images, calendario_*)
-- [x] UNIQUE constraints
-- [x] Camel case TypeScript → snake_case BD
-- [x] TypeScript strict: ✅ Zero errors
-
-**Archivo:** `shared/schema.ts` (343 líneas)
-
-### 1B — Express Server ✅
-- [x] Port `0.0.0.0:3001`
-- [x] Nextcloud OIDC (openid-client + Passport)
-- [x] MinIO S3 storage (AWS SDK)
-- [x] PostgreSQL pool + initDB()
-- [x] Transacciones (Rechazos Externos, CAPAS)
-- [x] 48+ endpoints reimplementados (sin cambios de lógica)
-- [x] Puppeteer PDF (plantilla lista, ejecución en Fase 2)
-- [x] TypeScript strict: ✅ Zero errors
-
-**Archivos:**
-- `server/index.ts` (1,600+ líneas)
-- `server/routes.ts` (900+ líneas)
-- `server/db.ts` (350+ líneas)
-- `server/auth.ts` (90+ líneas)
-- `server/s3.ts` (150+ líneas)
-- `server/types.ts`
-
-### 1C — React Client ✅
-- [x] React 18 + TypeScript setup
-- [x] Autenticación OIDC hook (useAuth)
-- [x] i18n: 3 idiomas (en, es-MX, zh-CN)
-- [x] Wouter routing: 11 rutas + catch-all SPA
-- [x] Layout: Sidebar + Header + Main
-- [x] TanStack Query setup
-- [x] API client centralizado
-- [x] 11 componentes placeholder (Dashboard + 10 módulos + Login)
-- [x] TypeScript strict: ✅ Zero errors
-
-**Archivos:**
-- `client/src/main.tsx`
-- `client/src/App.tsx`
-- `client/src/components/Layout.tsx`
-- `client/src/hooks/useAuth.ts`
-- `client/src/api/auth.ts`
-- `client/src/config/{api, i18n}.ts`
-- `client/src/pages/{Dashboard, NC, Recepciones, RechazosExt, RechazosInt, Capas, AQL, LiberacionShipping, OrganigramaQC, Calendario, Login}.tsx`
-- `client/src/i18n/{en.json, es-MX.json, zh-CN.json}`
-
-### 1D — Configuración ✅
-- [x] `.env.example` completo (DB, OIDC, S3, CLIENT)
-- [x] `tsconfig.json` actualizado
-- [x] `package.json` con dependencias necesarias
-- [x] `vite.config.ts` (ya existía)
-- [x] `drizzle.config.ts` (ya existía)
+**Start Date:** 2026-06-29  
+**Target Completion:** Week of 2026-07-27 (4 weeks)  
+**Team:** Orchestrating Agent + 5-6 full-stack-developers in parallel
 
 ---
 
-## Fase 2 — Módulos Completos ⏳ PENDIENTE
+## PHASE 2A — Foundation (Shared Components)
 
-### 2A — Dashboard
-- [ ] KPIs reales (costo no calidad, NCs, rejects)
-- [ ] Gráficos (sale price por marca, rejects por clasificación, NCs por severidad)
-- [ ] Período selector (mes/YTD)
-- [ ] Datos en vivo desde BD
+Status: **✅ COMPLETE** (2026-06-29 18:00)
 
-### 2B — No Conformidades (NC)
-- [ ] Tabla con listado de NCs
-- [ ] Crear NC (formulario)
-- [ ] Editar estatus (Abierta → En proceso → Cerrada)
-- [ ] Filtros por fecha/severidad/área
-- [ ] Eliminar NC
+Components to create (can run in parallel):
 
-### 2C — Recepciones
-- [ ] Tabla de recepciones (Import/Export)
-- [ ] Crear recepción
-- [ ] Cambiar estatus (Confirmado → En descarga → Descargado → Rechazado)
-- [ ] Editar recepción
-- [ ] Eliminar
+- [ ] **Notify.tsx** — Toast/banner notification system
+  - Props: `{ message, type, duration }`
+  - Context: NotifyContext.tsx with hook useNotify()
+  - Uses in: All 10 modules
+  
+- [ ] **Confirm.tsx** — Modal confirmation dialog
+  - Props: `{ title, message, confirmText, cancelText, onConfirm, onCancel }`
+  - Context: ConfirmContext.tsx with hook useConfirm()
+  - Uses in: All delete operations
 
-### 2D — Rechazos Externos (RE)
-- [ ] Tabla de rechazos
-- [ ] Crear rechazo + problemas + acciones (transacción)
-- [ ] Upload de fotos (→ S3)
-- [ ] Editar
-- [ ] PDF generation (Puppeteer)
-- [ ] Eliminar
+- [ ] **SkuAutocomplete.tsx** — SKU dropdown autocomplete
+  - API: `GET /api/skus?q=<prefix>`
+  - Uses in: RechazosExternos, RechazosInternos, AQL, LiberacionShipping (4 modules)
+  - Cascading: Auto-fill Marca, Modelo, Pulgada, Descripcion
 
-### 2E — Rechazos Internos (RI)
-- [ ] Tabla de rechazos internos
-- [ ] Crear rechazo + COPQ automático
-- [ ] Upload de fotos + firma (→ S3)
-- [ ] Editar
-- [ ] Eliminar
-- [ ] Filtros por defecto/inspector
+- [ ] **ImageUpload.tsx** — Reusable photo upload component
+  - Props: `{ onFilesSelect, maxFiles?, maxSize?, preview? }`
+  - Uses in: RechazosExternos (max 10), RechazosInternos (max 5), AQL (2), LS (5), OrganigramaQc (1)
 
-### 2F — CAPAS (Acciones Correctivas)
-- [ ] Tabla de CAPAs (origen NC/RE)
-- [ ] Crear CAPA + 5 Por Qués / Ishikawa / Acciones (transacción)
-- [ ] Editar CAPA
-- [ ] Cambiar estatus (Abierta → En proceso → Cerrada)
-- [ ] Agregar acciones de seguimiento
-- [ ] Eliminar
+- [ ] **SignatureCanvas.tsx** — Digital signature capture
+  - Library: react-signature-canvas
+  - Uses in: RechazosInternos (MANDATORY)
 
-### 2G — AQL (Inspecciones)
-- [ ] Tabla de registros AQL
-- [ ] Crear registro AQL (muchos campos)
-- [ ] Upload fotos LPN + pantalla (→ S3)
-- [ ] Editar
-- [ ] Filtros por estado AQL (Aprobado/Rechazado)
-- [ ] Eliminar
+**Utils & Hooks:**
 
-### 2H — Catálogo SKU
-- [ ] Página de gestión de SKUs
-- [ ] Upload CSV o entrada manual
-- [ ] Búsqueda (usada en Rechazos Internos + AQL)
-- [ ] Editar/Eliminar SKU
+- [ ] **copq-mapping.ts** — RI_DEFECTOS mapping (Defecto → Actividad + Costo MXN)
+  - 11 defect types with COPQ values
+  - Used in: RechazosInternos form auto-fill
 
-### 2I — Liberación Shipping
-- [ ] Tabla de liberaciones
-- [ ] Crear liberación + 5 fotos (→ S3)
-- [ ] Editar
-- [ ] Cálculo automático de diferencia
-- [ ] Filtros por estatus/resultado inspección
-- [ ] Eliminar
+- [ ] **api-client.ts** — Centralized API wrapper
+- [ ] **validators.ts** — Form validation helpers
+- [ ] **formatters.ts** — Data formatting
+- [ ] **useApi.ts** — Custom hook for CRUD operations
+- [ ] **usePagination.ts** — Pagination state management
 
-### 2J — Organigrama QC
-- [ ] Tabla de colaboradores
-- [ ] Crear colaborador + foto (→ S3)
-- [ ] Editar datos
-- [ ] Toggle activo/inactivo
-- [ ] Eliminar
+**Internationalization:**
 
-### 2K — Calendario (RRHH)
-- [ ] Vista de calendario (mes/año)
-- [ ] Crear solicitud (Vacaciones/Permiso/Incapacidad/Capacitación)
-- [ ] Aprobar/Rechazar solicitud
-- [ ] Gestión de festivos
-- [ ] Saldo vacacional por colaborador/año
-- [ ] Cálculo de días hábiles
-- [ ] Eliminar
+- [ ] Update `es-MX.json` with 50+ new keys
+- [ ] Update `en.json` with translations
+- [ ] Update `zh-CN.json` with translations
 
 ---
 
-## Fase 3 — Testing & Deploy ⏳ PENDIENTE
+## PHASE 2B — First Wave (Dashboard + Fundamentals)
 
-- [ ] Unit tests (Jest)
-- [ ] E2E tests (Playwright)
-- [ ] Setup CI/CD (GitHub Actions)
-- [ ] Staging deploy
-- [ ] Producción deploy
-- [ ] Monitoring & logging
-- [ ] Backup strategy
+Status: **✅ COMPLETE** (2026-06-29 20:00)
+
+- [x] Dashboard: KPIs, 4 charts, period selector
+- [x] NoConformidades: Table, status tabs, create/edit/delete
+- [x] Recepciones: Table, grouped form, status workflow
 
 ---
 
-## Estadísticas
+## PHASE 2C — Second Wave (Complex Forms)
 
-| Aspecto | Cantidad | Estado |
-|---------|----------|--------|
-| Tablas BD | 20 | ✅ Drizzle |
-| Endpoints API | 48+ | ✅ Implementados |
-| Módulos Frontend | 11 | ✅ Skeleton |
-| Idiomas i18n | 3 | ✅ Completos (en, es-MX, zh-CN) |
-| Líneas servidor | ~2,500 | ✅ TypeScript |
-| Líneas cliente | ~1,000 | ✅ React |
-| Líneas schema | 343 | ✅ Drizzle |
-| TypeScript errors | 0 | ✅ Zero errors |
+Status: **✅ COMPLETE** (2026-06-29 22:00)
+- RechazosExternos: Multi-problem pairs, 10 photos, SKU cascading, photo gallery
+- RechazosInternos: COPQ auto-fill (11 defects verified), digital signature (mandatory), 5 photos
 
 ---
 
-## Notas Técnicas
+## PHASE 2D — Third Wave (Specialized Modules)
 
-### Cambios de Arquitectura
-- **Autenticación:** Bcrypt local → Nextcloud OIDC
-- **Storage:** Multer local → MinIO S3
-- **ORM:** SQL raw → Drizzle ORM (+ SQL raw para queries complejas)
-- **Frontend:** Vanilla JS → React 18
-- **Build:** None → Vite 5.3
-- **Lenguaje:** JavaScript → TypeScript (strict)
+Status: **✅ COMPLETE** (2026-06-29 23:30)
+- CAPA: 5 Why analysis + Ishikawa diagram, action tracking
+- AQL: Inspection checklist, exactly 2 photo validation, auto acceptance state
+- Liberación Shipping: 5 mandatory photos (separate endpoints), container tracking
+- Organigrama QC: Card layout, employee management, profile photos
+- Calendario: Calendar grid, request workflow, vacation balance
 
-### Configuración necesaria antes de ejecutar
-```
-.env con:
-- DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
-- OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, SESSION_SECRET, APP_URL
-- AWS_ENDPOINT_URL_S3, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_STORAGE_BUCKET_NAME, MINIO_PUBLIC_URL
-- NODE_ENV=development|production
-- VITE_API_URL=http://localhost:3001
-```
-
-### Comandos disponibles
-```bash
-npm run dev              # Client + Server concurrently
-npm run dev:client      # Vite only
-npm run dev:server      # tsx watch server/index.ts
-npm run build           # Vite + tsc para server
-npm run build:client    # Vite build
-npm run build:server    # tsc -p server/tsconfig.json
-npm run typecheck       # tsc --noEmit
-npm run lint            # eslint
-npm run start           # pm2-runtime ecosystem.config.cjs (producción)
-npm run db:generate     # drizzle-kit generate (migraciones)
-npm run db:push         # drizzle-kit push (aplicar migraciones)
-```
+- [ ] CAPA: 5 Why analysis, Ishikawa diagram, action tracking
+- [ ] AQL: Checklist, exactly 2 photo requirement, auto acceptance state
+- [ ] LiberacionShipping: 5 mandatory photos (separate endpoints), complex form
+- [ ] OrganigramaQc: Card layout, employee management, profile photos
+- [ ] Calendario: Calendar grid, request workflow, vacation balance
 
 ---
 
-## Blockers & Riesgos
+## CRITICAL SUCCESS FACTORS
 
-### Bloqueadores Actuales
-- ❌ Ninguno. Fase 1 completada sin dependencias.
-
-### Riesgos Identificados
-1. **OIDC Setup:** Requiere credenciales Nextcloud válidas. Fallback: implementar login local en Fase 2.
-2. **MinIO Setup:** Requiere infraestructura S3. Fallback: mantener multer local como alternativa.
-3. **PDF Generation:** Puppeteer puede ser pesado. Fallback: usar librería más ligera (pdfkit).
+1. **COPQ Mapping Accuracy** — RI_DEFECTOS must match 11 entries from public/index.html exactly
+2. **Digital Signature** — Mandatory for RechazosInternos, base64 upload + storage
+3. **Photo Upload Validation** — Strict enforcement: RE (max 10), RI (max 5), AQL (exactly 2), LS (exactly 5)
+4. **SKU Autocomplete Cascading** — Must auto-fill Marca, Modelo, Pulgada, Descripcion
+5. **i18n Completion** — All 300+ keys translated in 3 languages
 
 ---
 
-## Contactos & Refs
+## SCHEDULE
 
-- **Rama:** stack-migration
-- **Base datos:** control_calidad (PostgreSQL 14+)
-- **Frontend:** React 18 + TypeScript
-- **Backend:** Node.js 20+ + Express 4.19
-- **Stack:** MI Stack completo
+| Week | Phase | Status | Agents |
+|------|-------|--------|--------|
+| June 29-July 5 | 2A | Starting | 2-3 devs |
+| July 6-12 | 2B | Blocked on 2A | 3 devs (parallel) |
+| July 13-19 | 2C | Blocked on 2B | 2 devs (sequential) |
+| July 20-27 | 2D | Blocked on 2A | 5 devs (parallel) |
 
----
-
-*Actualización automática cada vez que se completa una tarea.*

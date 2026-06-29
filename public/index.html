@@ -875,6 +875,20 @@
     .cal-festivo-fila   { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--gris-claro); font-size:11px; }
     .cal-festivo-fila span { flex:1; }
     .cal-leyenda { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+    .cal-panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+    .cal-filtro-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .cal-badge { font-size:10px; padding:2px 8px; font-weight:700; text-transform:uppercase; border:1px solid; display:inline-block; border-radius:2px; }
+    .cal-badge-pendiente  { background:#fdf6e8; color:#8a6a00; border-color:#8a6a00; }
+    .cal-badge-aprobado   { background:#e8f5ee; color:#1a6b3c; border-color:#1a6b3c; }
+    .cal-badge-rechazado  { background:#fde8e8; color:var(--rojo); border-color:var(--rojo); }
+    .cal-err { font-size:11px; color:var(--rojo); margin-top:4px; display:none; }
+    .cal-warn { font-size:11px; color:#8a6a00; background:#fdf6e8; padding:4px 8px; margin-top:6px; display:none; border-left:3px solid #8a6a00; }
+    .cal-gestion-btns { display:flex; gap:4px; }
+    .btn-aprobar { font-size:10px; padding:3px 8px; cursor:pointer; background:#e8f5ee; color:#1a6b3c; border:1px solid #1a6b3c; font-family:inherit; }
+    .btn-aprobar:hover { background:#1a6b3c; color:#fff; }
+    .btn-rechazar { font-size:10px; padding:3px 8px; cursor:pointer; background:#fde8e8; color:var(--rojo); border:1px solid var(--rojo); font-family:inherit; }
+    .btn-rechazar:hover { background:var(--rojo); color:#fff; }
+    .cal-tab-admin { display:none; }
 
     /* ── CAPA ── */
     .capa-origen-badge { font-size:10px; padding:2px 7px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border:1px solid; display:inline-block; }
@@ -892,6 +906,7 @@
     .ishikawa-cat-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--azul); margin-bottom:6px; }
     .ishikawa-causa-fila { display:flex; gap:6px; margin-bottom:5px; align-items:center; }
     .ishikawa-causa-fila input { flex:1; padding:4px 7px; font-size:12px; border:1px solid var(--gris-claro); background:#fff; }
+    .ishikawa-cat textarea { width:100%; box-sizing:border-box; }
     .capa-acciones-tabla { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
     .capa-acciones-tabla th { background:var(--azul); color:#fff; padding:7px 10px; font-size:10px; font-weight:700; text-transform:uppercase; }
     .capa-acciones-tabla td { padding:6px 8px; border-bottom:1px solid var(--gris-claro); vertical-align:middle; }
@@ -906,12 +921,42 @@
     .ri-firma-img  { max-width:100%; border:1px solid var(--gris-claro); border-radius:6px; margin-top:6px; }
     .ri-readonly   { background:var(--fondo); color:var(--gris); cursor:default; }
 
-    /* ── AQL ── */
-    .aql-checks { display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:4px; }
-    .aql-checks label { display:flex; align-items:center; gap:5px; font-size:12px; font-weight:400; cursor:pointer; }
-    .aql-checks input[type=checkbox] { width:14px; height:14px; cursor:pointer; accent-color:var(--azul); }
-    .badge-verde { background:#d4edda; color:#155724; }
-    .badge-gris  { background:#e9ecef; color:#6c757d; }
+    /* ── AQL Phase 2D ── */
+    .badge-verde  { background:#d4edda; color:#155724; }
+    .badge-gris   { background:#e9ecef; color:#6c757d; }
+    .aql-estado-badge { display:inline-flex; align-items:center; gap:6px;
+      padding:6px 16px; border-radius:20px; font-weight:700; font-size:13px; }
+    .aql-estado-badge.aceptado { background:#d4edda; color:#155724; }
+    .aql-estado-badge.rechazado { background:#f8d7da; color:#721c24; }
+    .aql-checklist-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .aql-checklist-table th { background:var(--fondo); padding:7px 10px; text-align:left;
+      border-bottom:2px solid var(--borde); font-weight:600; font-size:12px; }
+    .aql-checklist-table td { padding:6px 10px; border-bottom:1px solid var(--borde); vertical-align:middle; }
+    .aql-checklist-table tr:last-child td { border-bottom:none; }
+    .aql-radio-group { display:flex; gap:16px; }
+    .aql-radio-group label { display:flex; align-items:center; gap:5px; cursor:pointer; font-weight:400; font-size:12px; }
+    .aql-fotos-error { color:var(--rojo); font-size:12px; font-weight:600; margin-top:6px; display:none; }
+    .aql-foto-zone { border:2px dashed var(--gris-claro); border-radius:8px; padding:12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px; min-height:110px;
+      transition:border-color .2s; }
+    .aql-foto-zone.tiene-foto { border-color:var(--verde,#28a745); border-style:solid; }
+    .aql-foto-thumb { position:relative; width:90px; height:68px; }
+    .aql-foto-thumb img { width:100%; height:100%; object-fit:cover; border-radius:6px; cursor:pointer; }
+    .aql-foto-thumb-del { position:absolute; top:-6px; right:-6px; background:#dc3545; color:#fff;
+      border:none; border-radius:50%; width:18px; height:18px; font-size:11px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; line-height:1; }
+    .aql-lightbox-overlay { position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:9999;
+      display:flex; align-items:center; justify-content:center; }
+    .aql-lightbox-overlay img { max-width:92vw; max-height:88vh; border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,.6); }
+    .aql-lightbox-close { position:fixed; top:16px; right:20px; color:#fff; font-size:32px;
+      cursor:pointer; z-index:10000; line-height:1; background:none; border:none; }
+    .aql-filter-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .aql-tab-btn { padding:6px 16px; border-radius:20px; border:1px solid var(--borde);
+      background:transparent; cursor:pointer; font-size:13px; transition:all .15s; }
+    .aql-tab-btn.activo { background:var(--azul); color:#fff; border-color:var(--azul); font-weight:600; }
+    .aql-tab-btn .aql-tab-count { display:inline-block; background:rgba(255,255,255,.25);
+      border-radius:10px; padding:0 7px; font-size:11px; margin-left:5px; }
+    .aql-tab-btn:not(.activo) .aql-tab-count { background:var(--fondo); color:var(--gris); }
 
     /* ── Zona foto shipping ── */
     .foto-upload-zona { position:relative; border:2px dashed var(--gris-claro); border-radius:6px;
@@ -1304,23 +1349,45 @@
       <!-- MODULO: AQL -->
       <div class="modulo" id="modulo-aql">
         <div class="card">
-          <div class="card-header-con-filtro" style="margin-bottom:16px">
-            <div class="seccion-titulo" style="border-bottom:none;margin-bottom:0">Registros de AQL</div>
-            <button class="btn btn-primario" onclick="modAQL.abrirFormulario()" style="font-size:12px;padding:8px 18px;">+ Agregar</button>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+            <div class="seccion-titulo" style="border-bottom:none;margin-bottom:0">AQL — Inspección de Calidad</div>
+            <button class="btn btn-primario" onclick="modAQL.abrirFormulario()" style="font-size:12px;padding:8px 18px;">+ Agregar Registro AQL</button>
           </div>
+
+          <!-- Filtros -->
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+            <input type="text" id="aql-search" placeholder="Buscar por Orden, SKU, Lote..."
+                   style="flex:1;min-width:200px;max-width:340px;padding:7px 11px;border:1px solid var(--borde);border-radius:6px;font-size:13px"
+                   oninput="modAQL._onSearch(this.value)">
+          </div>
+
+          <!-- Pestañas de estado -->
+          <div class="aql-filter-tabs" id="aql-tabs">
+            <button class="aql-tab-btn activo" data-estado="Todas" onclick="modAQL.cambiarTab('Todas')">
+              Todas <span class="aql-tab-count" id="aql-cnt-todas">0</span>
+            </button>
+            <button class="aql-tab-btn" data-estado="Aceptado" onclick="modAQL.cambiarTab('Aceptado')">
+              Aceptado <span class="aql-tab-count" id="aql-cnt-aceptado">0</span>
+            </button>
+            <button class="aql-tab-btn" data-estado="Rechazado" onclick="modAQL.cambiarTab('Rechazado')">
+              Rechazado <span class="aql-tab-count" id="aql-cnt-rechazado">0</span>
+            </button>
+          </div>
+
           <div class="tabla-wrap">
             <table>
               <thead>
                 <tr>
                   <th>#</th>
                   <th>Fecha</th>
-                  <th>License Plate</th>
-                  <th>Clasificación</th>
+                  <th>Orden ID</th>
                   <th>SKU</th>
                   <th>Marca</th>
-                  <th>Modelo</th>
-                  <th>Estado AQL</th>
-                  <th>Inspector</th>
+                  <th>Lote</th>
+                  <th>Muestra</th>
+                  <th>Defectos</th>
+                  <th>Estado</th>
+                  <th>Fotos</th>
                   <th></th>
                 </tr>
               </thead>
@@ -1328,6 +1395,9 @@
             </table>
             <div id="aql-tabla-vacio" class="vacio" style="display:none">No hay registros de AQL.</div>
           </div>
+
+          <!-- Paginación -->
+          <div id="aql-paginacion" style="display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap"></div>
         </div>
       </div>
 
@@ -1365,32 +1435,37 @@
       <!-- MODULO: CAPAS -->
       <div class="modulo" id="modulo-capas">
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <select id="capa-filtro-tipo" class="filtro-select" onchange="modCAPA.renderTabla()">
-                <option value="">NC y Rechazos</option>
-                <option value="nc">Solo NCs</option>
-                <option value="re">Solo Rechazos</option>
-              </select>
-              <select id="capa-filtro-estatus" class="filtro-select" onchange="modCAPA.renderTabla()">
-                <option value="">Todos los estatus</option>
-                <option value="Abierta">Abierta</option>
-                <option value="En proceso">En proceso</option>
-                <option value="Cerrada">Cerrada</option>
+          <!-- Tabs de estatus -->
+          <div class="mod-tabs" style="margin-bottom:14px">
+            <button class="mod-tab activo" id="capa-tab-todas"   onclick="modCAPA.cambiarTab('')">Todas <span class="aql-tab-count" id="capa-cnt-todas">0</span></button>
+            <button class="mod-tab"        id="capa-tab-abierta" onclick="modCAPA.cambiarTab('Abierta')">Abierta <span class="aql-tab-count" id="capa-cnt-abierta">0</span></button>
+            <button class="mod-tab"        id="capa-tab-proceso" onclick="modCAPA.cambiarTab('En Progreso')">En Progreso <span class="aql-tab-count" id="capa-cnt-proceso">0</span></button>
+            <button class="mod-tab"        id="capa-tab-cerrada" onclick="modCAPA.cambiarTab('Cerrada')">Cerrada <span class="aql-tab-count" id="capa-cnt-cerrada">0</span></button>
+          </div>
+          <!-- Búsqueda y filtros -->
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;flex:1">
+              <input type="text" id="capa-busqueda" placeholder="Buscar por descripción, responsable..." class="filtro-select" style="flex:1;min-width:200px" oninput="modCAPA._onBusqueda()">
+              <select id="capa-filtro-tipo" class="filtro-select" onchange="modCAPA.cargar()">
+                <option value="">Correctiva y Preventiva</option>
+                <option value="Correctiva">Correctiva</option>
+                <option value="Preventiva">Preventiva</option>
               </select>
             </div>
-            <button class="btn btn-primario" onclick="modCAPA.abrirFormulario()">+ Nueva CAPA</button>
+            <button class="btn btn-primario" onclick="modCAPA.abrirFormulario()">+ Agregar CAPA</button>
           </div>
           <div class="tabla-wrap">
             <table>
               <thead><tr>
-                <th>#</th><th>Origen</th><th>Título</th><th>Método</th>
-                <th>Responsable</th><th>F. Compromiso</th><th>Estatus</th><th></th>
+                <th>#</th><th>Fecha</th><th>Tipo</th><th>Descripción</th>
+                <th>Responsable</th><th>Fecha Límite</th><th>Estatus</th><th></th>
               </tr></thead>
               <tbody id="capa-tabla-cuerpo"></tbody>
             </table>
           </div>
-          <div id="capa-tabla-vacio" class="vacio" style="display:none">Sin acciones correctivas registradas.</div>
+          <div id="capa-tabla-vacio" class="vacio" style="display:none">Sin acciones correctivas/preventivas registradas.</div>
+          <!-- Paginación -->
+          <div id="capa-paginacion" style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;font-size:12px"></div>
         </div>
       </div>
 
@@ -1413,7 +1488,10 @@
           <!-- Pestañas -->
           <div class="mod-tabs">
             <button class="mod-tab activo" id="cal-tab-calendario" onclick="modCAL.cambiarTab('calendario')">Calendario</button>
-            <button class="mod-tab" id="cal-tab-saldo" onclick="modCAL.cambiarTab('saldo')">Saldo de Vacaciones</button>
+            <button class="mod-tab" id="cal-tab-mis" onclick="modCAL.cambiarTab('mis')">Mis Solicitudes</button>
+            <button class="mod-tab cal-tab-admin" id="cal-tab-gestion" onclick="modCAL.cambiarTab('gestion')">Gesti&oacute;n</button>
+            <button class="mod-tab" id="cal-tab-saldo" onclick="modCAL.cambiarTab('saldo')">Saldo Vacacional</button>
+            <button class="mod-tab cal-tab-admin" id="cal-tab-festivos" onclick="modCAL.cambiarTab('festivos')">Festivos</button>
           </div>
 
           <!-- Panel: Calendario -->
@@ -1426,16 +1504,15 @@
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                 <select id="cal-filtro-area" class="filtro-select" onchange="modCAL.renderCalendario()">
-                  <option value="">Todas las áreas</option>
+                  <option value="">Todas las &aacute;reas</option>
                   <option>Incoming</option><option>Sorting</option><option>FFT</option>
                   <option>Paletizado</option><option>Almacen</option><option>Shipping</option>
                 </select>
                 <select id="cal-filtro-tipo" class="filtro-select" onchange="modCAL.renderCalendario()">
                   <option value="">Todos los tipos</option>
                   <option>Vacaciones</option><option>Permiso</option>
-                  <option>Incapacidad</option><option>Capacitación</option>
+                  <option>Incapacidad</option><option>Capacitaci&oacute;n</option>
                 </select>
-                <button class="btn btn-secundario" onclick="modCAL.abrirFestivos()">Festivos</button>
                 <button class="btn btn-primario" onclick="modCAL.abrirFormulario()">+ Nueva solicitud</button>
               </div>
             </div>
@@ -1443,17 +1520,73 @@
               <span class="cal-chip cal-chip-vacaciones" style="cursor:default">Vacaciones</span>
               <span class="cal-chip cal-chip-permiso" style="cursor:default">Permiso</span>
               <span class="cal-chip cal-chip-incapacidad" style="cursor:default">Incapacidad</span>
-              <span class="cal-chip cal-chip-capacitacion" style="cursor:default">Capacitación</span>
+              <span class="cal-chip cal-chip-capacitacion" style="cursor:default">Capacitaci&oacute;n</span>
               <span class="cal-festivo" style="cursor:default">Festivo</span>
             </div>
             <div id="cal-grid"></div>
           </div>
 
-          <!-- Panel: Saldo de Vacaciones -->
+          <!-- Panel: Mis Solicitudes -->
+          <div id="cal-panel-mis" style="display:none">
+            <div class="cal-panel-header">
+              <div class="seccion-titulo" style="margin:0">Mis Solicitudes</div>
+              <div class="cal-filtro-bar">
+                <select id="cal-mis-filtro" class="filtro-select" onchange="modCAL.renderMisSolicitudes()">
+                  <option value="">Todas</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="aprobado">Aprobado</option>
+                  <option value="rechazado">Rechazado</option>
+                </select>
+                <button class="btn btn-primario" onclick="modCAL.abrirFormulario()">+ Nueva solicitud</button>
+              </div>
+            </div>
+            <div id="cal-mis-tabla"></div>
+            <div id="cal-mis-vacio" class="vacio" style="display:none">No tienes solicitudes registradas.</div>
+          </div>
+
+          <!-- Panel: Gestión de Solicitudes (admin) -->
+          <div id="cal-panel-gestion" style="display:none">
+            <div class="cal-panel-header">
+              <div class="seccion-titulo" style="margin:0">Gesti&oacute;n de Solicitudes</div>
+              <div class="cal-filtro-bar">
+                <select id="cal-gest-filtro-tipo" class="filtro-select" onchange="modCAL.renderGestion()">
+                  <option value="">Todos los tipos</option>
+                  <option>Vacaciones</option><option>Permiso</option>
+                  <option>Incapacidad</option><option>Capacitaci&oacute;n</option>
+                </select>
+                <select id="cal-gest-filtro-estatus" class="filtro-select" onchange="modCAL.renderGestion()">
+                  <option value="">Todos los estatus</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="aprobado">Aprobado</option>
+                  <option value="rechazado">Rechazado</option>
+                </select>
+              </div>
+            </div>
+            <div id="cal-gest-tabla"></div>
+            <div id="cal-gest-vacio" class="vacio" style="display:none">Sin solicitudes para mostrar.</div>
+          </div>
+
+          <!-- Panel: Saldo Vacacional -->
           <div id="cal-panel-saldo" style="display:none">
-            <div class="cal-saldo-titulo">Saldo de Vacaciones — <span id="cal-saldo-anio"></span></div>
+            <div class="cal-panel-header">
+              <div class="cal-saldo-titulo" style="margin:0">Saldo Vacacional &mdash; <span id="cal-saldo-anio"></span></div>
+              <div class="cal-filtro-bar">
+                <button class="btn btn-secundario" onclick="modCAL.cambiarAnioSaldo(-1)">&#8592; A&ntilde;o anterior</button>
+                <button class="btn btn-secundario" onclick="modCAL.cambiarAnioSaldo(1)">A&ntilde;o siguiente &#8594;</button>
+              </div>
+            </div>
             <div id="cal-saldo-tabla"></div>
-            <div id="cal-saldo-vacio" class="vacio">Sin registros de saldo.</div>
+            <div id="cal-saldo-vacio" class="vacio" style="display:none">Sin registros de saldo.</div>
+          </div>
+
+          <!-- Panel: Festivos (admin) -->
+          <div id="cal-panel-festivos" style="display:none">
+            <div class="cal-panel-header">
+              <div class="seccion-titulo" style="margin:0">D&iacute;as Festivos</div>
+              <button class="btn btn-primario" onclick="modCAL.abrirAgregarFestivo()">+ Agregar Festivo</button>
+            </div>
+            <div id="cal-festivos-panel-lista"></div>
+            <div id="cal-festivos-panel-vacio" class="vacio" style="display:none">Sin festivos registrados.</div>
           </div>
 
         </div>
@@ -1566,44 +1699,43 @@
 <!-- MODAL: CAPA FORMULARIO -->
 <div class="modal-overlay" id="modal-capa-form">
   <div class="modal" style="max-width:740px;width:95vw">
-    <div class="modal-titulo" id="modal-capa-form-titulo">Nueva Acción Correctiva (CAPA)</div>
+    <div class="modal-titulo" id="modal-capa-form-titulo">Nueva CAPA</div>
     <input type="hidden" id="capa-edit-id">
     <form id="form-capa">
-      <div class="seccion-titulo">Datos Generales</div>
+      <div class="seccion-titulo">Información CAPA</div>
       <div class="form-grid">
         <div>
-          <label>Tipo de origen</label>
-          <select id="capa-origen-tipo" onchange="modCAPA._cargarOrigenSelect()" required>
+          <label>Tipo <span style="color:var(--rojo)">*</span></label>
+          <div style="display:flex;gap:16px;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+              <input type="radio" name="capa-tipo" value="Correctiva" id="capa-tipo-correctiva" checked> Correctiva
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+              <input type="radio" name="capa-tipo" value="Preventiva" id="capa-tipo-preventiva"> Preventiva
+            </label>
+          </div>
+        </div>
+        <div>
+          <label>Estatus <span style="color:var(--rojo)">*</span></label>
+          <select id="capa-estatus" required>
+            <option value="Abierta">Abierta</option>
+            <option value="En Progreso">En Progreso</option>
+            <option value="Cerrada">Cerrada</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>Descripción <span style="color:var(--rojo)">*</span></label>
+          <textarea id="capa-descripcion" rows="3" style="resize:vertical" required></textarea>
+        </div>
+        <div>
+          <label>Responsable <span style="color:var(--rojo)">*</span></label>
+          <select id="capa-responsable" required>
             <option value="">— Seleccionar —</option>
-            <option value="nc">No Conformidad</option>
-            <option value="re">Rechazo Externo</option>
           </select>
         </div>
         <div>
-          <label>Registro origen</label>
-          <select id="capa-origen-id" required>
-            <option value="">— Primero selecciona tipo —</option>
-          </select>
-        </div>
-        <div class="full">
-          <label>Título de la CAPA</label>
-          <input type="text" id="capa-titulo" required>
-        </div>
-        <div class="full">
-          <label>Descripción del problema</label>
-          <textarea id="capa-descripcion" rows="3" style="resize:vertical"></textarea>
-        </div>
-        <div>
-          <label>Responsable</label>
-          <input type="text" id="capa-responsable" required>
-        </div>
-        <div>
-          <label>Fecha de apertura</label>
-          <input type="date" id="capa-fecha-apertura" required>
-        </div>
-        <div>
-          <label>Fecha compromiso</label>
-          <input type="date" id="capa-fecha-compromiso">
+          <label>Fecha Límite <span style="color:var(--rojo)">*</span></label>
+          <input type="date" id="capa-fecha-limite" required>
         </div>
       </div>
 
@@ -1611,38 +1743,23 @@
       <div style="display:flex;gap:20px;margin-bottom:14px">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
           <input type="radio" name="capa-metodo" value="5porques" id="capa-metodo-5p" checked
-                 onchange="modCAPA._toggleMetodo('5porques')"> 5 Porqués
+                 onchange="modCAPA._toggleMetodo('5porques')"> 5 Por Qués
         </label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
           <input type="radio" name="capa-metodo" value="ishikawa" id="capa-metodo-ish"
-                 onchange="modCAPA._toggleMetodo('ishikawa')"> Ishikawa (6M)
+                 onchange="modCAPA._toggleMetodo('ishikawa')"> Diagrama Ishikawa (6M)
         </label>
       </div>
 
       <!-- Panel 5 Porqués -->
       <div id="capa-panel-5porques">
-        <table class="porques-tabla">
-          <thead><tr><th>#</th><th>¿Por qué?</th><th>Respuesta / Causa encontrada</th></tr></thead>
-          <tbody id="capa-porques-tbody"></tbody>
-        </table>
+        <div id="capa-porques-contenido"></div>
       </div>
 
       <!-- Panel Ishikawa -->
       <div id="capa-panel-ishikawa" style="display:none">
         <div class="ishikawa-grid" id="capa-ishi-grid"></div>
       </div>
-
-      <div class="seccion-titulo" style="margin-top:20px">Acciones Correctivas</div>
-      <div style="display:grid;grid-template-columns:1fr 140px 120px 110px 28px;gap:6px;margin-bottom:6px">
-        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gris)">Acción</span>
-        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gris)">Responsable</span>
-        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gris)">F. Compromiso</span>
-        <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gris)">Estatus</span>
-        <span></span>
-      </div>
-      <div id="capa-acciones-lista"></div>
-      <button type="button" class="btn btn-secundario" style="margin-top:4px"
-              onclick="modCAPA.agregarAccion()">+ Agregar acción</button>
 
       <div class="btn-grupo" style="margin-top:22px">
         <button type="submit" class="btn btn-primario" id="btn-capa-guardar">Guardar</button>
@@ -1654,10 +1771,47 @@
 
 <!-- MODAL: CAPA DETALLE -->
 <div class="modal-overlay" id="modal-capa-detalle">
-  <div class="modal" style="max-width:740px;width:95vw">
-    <div class="modal-titulo" id="capa-det-titulo">Acción Correctiva</div>
+  <div class="modal" style="max-width:780px;width:95vw">
+    <div class="modal-titulo" id="capa-det-titulo">CAPA #</div>
     <div id="capa-det-contenido"></div>
     <div class="nc-det-acciones" id="capa-det-botones"></div>
+  </div>
+</div>
+
+<!-- MODAL: ACCION FORMULARIO (nueva/editar acción de seguimiento) -->
+<div class="modal-overlay" id="modal-accion-form" style="z-index:350">
+  <div class="modal" style="max-width:520px;width:95vw">
+    <div class="modal-titulo" id="modal-accion-titulo">Agregar Acción</div>
+    <input type="hidden" id="accion-capa-id">
+    <input type="hidden" id="accion-edit-id">
+    <form id="form-accion">
+      <div class="form-grid">
+        <div class="full">
+          <label>Descripción <span style="color:var(--rojo)">*</span></label>
+          <textarea id="accion-descripcion" rows="3" style="resize:vertical" required></textarea>
+        </div>
+        <div>
+          <label>Responsable</label>
+          <input type="text" id="accion-responsable">
+        </div>
+        <div>
+          <label>Fecha Límite</label>
+          <input type="date" id="accion-fecha-limite">
+        </div>
+        <div>
+          <label>Estatus</label>
+          <select id="accion-estatus">
+            <option value="Abierta">Abierta</option>
+            <option value="En Progreso">En Progreso</option>
+            <option value="Cerrada">Cerrada</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-grupo" style="margin-top:16px">
+        <button type="submit" class="btn btn-primario" id="btn-accion-guardar">Guardar</button>
+        <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-accion-form')">Cancelar</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1934,25 +2088,18 @@
   </div>
 </div>
 
-<!-- MODAL: FORMULARIO AQL -->
+<!-- MODAL: FORMULARIO AQL Phase 2D -->
 <div class="modal-overlay" id="modal-aql-form">
-  <div class="modal" style="max-width:780px;width:95vw;max-height:90vh;overflow-y:auto">
+  <div class="modal" style="max-width:820px;width:95vw;max-height:92vh;overflow-y:auto">
     <div class="modal-titulo" id="modal-aql-form-titulo">Nuevo Registro AQL</div>
     <input type="hidden" id="aql-edit-id">
-    <form id="form-aql">
+    <form id="form-aql" onsubmit="return false">
 
-      <div class="seccion-titulo" style="margin-bottom:10px">Información General</div>
+      <!-- Sección 1: Información de Inspección -->
+      <div class="seccion-titulo" style="margin-bottom:10px">Información de Inspección</div>
       <div class="form-grid">
-        <div><label>Fecha de Registro *</label><input type="date" id="aql-fecha" required></div>
-        <div><label>License Plate *</label><input type="text" id="aql-license-plate" required placeholder="Ej. ABC-1234"></div>
-        <div><label>Clasificación *</label>
-          <select id="aql-clasificacion" required>
-            <option value="">— Seleccionar —</option>
-            <option>NEW</option><option>GRA</option><option>GRB</option><option>GRC</option>
-            <option>ICB</option><option>ICC</option><option>ICD</option><option>ICX</option>
-            <option>BOX</option>
-          </select>
-        </div>
+        <div><label>Fecha *</label><input type="date" id="aql-fecha" required></div>
+        <div><label>Order ID *</label><input type="text" id="aql-order-id" required placeholder="Ej. ORD-2026-001"></div>
         <div><label>SKU</label>
           <div style="position:relative">
             <input type="text" id="aql-sku" placeholder="Código de producto" autocomplete="off"
@@ -1961,184 +2108,107 @@
             <span id="aql-sku-status" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px"></span>
           </div>
         </div>
-        <div><label>Marca</label><input type="text" id="aql-marca" placeholder="Ej. Samsung"></div>
-        <div><label>Modelo</label><input type="text" id="aql-modelo" placeholder="Ej. UN55TU8000"></div>
-        <div><label>Pulgada</label><input type="text" id="aql-pulgada" placeholder='Ej. 55"'></div>
-        <div class="full"><label>Descripción</label><textarea id="aql-descripcion" rows="2" placeholder="Observaciones generales del producto"></textarea></div>
+        <div><label>Marca</label><input type="text" id="aql-marca" placeholder="Auto-llenado por SKU" class="ri-readonly" readonly></div>
+        <div><label>Modelo</label><input type="text" id="aql-modelo" placeholder="Auto-llenado por SKU" class="ri-readonly" readonly></div>
+        <div><label>Pulgada</label><input type="text" id="aql-pulgada" placeholder="Auto-llenado por SKU" class="ri-readonly" readonly></div>
+        <div class="full"><label>Descripción</label><input type="text" id="aql-descripcion" placeholder="Auto-llenado por SKU" class="ri-readonly" readonly></div>
+        <div><label>Lote</label><input type="text" id="aql-lote" placeholder="Opcional"></div>
       </div>
 
-      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Inspección de Accesorios</div>
+      <!-- Sección 2: Parámetros de Muestra -->
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Parámetros de Muestra</div>
       <div class="form-grid">
-        <div><label>Accesorios Presentes</label>
-          <select id="aql-accesorios-presentes">
-            <option value="">— Seleccionar —</option>
-            <option>Presentes</option><option>Ausentes</option>
-          </select>
+        <div><label>Muestra Total *</label>
+          <input type="number" id="aql-muestra-total" required min="1" placeholder="Ej. 100">
         </div>
-        <div><label>Estado de Accesorios</label>
-          <select id="aql-estado-accesorios" onchange="modAQL._onEstado('estado-accesorios','Malos')">
-            <option value="">— Seleccionar —</option>
-            <option>Excelentes</option><option>Buenos</option><option>Malos</option>
-          </select>
+        <div><label>Defectos Encontrados *</label>
+          <input type="number" id="aql-defectos" required min="0" value="0"
+                 oninput="modAQL._actualizarEstado()">
         </div>
-        <div class="full" id="aql-estado-accesorios-defectos-wrap" style="display:none">
-          <label style="margin-bottom:6px;display:block">Defectos de Accesorios</label>
-          <div class="aql-checks">
-            <label><input type="checkbox" name="accesorios_defectos" value="Daño Físico"> Daño Físico</label>
-            <label><input type="checkbox" name="accesorios_defectos" value="Faltante de Control"> Faltante de Control</label>
-            <label><input type="checkbox" name="accesorios_defectos" value="Faltante de Cable"> Faltante de Cable</label>
-            <label><input type="checkbox" name="accesorios_defectos" value="Faltante de Bases"> Faltante de Bases</label>
-          </div>
+        <div class="full"><label>Observaciones</label>
+          <textarea id="aql-observaciones" rows="2" placeholder="Observaciones opcionales"></textarea>
         </div>
       </div>
 
-      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Condición del Producto</div>
-      <div class="form-grid">
-
-        <div><label>Estado de Bolsa Protectora</label>
-          <select id="aql-estado-bolsa" onchange="modAQL._onEstado('estado-bolsa','Malo')">
-            <option value="">— Seleccionar —</option>
-            <option>Excelente</option><option>Bueno</option><option>Malo</option>
-          </select>
-        </div>
-        <div id="aql-estado-bolsa-defectos-wrap" style="display:none">
-          <label style="margin-bottom:6px;display:block">Defectos de Bolsa</label>
-          <div class="aql-checks">
-            <label><input type="checkbox" name="bolsa_defectos" value="Dañada"> Dañada</label>
-            <label><input type="checkbox" name="bolsa_defectos" value="Faltante"> Faltante</label>
-            <label><input type="checkbox" name="bolsa_defectos" value="Mal acomodada"> Mal acomodada</label>
-          </div>
-        </div>
-
-        <div><label>Estado del Audio</label>
-          <select id="aql-estado-audio" onchange="modAQL._onEstado('estado-audio','Malo')">
-            <option value="">— Seleccionar —</option>
-            <option>Excelente</option><option>Bueno</option><option>Malo</option>
-          </select>
-        </div>
-        <div id="aql-estado-audio-defectos-wrap" style="display:none">
-          <label style="margin-bottom:6px;display:block">Defectos de Audio</label>
-          <div class="aql-checks">
-            <label><input type="checkbox" name="audio_defectos" value="Sin sonido"> Sin sonido</label>
-            <label><input type="checkbox" name="audio_defectos" value="Distorsión"> Distorsión</label>
-            <label><input type="checkbox" name="audio_defectos" value="Volumen deficiente"> Volumen deficiente</label>
-            <label><input type="checkbox" name="audio_defectos" value="Desincronización (lag)"> Desincronización (lag)</label>
-            <label><input type="checkbox" name="audio_defectos" value="Ruido de fondo"> Ruido de fondo</label>
-            <label><input type="checkbox" name="audio_defectos" value="Vibración excesiva"> Vibración excesiva</label>
-          </div>
-        </div>
-
-        <div><label>Estado del Video / Pantalla</label>
-          <select id="aql-estado-video" onchange="modAQL._onEstado('estado-video','Malo')">
-            <option value="">— Seleccionar —</option>
-            <option>Excelente</option><option>Bueno</option><option>Malo</option>
-          </select>
-        </div>
-        <div id="aql-estado-video-defectos-wrap" style="display:none">
-          <label style="margin-bottom:6px;display:block">Defectos de Video</label>
-          <div class="aql-checks">
-            <label><input type="checkbox" name="video_defectos" value="Píxeles muertos o atascados"> Píxeles muertos o atascados</label>
-            <label><input type="checkbox" name="video_defectos" value="Líneas verticales u horizontales"> Líneas verticales u horizontales</label>
-            <label><input type="checkbox" name="video_defectos" value="Fugas de luz (backlight bleeding)"> Fugas de luz (backlight bleeding)</label>
-            <label><input type="checkbox" name="video_defectos" value="Manchas o sombras en la imagen"> Manchas o sombras en la imagen</label>
-            <label><input type="checkbox" name="video_defectos" value="Parpadeo (flickering)"> Parpadeo (flickering)</label>
-            <label><input type="checkbox" name="video_defectos" value="Descalibración de color (tintes)"> Descalibración de color (tintes)</label>
-            <label><input type="checkbox" name="video_defectos" value="Daños físicos (rayones, grietas)"> Daños físicos (rayones, grietas)</label>
-            <label><input type="checkbox" name="video_defectos" value="Distorsión o artefactos de video"> Distorsión o artefactos de video</label>
-          </div>
-        </div>
-
-        <div><label>Estado Físico de la Pantalla</label>
-          <select id="aql-estado-fisico-pantalla" onchange="modAQL._onEstado('estado-fisico-pantalla','Malo')">
-            <option value="">— Seleccionar —</option>
-            <option>Excelente</option><option>Bueno</option><option>Malo</option>
-          </select>
-        </div>
-        <div id="aql-estado-fisico-pantalla-defectos-wrap" style="display:none">
-          <label style="margin-bottom:6px;display:block">Defectos Físicos</label>
-          <div class="aql-checks">
-            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Rayones o arañazos"> Rayones o arañazos</label>
-            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Grietas o fisuras"> Grietas o fisuras</label>
-            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Astillas en bordes"> Astillas en bordes</label>
-            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Marcas de presión (efecto mancha)"> Marcas de presión (efecto mancha)</label>
-            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Desprendimiento de marco o bisel"> Desprendimiento de marco o bisel</label>
-            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Residuos de adhesivo o pegamento"> Residuos de adhesivo o pegamento</label>
-            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Manchas imborrables o suciedad incrustada"> Manchas imborrables o suciedad incrustada</label>
-            <label><input type="checkbox" name="fisico_pantalla_defectos" value="Deformaciones en el panel"> Deformaciones en el panel</label>
-          </div>
-        </div>
-
-        <div><label>Estado de Limpieza de TV</label>
-          <select id="aql-estado-limpieza" onchange="modAQL._onEstado('estado-limpieza','Malo')">
-            <option value="">— Seleccionar —</option>
-            <option>Excelente</option><option>Bueno</option><option>Malo</option>
-          </select>
-        </div>
-        <div id="aql-estado-limpieza-defectos-wrap" style="display:none">
-          <label style="margin-bottom:6px;display:block">Defectos de Limpieza</label>
-          <div class="aql-checks">
-            <label><input type="checkbox" name="limpieza_defectos" value="Huellas dactilares visibles"> Huellas dactilares visibles</label>
-            <label><input type="checkbox" name="limpieza_defectos" value="Polvo o partículas atrapadas"> Polvo o partículas atrapadas</label>
-            <label><input type="checkbox" name="limpieza_defectos" value="Residuos de grasa"> Residuos de grasa</label>
-            <label><input type="checkbox" name="limpieza_defectos" value="Manchas de líquidos"> Manchas de líquidos</label>
-            <label><input type="checkbox" name="limpieza_defectos" value="Pelusa o fibras"> Pelusa o fibras</label>
-            <label><input type="checkbox" name="limpieza_defectos" value="Restos de embalaje (espuma/unicel)"> Restos de embalaje (espuma/unicel)</label>
-            <label><input type="checkbox" name="limpieza_defectos" value="Marcas de manipulación"> Marcas de manipulación</label>
-            <label><input type="checkbox" name="limpieza_defectos" value="Vaho o humedad residual"> Vaho o humedad residual</label>
-          </div>
-        </div>
-
+      <!-- Estado auto-calculado -->
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Resultado</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px">
+        <span style="font-size:13px;color:var(--gris)">Estado calculado automáticamente:</span>
+        <span id="aql-estado-badge" class="aql-estado-badge aceptado">Aceptado</span>
       </div>
 
-      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Resultado de AQL</div>
-      <div class="form-grid">
-        <div><label>Estado de AQL *</label>
-          <select id="aql-estado-aql" required>
-            <option value="">— Seleccionar —</option>
-            <option>Aceptado</option><option>Rechazado</option>
-          </select>
-        </div>
-        <div><label>Inspector</label>
-          <input type="text" id="aql-inspector" placeholder="Usuario logueado" readonly class="ri-readonly">
-        </div>
+      <!-- Sección 3: Checklist de Inspección -->
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Checklist de Inspección</div>
+      <div style="overflow-x:auto">
+        <table class="aql-checklist-table">
+          <thead>
+            <tr>
+              <th style="width:52px">Item #</th>
+              <th>Descripción Artículo</th>
+              <th style="width:160px">Estado</th>
+              <th style="width:46px"></th>
+            </tr>
+          </thead>
+          <tbody id="aql-checklist-body"></tbody>
+        </table>
       </div>
+      <button type="button" class="btn btn-secundario" style="margin-top:10px;font-size:12px"
+              onclick="modAQL._agregarItemChecklist()">+ Agregar Item</button>
 
-      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:10px">Fotografías</div>
+      <!-- Sección 4: Fotos (STRICT: exactamente 2) -->
+      <div class="seccion-titulo" style="margin-top:18px;margin-bottom:4px">Fotografías</div>
+      <p style="font-size:12px;color:var(--rojo);margin-bottom:10px;font-weight:600">Se requieren exactamente 2 fotos (LPN + Pantalla) para poder guardar.</p>
       <div class="form-grid">
         <div>
-          <label>Foto de LPN</label>
-          <button type="button" class="btn btn-secundario" style="font-size:12px;margin-bottom:8px"
-                  onclick="document.getElementById('aql-foto-lpn-input').click()">Seleccionar foto</button>
+          <label style="margin-bottom:8px;display:block;font-weight:600">Foto de LPN *</label>
+          <div class="aql-foto-zone" id="aql-lpn-zone">
+            <div id="aql-lpn-preview-inner">
+              <span style="font-size:12px;color:var(--gris);text-align:center">Haz clic para seleccionar<br>foto de LPN</span>
+            </div>
+            <button type="button" class="btn btn-secundario" style="font-size:11px;padding:4px 10px"
+                    onclick="document.getElementById('aql-foto-lpn-input').click()">Seleccionar foto</button>
+          </div>
           <input type="file" id="aql-foto-lpn-input" accept="image/*" style="display:none"
-                 onchange="modAQL._previewFoto(this,'aql-foto-lpn-preview','_fotoLpn');this.value=''">
-          <div id="aql-foto-lpn-preview" class="re-thumbs"></div>
+                 onchange="modAQL._seleccionarFoto(this,'lpn')">
         </div>
         <div>
-          <label>Foto de Pantalla</label>
-          <button type="button" class="btn btn-secundario" style="font-size:12px;margin-bottom:8px"
-                  onclick="document.getElementById('aql-foto-pantalla-input').click()">Seleccionar foto</button>
+          <label style="margin-bottom:8px;display:block;font-weight:600">Foto de Pantalla / Screen *</label>
+          <div class="aql-foto-zone" id="aql-pantalla-zone">
+            <div id="aql-pantalla-preview-inner">
+              <span style="font-size:12px;color:var(--gris);text-align:center">Haz clic para seleccionar<br>foto de Pantalla</span>
+            </div>
+            <button type="button" class="btn btn-secundario" style="font-size:11px;padding:4px 10px"
+                    onclick="document.getElementById('aql-foto-pantalla-input').click()">Seleccionar foto</button>
+          </div>
           <input type="file" id="aql-foto-pantalla-input" accept="image/*" style="display:none"
-                 onchange="modAQL._previewFoto(this,'aql-foto-pantalla-preview','_fotoPantalla');this.value=''">
-          <div id="aql-foto-pantalla-preview" class="re-thumbs"></div>
+                 onchange="modAQL._seleccionarFoto(this,'pantalla')">
         </div>
       </div>
+      <div id="aql-fotos-error" class="aql-fotos-error">Se requieren exactamente 2 fotos (LPN + Pantalla)</div>
 
       <div class="btn-grupo" style="margin-top:22px">
-        <button type="submit" class="btn btn-primario" id="btn-aql-guardar">Guardar</button>
+        <button type="button" class="btn btn-primario" id="btn-aql-guardar" onclick="modAQL._guardar()">Guardar</button>
         <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-aql-form')">Cancelar</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- MODAL: DETALLE AQL -->
+<!-- MODAL: DETALLE AQL Phase 2D -->
 <div class="modal-overlay" id="modal-aql-detalle">
-  <div class="modal" style="max-width:700px;width:95vw;max-height:90vh;overflow-y:auto">
-    <div class="modal-titulo" id="aql-det-titulo">Registro AQL</div>
+  <div class="modal" style="max-width:720px;width:95vw;max-height:92vh;overflow-y:auto">
+    <div class="modal-titulo" id="aql-det-titulo">Detalle AQL</div>
     <div class="nc-det-grid" id="aql-det-grid"></div>
-    <div id="aql-det-fotos" style="margin-top:16px"></div>
+    <div id="aql-det-checklist" style="margin-top:18px"></div>
+    <div id="aql-det-fotos" style="margin-top:18px"></div>
     <div class="nc-det-acciones" id="aql-det-botones"></div>
   </div>
+</div>
+
+<!-- Lightbox AQL -->
+<div id="aql-lightbox" style="display:none" class="aql-lightbox-overlay" onclick="modAQL.cerrarLightbox()">
+  <button class="aql-lightbox-close" onclick="event.stopPropagation();modAQL.cerrarLightbox()">&#x2715;</button>
+  <img id="aql-lightbox-img" src="" alt="" onclick="event.stopPropagation()">
 </div>
 
 <!-- MODAL: FORMULARIO LIBERACIÓN SHIPPING -->
@@ -2408,18 +2478,19 @@
     <div class="modal-titulo" id="modal-cal-form-titulo">Nueva Solicitud</div>
     <form id="form-cal">
       <input type="hidden" id="cal-edit-id">
+      <div class="seccion-titulo">Tipo de Solicitud</div>
       <div class="form-grid">
         <div><label>Colaborador *</label>
           <select id="cal-colaborador" required onchange="modCAL.onColaboradorChange()">
             <option value="">Seleccionar colaborador</option>
           </select>
         </div>
-        <div><label>Área</label><input type="text" id="cal-area" readonly placeholder="Auto-rellena"></div>
+        <div><label>&Aacute;rea</label><input type="text" id="cal-area" readonly placeholder="Auto-rellena"></div>
         <div><label>Tipo *</label>
           <select id="cal-tipo" required>
             <option value="">Seleccionar tipo</option>
             <option>Vacaciones</option><option>Permiso</option>
-            <option>Incapacidad</option><option>Capacitación</option>
+            <option>Incapacidad</option><option>Capacitaci&oacute;n</option>
           </select>
         </div>
         <div><label>Estatus</label>
@@ -2429,11 +2500,22 @@
             <option value="rechazado">Rechazado</option>
           </select>
         </div>
-        <div><label>Fecha Inicio *</label><input type="date" id="cal-fecha-inicio" required oninput="modCAL.recalcularDias()"></div>
-        <div><label>Fecha Fin *</label><input type="date" id="cal-fecha-fin" required oninput="modCAL.recalcularDias()"></div>
-        <div><label>Días Hábiles</label><input type="text" id="cal-dias-habiles" readonly placeholder="Calculado automáticamente"></div>
-        <div class="full"><label>Motivo</label><textarea id="cal-motivo" rows="2" placeholder="Motivo o descripción"></textarea></div>
       </div>
+      <div class="seccion-titulo" style="margin-top:14px">Per&iacute;odo de Tiempo</div>
+      <div class="form-grid">
+        <div>
+          <label>Fecha Inicio *</label>
+          <input type="date" id="cal-fecha-inicio" required oninput="modCAL.recalcularDias()">
+        </div>
+        <div>
+          <label>Fecha Fin *</label>
+          <input type="date" id="cal-fecha-fin" required oninput="modCAL.recalcularDias()">
+          <div class="cal-err" id="cal-err-fecha">La Fecha Fin debe ser posterior o igual a la Fecha Inicio.</div>
+        </div>
+        <div><label>D&iacute;as H&aacute;biles (excl. fines de semana y festivos)</label><input type="text" id="cal-dias-habiles" readonly placeholder="Calculado autom&aacute;ticamente"></div>
+        <div class="full"><label>Motivo / Observaciones</label><textarea id="cal-motivo" rows="2" placeholder="Motivo o descripci&oacute;n (opcional)"></textarea></div>
+      </div>
+      <div class="cal-warn" id="cal-warn-solapamiento">&#9888; Esta solicitud se superpone con una solicitud existente del mismo colaborador.</div>
       <div class="modal-footer" style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="btn btn-secundario" onclick="ui.cerrarModal('modal-cal-form')">Cancelar</button>
         <button type="submit" id="btn-cal-guardar" class="btn btn-primario">Guardar</button>
@@ -3061,42 +3143,79 @@ document.getElementById('form-ri').addEventListener('submit', async function(e) 
 });
 
 // ================================================================
-// AQL — Registro de AQL
+// AQL — Phase 2D (Inspección con Checklist, 2 fotos strict, auto-estado)
 // ================================================================
 const modAQL = {
-  registros: [],
-  _fotoLpn: null,
-  _fotoPantalla: null,
-  _editId: null,
+  // --- Estado interno ---
+  _paginaActual: 1,
+  _tabActual: 'Todas',
+  _searchTimer: null,
+  _totalRegistros: 0,
+  _counts: { todas: 0, aceptado: 0, rechazado: 0 },
 
+  // Estado del formulario
+  _editId: null,
+  _fotoLpn: null,       // File | null  (nuevo archivo seleccionado)
+  _fotoPantalla: null,  // File | null
+  _fotoLpnExistente: '',     // filename en BD al editar
+  _fotoPantallaExistente: '', // filename en BD al editar
+  _nextItemNum: 1,
+
+  // ── Inicialización ──────────────────────────────────────────
   async init() { await this.cargar(); },
 
+  // ── Carga y render de la tabla ──────────────────────────────
   async cargar() {
+    const search = document.getElementById('aql-search')?.value || '';
+    const params = new URLSearchParams({
+      estado: this._tabActual,
+      page:   this._paginaActual,
+      limit:  20,
+    });
+    if (search.trim()) params.set('search', search.trim());
     try {
-      this.registros = await api.get('/api/aql');
-      this.renderTabla();
+      const res = await api.get(`/api/aql?${params}`);
+      this._totalRegistros = res.total;
+      this._counts = res.counts;
+      this._renderTabla(res.data, res.page, res.pageSize);
+      this._renderCounts();
+      this._renderPaginacion(res.total, res.page, res.pageSize);
     } catch(e) { ui.notificar(e.error || 'Error al cargar registros AQL.'); }
   },
 
-  renderTabla() {
+  _renderCounts() {
+    const c = this._counts;
+    const el = (id, v) => { const d = document.getElementById(id); if(d) d.textContent = v; };
+    el('aql-cnt-todas',     c.todas     ?? 0);
+    el('aql-cnt-aceptado',  c.aceptado  ?? 0);
+    el('aql-cnt-rechazado', c.rechazado ?? 0);
+  },
+
+  _renderTabla(registros, page, pageSize) {
     const tbody = document.getElementById('aql-tabla-cuerpo');
     const vacio = document.getElementById('aql-tabla-vacio');
-    if (!this.registros.length) { tbody.innerHTML = ''; vacio.style.display = 'block'; return; }
+    if (!registros.length) { tbody.innerHTML = ''; vacio.style.display = 'block'; return; }
     vacio.style.display = 'none';
-    tbody.innerHTML = this.registros.map((r, i) => {
-      const badgeColor = r.estado_aql === 'Aceptado' ? 'verde' : r.estado_aql === 'Rechazado' ? 'rojo' : 'gris';
+    const offset = (page - 1) * pageSize;
+    tbody.innerHTML = registros.map((r, i) => {
+      const badgeClass = r.estado_aql === 'Aceptado' ? 'badge-cerrada' : r.estado_aql === 'Rechazado' ? 'badge-abierta' : 'badge-media';
+      const tieneFotos = r.foto_lpn_filename && r.foto_pantalla_filename;
+      const fotosIcon  = tieneFotos
+        ? `<span style="color:var(--verde,#28a745);font-weight:700">&#10003;</span>`
+        : `<span style="color:var(--rojo);font-weight:700">&#10007;</span>`;
       return `<tr style="cursor:pointer" onclick="modAQL.abrirDetalle(${r.id})"
                   onmouseover="this.style.background='#f0f4f9'" onmouseout="this.style.background=''">
-        <td>${i + 1}</td>
+        <td>${offset + i + 1}</td>
         <td style="font-size:12px">${String(r.fecha_registro).slice(0,10)}</td>
-        <td>${r.license_plate}</td>
-        <td><span class="badge badge-proceso" style="font-size:10px">${r.clasificacion || '—'}</span></td>
+        <td style="font-size:12px">${r.order_id || r.license_plate || '—'}</td>
         <td style="font-size:11px">${r.sku || '—'}</td>
         <td style="font-size:11px">${r.marca || '—'}</td>
-        <td style="font-size:11px">${r.modelo || '—'}</td>
-        <td><span class="badge badge-${badgeColor}" style="font-size:11px">${r.estado_aql || '—'}</span></td>
-        <td style="font-size:11px">${r.inspector || '—'}</td>
-        <td>
+        <td style="font-size:11px">${r.lote || '—'}</td>
+        <td style="text-align:right">${r.muestra_total ?? '—'}</td>
+        <td style="text-align:right">${r.defectos_encontrados ?? '—'}</td>
+        <td><span class="badge ${badgeClass}" style="font-size:11px">${r.estado_aql || '—'}</span></td>
+        <td style="text-align:center">${fotosIcon}</td>
+        <td style="white-space:nowrap">
           <button class="btn-accion" onclick="event.stopPropagation();modAQL.abrirDetalle(${r.id})">Ver</button>
           <button class="btn-accion" onclick="event.stopPropagation();modAQL.abrirFormulario(${r.id})">Editar</button>
           <button class="btn-accion rojo" onclick="event.stopPropagation();modAQL.eliminar(${r.id})">Eliminar</button>
@@ -3105,217 +3224,453 @@ const modAQL = {
     }).join('');
   },
 
-  _onEstado(campo, valorMalo) {
-    const val = document.getElementById(`aql-${campo}`).value;
-    const wrap = document.getElementById(`aql-${campo}-defectos-wrap`);
-    wrap.style.display = val === valorMalo ? 'block' : 'none';
-    if (val !== valorMalo) wrap.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+  _renderPaginacion(total, page, pageSize) {
+    const totalPags = Math.max(1, Math.ceil(total / pageSize));
+    const el = document.getElementById('aql-paginacion');
+    if (!el) return;
+    if (totalPags <= 1) { el.innerHTML = ''; return; }
+    let html = '';
+    const btn = (label, p, activo) =>
+      `<button style="padding:5px 12px;border:1px solid var(--borde);border-radius:4px;cursor:pointer;
+        background:${activo?'var(--azul)':'transparent'};color:${activo?'#fff':'var(--texto)'}"
+        ${activo?'disabled':''} onclick="modAQL.irPagina(${p})">${label}</button>`;
+    html += btn('&laquo;', 1,    page === 1);
+    html += btn('&lsaquo;', page - 1, page === 1);
+    for (let p = Math.max(1, page-2); p <= Math.min(totalPags, page+2); p++) {
+      html += btn(p, p, p === page);
+    }
+    html += btn('&rsaquo;', page + 1, page === totalPags);
+    html += btn('&raquo;',  totalPags, page === totalPags);
+    el.innerHTML = html;
   },
 
-  _getChecks(name) {
-    return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(cb => cb.value).join(', ');
+  irPagina(p) {
+    this._paginaActual = p;
+    this.cargar();
   },
 
-  _setChecks(name, csv) {
-    const vals = (csv || '').split(', ').map(v => v.trim()).filter(Boolean);
-    document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
-      cb.checked = vals.includes(cb.value);
-    });
+  cambiarTab(estado) {
+    this._tabActual = estado;
+    this._paginaActual = 1;
+    document.querySelectorAll('.aql-tab-btn').forEach(b =>
+      b.classList.toggle('activo', b.dataset.estado === estado));
+    this.cargar();
   },
 
-  _previewFoto(input, previewId, prop) {
-    const file = input.files[0];
-    if (!file) return;
-    this[prop] = file;
-    const wrap = document.getElementById(previewId);
-    const url = URL.createObjectURL(file);
-    wrap.innerHTML = `<div class="re-thumb"><img src="${url}">
-      <button type="button" class="re-thumb-del" onclick="modAQL._quitarFoto('${previewId}','${prop}')">&#x2715;</button></div>`;
+  _onSearch(val) {
+    clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => {
+      this._paginaActual = 1;
+      this.cargar();
+    }, 500);
   },
 
-  _quitarFoto(previewId, prop) {
-    this[prop] = null;
-    document.getElementById(previewId).innerHTML = '';
-  },
-
+  // ── Formulario ───────────────────────────────────────────────
   async abrirFormulario(id) {
     this._editId = id || null;
     this._fotoLpn = null;
     this._fotoPantalla = null;
-    document.getElementById('aql-foto-lpn-preview').innerHTML = '';
-    document.getElementById('aql-foto-pantalla-preview').innerHTML = '';
+    this._fotoLpnExistente = '';
+    this._fotoPantallaExistente = '';
+    this._nextItemNum = 1;
+
     document.getElementById('form-aql').reset();
     document.getElementById('aql-edit-id').value = id || '';
-    document.getElementById('modal-aql-form-titulo').textContent = id ? 'Editar Registro AQL' : 'Nuevo Registro AQL';
-    ['estado-accesorios','estado-bolsa','estado-audio','estado-video','estado-fisico-pantalla','estado-limpieza'].forEach(c => {
-      const wrap = document.getElementById(`aql-${c}-defectos-wrap`);
-      if (wrap) wrap.style.display = 'none';
-    });
+    document.getElementById('modal-aql-form-titulo').textContent =
+      id ? `Editar Registro AQL #${id}` : 'Nuevo Registro AQL';
+    document.getElementById('aql-fotos-error').style.display = 'none';
+    this._renderChecklistVacio();
+    this._resetFotoZona('lpn');
+    this._resetFotoZona('pantalla');
+    this._actualizarEstado();
+    this._actualizarBotonGuardar();
+
     if (id) {
       try {
         const r = await api.get(`/api/aql/${id}`);
-        document.getElementById('aql-fecha').value               = String(r.fecha_registro).slice(0,10);
-        document.getElementById('aql-license-plate').value       = r.license_plate;
-        document.getElementById('aql-clasificacion').value       = r.clasificacion;
-        document.getElementById('aql-sku').value                 = r.sku || '';
-        document.getElementById('aql-marca').value               = r.marca || '';
-        document.getElementById('aql-modelo').value              = r.modelo || '';
-        document.getElementById('aql-pulgada').value             = r.pulgada || '';
-        document.getElementById('aql-descripcion').value         = r.descripcion || '';
-        document.getElementById('aql-accesorios-presentes').value = r.accesorios_presentes || '';
-        document.getElementById('aql-estado-accesorios').value   = r.estado_accesorios || '';
-        document.getElementById('aql-estado-bolsa').value        = r.estado_bolsa || '';
-        document.getElementById('aql-estado-audio').value        = r.estado_audio || '';
-        document.getElementById('aql-estado-video').value        = r.estado_video || '';
-        document.getElementById('aql-estado-fisico-pantalla').value = r.estado_fisico_pantalla || '';
-        document.getElementById('aql-estado-limpieza').value     = r.estado_limpieza || '';
-        document.getElementById('aql-estado-aql').value          = r.estado_aql || '';
-        document.getElementById('aql-inspector').value           = r.inspector || '';
-        this._onEstado('estado-accesorios','Malos');
-        this._onEstado('estado-bolsa','Malo');
-        this._onEstado('estado-audio','Malo');
-        this._onEstado('estado-video','Malo');
-        this._onEstado('estado-fisico-pantalla','Malo');
-        this._onEstado('estado-limpieza','Malo');
-        this._setChecks('accesorios_defectos',      r.accesorios_defectos);
-        this._setChecks('bolsa_defectos',           r.bolsa_defectos);
-        this._setChecks('audio_defectos',           r.audio_defectos);
-        this._setChecks('video_defectos',           r.video_defectos);
-        this._setChecks('fisico_pantalla_defectos', r.fisico_pantalla_defectos);
-        this._setChecks('limpieza_defectos',        r.limpieza_defectos);
+        document.getElementById('aql-fecha').value          = String(r.fecha_registro).slice(0,10);
+        document.getElementById('aql-order-id').value       = r.order_id || r.license_plate || '';
+        document.getElementById('aql-sku').value            = r.sku || '';
+        document.getElementById('aql-marca').value          = r.marca || '';
+        document.getElementById('aql-modelo').value         = r.modelo || '';
+        document.getElementById('aql-pulgada').value        = r.pulgada || '';
+        document.getElementById('aql-descripcion').value    = r.descripcion || '';
+        document.getElementById('aql-lote').value           = r.lote || '';
+        document.getElementById('aql-muestra-total').value  = r.muestra_total ?? '';
+        document.getElementById('aql-defectos').value       = r.defectos_encontrados ?? 0;
+        document.getElementById('aql-observaciones').value  = r.observaciones || '';
+        this._actualizarEstado();
+
+        // Checklist
+        if (Array.isArray(r.checklist) && r.checklist.length) {
+          r.checklist.forEach(item => this._agregarItemChecklist(item));
+        } else {
+          this._agregarItemChecklist();
+        }
+
+        // Fotos existentes
         if (r.foto_lpn_filename) {
-          document.getElementById('aql-foto-lpn-preview').innerHTML =
-            `<div class="re-thumb"><img src="/uploads/aql/${r.foto_lpn_filename}"></div>`;
+          this._fotoLpnExistente = r.foto_lpn_filename;
+          this._mostrarFotoExistente('lpn', r.foto_lpn_filename);
         }
         if (r.foto_pantalla_filename) {
-          document.getElementById('aql-foto-pantalla-preview').innerHTML =
-            `<div class="re-thumb"><img src="/uploads/aql/${r.foto_pantalla_filename}"></div>`;
+          this._fotoPantallaExistente = r.foto_pantalla_filename;
+          this._mostrarFotoExistente('pantalla', r.foto_pantalla_filename);
         }
+        this._actualizarBotonGuardar();
       } catch(e) { ui.notificar(e.error || 'Error al cargar datos.'); return; }
     } else {
-      document.getElementById('aql-fecha').value     = new Date().toISOString().slice(0,10);
-      document.getElementById('aql-inspector').value = sesionActual?.nombre || '';
+      document.getElementById('aql-fecha').value = new Date().toISOString().slice(0,10);
+      document.getElementById('aql-defectos').value = '0';
+      this._agregarItemChecklist();
     }
     ui.abrirModal('modal-aql-form');
   },
 
+  // Estado automático
+  _actualizarEstado() {
+    const defectos = parseInt(document.getElementById('aql-defectos')?.value) || 0;
+    const aceptado = defectos === 0;
+    const badge = document.getElementById('aql-estado-badge');
+    if (!badge) return;
+    badge.textContent = aceptado ? 'Aceptado' : 'Rechazado';
+    badge.className = `aql-estado-badge ${aceptado ? 'aceptado' : 'rechazado'}`;
+  },
+
+  // Validación foto: strict 2
+  _contarFotos() {
+    const tieneLpn      = !!(this._fotoLpn || this._fotoLpnExistente);
+    const tienePantalla = !!(this._fotoPantalla || this._fotoPantallaExistente);
+    return (tieneLpn ? 1 : 0) + (tienePantalla ? 1 : 0);
+  },
+
+  _actualizarBotonGuardar() {
+    const btn = document.getElementById('btn-aql-guardar');
+    const errEl = document.getElementById('aql-fotos-error');
+    const count = this._contarFotos();
+    const ok = count === 2;
+    if (btn) btn.disabled = !ok;
+    if (errEl) errEl.style.display = ok ? 'none' : 'block';
+  },
+
+  // Selección de foto (LPN o pantalla)
+  _seleccionarFoto(input, tipo) {
+    const file = input.files[0];
+    input.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      ui.notificar('Solo se permiten archivos de imagen.', 'Error');
+      return;
+    }
+    if (tipo === 'lpn') { this._fotoLpn = file; this._fotoLpnExistente = ''; }
+    else                { this._fotoPantalla = file; this._fotoPantallaExistente = ''; }
+    const url = URL.createObjectURL(file);
+    this._mostrarFotoPreview(tipo, url, true);
+    this._actualizarBotonGuardar();
+  },
+
+  _mostrarFotoPreview(tipo, url, esNueva) {
+    const innerId = `aql-${tipo === 'lpn' ? 'lpn' : 'pantalla'}-preview-inner`;
+    const zoneId  = `aql-${tipo === 'lpn' ? 'lpn' : 'pantalla'}-zone`;
+    const inner = document.getElementById(innerId);
+    const zone  = document.getElementById(zoneId);
+    if (!inner) return;
+    inner.innerHTML = `<div class="aql-foto-thumb">
+      <img src="${url}" onclick="modAQL.abrirLightbox('${url}')" title="Ver foto">
+      <button type="button" class="aql-foto-thumb-del" onclick="modAQL._quitarFoto('${tipo}')">&#x2715;</button>
+    </div>`;
+    if (zone) zone.classList.add('tiene-foto');
+  },
+
+  _mostrarFotoExistente(tipo, filename) {
+    const url = `/uploads/aql/${filename}`;
+    this._mostrarFotoPreview(tipo, url, false);
+  },
+
+  _resetFotoZona(tipo) {
+    const innerId = `aql-${tipo}-preview-inner`;
+    const zoneId  = `aql-${tipo}-zone`;
+    const label   = tipo === 'lpn' ? 'foto de LPN' : 'foto de Pantalla';
+    const inner = document.getElementById(innerId);
+    const zone  = document.getElementById(zoneId);
+    if (inner) inner.innerHTML = `<span style="font-size:12px;color:var(--gris);text-align:center">Haz clic para seleccionar<br>${label}</span>`;
+    if (zone)  zone.classList.remove('tiene-foto');
+  },
+
+  _quitarFoto(tipo) {
+    if (tipo === 'lpn') { this._fotoLpn = null; this._fotoLpnExistente = ''; }
+    else                { this._fotoPantalla = null; this._fotoPantallaExistente = ''; }
+    this._resetFotoZona(tipo);
+    this._actualizarBotonGuardar();
+  },
+
+  // Checklist
+  _renderChecklistVacio() {
+    const tbody = document.getElementById('aql-checklist-body');
+    if (tbody) tbody.innerHTML = '';
+    this._nextItemNum = 1;
+  },
+
+  _agregarItemChecklist(item) {
+    const tbody = document.getElementById('aql-checklist-body');
+    if (!tbody) return;
+    const num    = item ? item.item_number : this._nextItemNum;
+    const desc   = item ? (item.descripcion || '') : '';
+    const estado = item ? (item.estado || 'pass') : 'pass';
+    // Always advance: keep max of current and just-added, then +1
+    this._nextItemNum = Math.max(this._nextItemNum, num) + 1;
+    const tr = document.createElement('tr');
+    tr.dataset.num = num;
+    tr.innerHTML = `
+      <td style="text-align:center;font-weight:600;font-size:12px">${num}</td>
+      <td><input type="text" class="aql-cl-desc" placeholder="Descripción del artículo" value="${desc.replace(/"/g,'&quot;')}"
+           style="width:100%;border:1px solid var(--borde);border-radius:4px;padding:5px 8px;font-size:12px"></td>
+      <td>
+        <div class="aql-radio-group">
+          <label><input type="radio" name="aql-cl-estado-${num}" value="pass" ${estado==='pass'?'checked':''}> OK</label>
+          <label><input type="radio" name="aql-cl-estado-${num}" value="fail" ${estado==='fail'?'checked':''}> Defecto</label>
+        </div>
+      </td>
+      <td style="text-align:center">
+        <button type="button" class="btn-accion rojo aql-cl-del" onclick="modAQL._eliminarItemChecklist(this)"
+                style="font-size:10px;padding:2px 7px">&#x2715;</button>
+      </td>`;
+    tbody.appendChild(tr);
+    this._actualizarBotonesEliminar();
+  },
+
+  _eliminarItemChecklist(btn) {
+    const tr = btn.closest('tr');
+    if (!tr) return;
+    const tbody = document.getElementById('aql-checklist-body');
+    if (tbody && tbody.rows.length <= 1) {
+      ui.notificar('Debe haber al menos 1 item en el checklist.');
+      return;
+    }
+    tr.remove();
+    this._reordenarChecklist();
+    this._actualizarBotonesEliminar();
+  },
+
+  _reordenarChecklist() {
+    const tbody = document.getElementById('aql-checklist-body');
+    if (!tbody) return;
+    [...tbody.rows].forEach((tr, i) => {
+      const num = i + 1;
+      tr.dataset.num = num;
+      const numCell = tr.cells[0];
+      if (numCell) numCell.textContent = num;
+      tr.querySelectorAll('input[type=radio]').forEach(r => {
+        const oldName = r.name;
+        const wasCk   = r.checked;
+        r.name = `aql-cl-estado-${num}`;
+        r.checked = wasCk;
+      });
+    });
+    this._nextItemNum = tbody.rows.length + 1;
+  },
+
+  _actualizarBotonesEliminar() {
+    const tbody = document.getElementById('aql-checklist-body');
+    if (!tbody) return;
+    const hayMas = tbody.rows.length > 1;
+    tbody.querySelectorAll('.aql-cl-del').forEach(b => b.style.visibility = hayMas ? 'visible' : 'hidden');
+  },
+
+  _leerChecklist() {
+    const tbody = document.getElementById('aql-checklist-body');
+    if (!tbody) return [];
+    return [...tbody.rows].map((tr, i) => {
+      const num    = i + 1;
+      const desc   = tr.querySelector('.aql-cl-desc')?.value.trim() || '';
+      const estado = tr.querySelector(`input[name="aql-cl-estado-${tr.dataset.num}"]:checked`)?.value || 'pass';
+      return { item_number: num, descripcion: desc, estado };
+    });
+  },
+
+  // Guardar (create o update)
+  async _guardar() {
+    const btn = document.getElementById('btn-aql-guardar');
+
+    // Validación fotos: ESTRICTO
+    if (this._contarFotos() !== 2) {
+      document.getElementById('aql-fotos-error').style.display = 'block';
+      ui.notificar('Se requieren exactamente 2 fotos (LPN + Pantalla) para guardar.', 'Error');
+      return;
+    }
+
+    // Validación campos requeridos
+    const fecha   = document.getElementById('aql-fecha').value;
+    const orderId = document.getElementById('aql-order-id').value.trim();
+    const muestra = document.getElementById('aql-muestra-total').value;
+    if (!fecha || !orderId) {
+      ui.notificar('Fecha y Order ID son obligatorios.', 'Error');
+      return;
+    }
+    if (!muestra || parseInt(muestra) < 1) {
+      ui.notificar('Muestra Total debe ser al menos 1.', 'Error');
+      return;
+    }
+
+    btn.disabled = true;
+    const id = document.getElementById('aql-edit-id').value;
+    const defectos = parseInt(document.getElementById('aql-defectos').value) || 0;
+
+    const body = {
+      fecha_registro:       fecha,
+      order_id:             orderId,
+      sku:                  document.getElementById('aql-sku').value.trim(),
+      marca:                document.getElementById('aql-marca').value.trim(),
+      modelo:               document.getElementById('aql-modelo').value.trim(),
+      pulgada:              document.getElementById('aql-pulgada').value.trim(),
+      descripcion:          document.getElementById('aql-descripcion').value.trim(),
+      lote:                 document.getElementById('aql-lote').value.trim(),
+      muestra_total:        parseInt(muestra),
+      defectos_encontrados: defectos,
+      observaciones:        document.getElementById('aql-observaciones').value.trim(),
+      checklist:            this._leerChecklist(),
+    };
+
+    try {
+      let registro;
+      if (id) { registro = await api.put(`/api/aql/${id}`, body); }
+      else     { registro = await api.post('/api/aql', body); }
+
+      const rid = registro.id;
+
+      // Subir foto LPN si es nueva
+      if (this._fotoLpn) {
+        const fd = new FormData(); fd.append('foto', this._fotoLpn);
+        const r = await fetch(`/api/aql/${rid}/foto-lpn`, { method: 'POST', body: fd });
+        if (!r.ok) ui.notificar('La foto de LPN no pudo subirse.', 'Aviso');
+      }
+      // Subir foto Pantalla si es nueva
+      if (this._fotoPantalla) {
+        const fd = new FormData(); fd.append('foto', this._fotoPantalla);
+        const r = await fetch(`/api/aql/${rid}/foto-pantalla`, { method: 'POST', body: fd });
+        if (!r.ok) ui.notificar('La foto de Pantalla no pudo subirse.', 'Aviso');
+      }
+
+      ui.cerrarModal('modal-aql-form');
+      ui.notificar(id ? 'Registro AQL actualizado.' : 'Registro AQL creado.', 'Éxito');
+      await this.cargar();
+    } catch(e) {
+      ui.notificar(e.error || 'Error al guardar el registro AQL.', 'Error');
+    } finally {
+      btn.disabled = false;
+    }
+  },
+
+  // ── Detalle ──────────────────────────────────────────────────
   async abrirDetalle(id) {
     try {
       const r = await api.get(`/api/aql/${id}`);
-      const badgeColor = r.estado_aql === 'Aceptado' ? 'verde' : 'rojo';
-      const estado = (val, malo, defs) => {
-        let html = `<span class="badge badge-${val==='Malo'||val==='Malos'?'rojo':val==='Bueno'||val==='Buenos'?'proceso':'verde'}">${val||'—'}</span>`;
-        if ((val==='Malo'||val==='Malos') && defs) html += `<br><small style="color:var(--gris);font-size:10px">${defs}</small>`;
-        return html;
-      };
-      document.getElementById('aql-det-titulo').textContent = `AQL — ${r.license_plate} (${r.clasificacion})`;
+      const aceptado    = r.estado_aql === 'Aceptado';
+      const badgeClass  = aceptado ? 'aceptado' : 'rechazado';
+
+      document.getElementById('aql-det-titulo').textContent = `Detalle AQL #${r.id}`;
+
       document.getElementById('aql-det-grid').innerHTML = `
         <div><label>Fecha</label><span>${String(r.fecha_registro).slice(0,10)}</span></div>
-        <div><label>License Plate</label><span>${r.license_plate}</span></div>
-        <div><label>Clasificación</label><span>${r.clasificacion||'—'}</span></div>
+        <div><label>Order ID</label><span>${r.order_id || r.license_plate || '—'}</span></div>
         <div><label>SKU</label><span>${r.sku||'—'}</span></div>
         <div><label>Marca</label><span>${r.marca||'—'}</span></div>
         <div><label>Modelo</label><span>${r.modelo||'—'}</span></div>
         <div><label>Pulgada</label><span>${r.pulgada||'—'}</span></div>
         <div class="full"><label>Descripción</label><span>${r.descripcion||'—'}</span></div>
-        <div><label>Accesorios Presentes</label><span>${r.accesorios_presentes||'—'}</span></div>
-        <div><label>Estado Accesorios</label><span>${estado(r.estado_accesorios,'Malos',r.accesorios_defectos)}</span></div>
-        <div><label>Estado Bolsa Protectora</label><span>${estado(r.estado_bolsa,'Malo',r.bolsa_defectos)}</span></div>
-        <div><label>Estado Audio</label><span>${estado(r.estado_audio,'Malo',r.audio_defectos)}</span></div>
-        <div><label>Estado Video / Pantalla</label><span>${estado(r.estado_video,'Malo',r.video_defectos)}</span></div>
-        <div><label>Estado Físico Pantalla</label><span>${estado(r.estado_fisico_pantalla,'Malo',r.fisico_pantalla_defectos)}</span></div>
-        <div><label>Estado Limpieza</label><span>${estado(r.estado_limpieza,'Malo',r.limpieza_defectos)}</span></div>
-        <div><label>Estado AQL</label><span class="badge badge-${badgeColor}" style="font-size:13px">${r.estado_aql||'—'}</span></div>
+        <div><label>Lote</label><span>${r.lote||'—'}</span></div>
+        <div><label>Muestra Total</label><span>${r.muestra_total ?? '—'}</span></div>
+        <div><label>Defectos Encontrados</label><span>${r.defectos_encontrados ?? '—'}</span></div>
+        <div class="full"><label>Observaciones</label><span>${r.observaciones||'—'}</span></div>
+        <div class="full"><label>Resultado</label>
+          <span class="aql-estado-badge ${badgeClass}" style="margin-top:4px;display:inline-flex">
+            ${r.estado_aql || '—'}
+          </span>
+        </div>
         <div><label>Inspector</label><span>${r.inspector||'—'}</span></div>
         <div><label>Registrado por</label><span>${r.registrado_por||'—'}</span></div>`;
+
+      // Checklist
+      const checklistEl = document.getElementById('aql-det-checklist');
+      if (Array.isArray(r.checklist) && r.checklist.length) {
+        let clHtml = `<div class="seccion-titulo" style="margin-bottom:10px">Checklist de Inspección</div>
+          <table class="aql-checklist-table">
+            <thead><tr><th style="width:52px">Item #</th><th>Descripción</th><th style="width:120px">Estado</th></tr></thead>
+            <tbody>`;
+        r.checklist.forEach(item => {
+          const ok = item.estado === 'pass';
+          clHtml += `<tr>
+            <td style="text-align:center;font-weight:600">${item.item_number}</td>
+            <td>${item.descripcion||'—'}</td>
+            <td><span class="badge ${ok?'badge-cerrada':'badge-abierta'}" style="font-size:11px">${ok?'OK':'Defecto'}</span></td>
+          </tr>`;
+        });
+        clHtml += '</tbody></table>';
+        checklistEl.innerHTML = clHtml;
+      } else {
+        checklistEl.innerHTML = '';
+      }
+
+      // Fotos (galería side-by-side con lightbox)
       const fotosEl = document.getElementById('aql-det-fotos');
       let fotosHtml = '';
       if (r.foto_lpn_filename || r.foto_pantalla_filename) {
-        fotosHtml = '<div class="seccion-titulo" style="margin-bottom:10px">Fotografías</div><div class="re-thumbs">';
-        if (r.foto_lpn_filename) fotosHtml += `
-          <div class="re-thumb" style="cursor:pointer" onclick="window.open('/uploads/aql/${r.foto_lpn_filename}','_blank')">
-            <img src="/uploads/aql/${r.foto_lpn_filename}">
-            <small style="display:block;text-align:center;font-size:9px;margin-top:2px">LPN</small>
+        fotosHtml = '<div class="seccion-titulo" style="margin-bottom:10px">Fotografías</div><div style="display:flex;gap:16px;flex-wrap:wrap">';
+        const fotoCard = (fn, label) => `
+          <div style="text-align:center">
+            <div class="aql-foto-thumb" style="width:130px;height:100px;cursor:pointer"
+                 onclick="modAQL.abrirLightbox('/uploads/aql/${fn}')">
+              <img src="/uploads/aql/${fn}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">
+            </div>
+            <small style="display:block;color:var(--gris);font-size:10px;margin-top:4px">${label}</small>
           </div>`;
-        if (r.foto_pantalla_filename) fotosHtml += `
-          <div class="re-thumb" style="cursor:pointer" onclick="window.open('/uploads/aql/${r.foto_pantalla_filename}','_blank')">
-            <img src="/uploads/aql/${r.foto_pantalla_filename}">
-            <small style="display:block;text-align:center;font-size:9px;margin-top:2px">Pantalla</small>
-          </div>`;
+        if (r.foto_lpn_filename)      fotosHtml += fotoCard(r.foto_lpn_filename, 'LPN');
+        if (r.foto_pantalla_filename)  fotosHtml += fotoCard(r.foto_pantalla_filename, 'Pantalla');
         fotosHtml += '</div>';
+      } else {
+        fotosHtml = '<p style="font-size:12px;color:var(--gris)">Sin fotografías en este registro.</p>';
       }
       fotosEl.innerHTML = fotosHtml;
+
       document.getElementById('aql-det-botones').innerHTML = `
         <button class="btn btn-secundario" onclick="modAQL.abrirFormulario(${r.id});ui.cerrarModal('modal-aql-detalle')">Editar</button>
         <span class="spacer"></span>
         <button class="btn" style="color:var(--rojo);border:1px solid var(--rojo);background:transparent"
                 onclick="modAQL.eliminar(${r.id})">Eliminar</button>
         <button class="btn btn-secundario" onclick="ui.cerrarModal('modal-aql-detalle')">Cerrar</button>`;
+
       ui.abrirModal('modal-aql-detalle');
-    } catch(e) { ui.notificar(e.error || 'Error al cargar detalle.'); }
+    } catch(e) { ui.notificar(e.error || 'Error al cargar detalle.', 'Error'); }
   },
 
+  // ── Lightbox ─────────────────────────────────────────────────
+  abrirLightbox(url) {
+    const lb  = document.getElementById('aql-lightbox');
+    const img = document.getElementById('aql-lightbox-img');
+    if (!lb || !img) return;
+    img.src = url;
+    lb.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  },
+
+  cerrarLightbox() {
+    const lb = document.getElementById('aql-lightbox');
+    if (lb) lb.style.display = 'none';
+    document.body.style.overflow = '';
+  },
+
+  // ── Eliminar ─────────────────────────────────────────────────
   eliminar(id) {
-    ui.confirmar('Se eliminará el registro y sus fotos de forma permanente.', async () => {
+    ui.confirmar('Se eliminará el registro AQL, su checklist y sus fotos de forma permanente.', async () => {
       try {
         await api.del(`/api/aql/${id}`);
         ui.cerrarModal('modal-aql-detalle');
+        ui.notificar('Registro AQL eliminado.', 'Éxito');
         await this.cargar();
-      } catch(e) { ui.notificar(e.error || 'Error al eliminar.'); }
+      } catch(e) { ui.notificar(e.error || 'Error al eliminar.', 'Error'); }
     }, 'Eliminar Registro AQL');
   },
 };
-
-document.getElementById('form-aql').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const btn = document.getElementById('btn-aql-guardar');
-  btn.disabled = true;
-  const id = document.getElementById('aql-edit-id').value;
-  const body = {
-    fecha_registro:           document.getElementById('aql-fecha').value,
-    license_plate:            document.getElementById('aql-license-plate').value.trim(),
-    clasificacion:            document.getElementById('aql-clasificacion').value,
-    sku:                      document.getElementById('aql-sku').value.trim(),
-    marca:                    document.getElementById('aql-marca').value.trim(),
-    modelo:                   document.getElementById('aql-modelo').value.trim(),
-    pulgada:                  document.getElementById('aql-pulgada').value.trim(),
-    descripcion:              document.getElementById('aql-descripcion').value.trim(),
-    accesorios_presentes:     document.getElementById('aql-accesorios-presentes').value,
-    estado_accesorios:        document.getElementById('aql-estado-accesorios').value,
-    accesorios_defectos:      modAQL._getChecks('accesorios_defectos'),
-    estado_bolsa:             document.getElementById('aql-estado-bolsa').value,
-    bolsa_defectos:           modAQL._getChecks('bolsa_defectos'),
-    estado_audio:             document.getElementById('aql-estado-audio').value,
-    audio_defectos:           modAQL._getChecks('audio_defectos'),
-    estado_video:             document.getElementById('aql-estado-video').value,
-    video_defectos:           modAQL._getChecks('video_defectos'),
-    estado_fisico_pantalla:   document.getElementById('aql-estado-fisico-pantalla').value,
-    fisico_pantalla_defectos: modAQL._getChecks('fisico_pantalla_defectos'),
-    estado_limpieza:          document.getElementById('aql-estado-limpieza').value,
-    limpieza_defectos:        modAQL._getChecks('limpieza_defectos'),
-    estado_aql:               document.getElementById('aql-estado-aql').value,
-    inspector:                document.getElementById('aql-inspector').value.trim(),
-  };
-  try {
-    let registro;
-    if (id) { registro = await api.put(`/api/aql/${id}`, body); }
-    else     { registro = await api.post('/api/aql', body); }
-
-    if (modAQL._fotoLpn) {
-      const fd = new FormData(); fd.append('foto', modAQL._fotoLpn);
-      const r = await fetch(`/api/aql/${registro.id}/foto-lpn`, { method: 'POST', body: fd });
-      if (!r.ok) ui.notificar('La foto de LPN no pudo subirse.', 'Aviso');
-    }
-    if (modAQL._fotoPantalla) {
-      const fd = new FormData(); fd.append('foto', modAQL._fotoPantalla);
-      const r = await fetch(`/api/aql/${registro.id}/foto-pantalla`, { method: 'POST', body: fd });
-      if (!r.ok) ui.notificar('La foto de pantalla no pudo subirse.', 'Aviso');
-    }
-    ui.cerrarModal('modal-aql-form');
-    await modAQL.cargar();
-  } catch(e) { ui.notificar(e.error || 'Error al guardar.'); }
-  finally { btn.disabled = false; }
-});
 
 // ================================================================
 // LIBERACIÓN SHIPPING
@@ -3566,96 +3921,176 @@ document.getElementById('form-ls').addEventListener('submit', async function(e) 
 // ================================================================
 // CAPA — Acciones Correctivas y Preventivas
 // ================================================================
-const ISHIKAWA_CATS = ['Mano de obra','Máquina','Método','Material','Medio ambiente','Medición'];
+const ISHIKAWA_CATS_MAP = {
+  hombre:        'Hombre (Mano de Obra)',
+  maquina:       'Máquina',
+  metodo:        'Método',
+  material:      'Material',
+  medicion:      'Medición',
+  medio_ambiente:'Medio Ambiente',
+};
+const ISHIKAWA_KEYS   = Object.keys(ISHIKAWA_CATS_MAP);
+const ISHIKAWA_LABELS = Object.values(ISHIKAWA_CATS_MAP);
+// backward compat for old code that used ISHIKAWA_CATS
+const ISHIKAWA_CATS   = ISHIKAWA_LABELS;
+
 const PORQUES_LABEL = ['¿Por qué ocurrió?','¿Por qué esa causa?','¿Por qué esa razón?','¿Por qué no se detectó?','Causa raíz identificada'];
 
 const modCAPA = {
-  registros: [],
-  _origenes: { nc: [], re: [] },
+  _tabEstatus: '',
+  _page: 1,
+  _total: 0,
+  _limit: 20,
+  _busquedaTimer: null,
+  _capaIdDetalle: null,
 
   async init() {
-    await Promise.all([this.cargar(), this._cargarOrigenes()]);
+    await Promise.all([this.cargar(), this._cargarColaboradores()]);
+    this._actualizarConteos();
   },
 
-  async cargar() {
+  async _cargarColaboradores() {
     try {
-      this.registros = await api.get('/api/capas');
-      this.renderTabla();
-    } catch(e) { ui.notificar(e.error || 'Error al cargar CAPAs.'); }
-  },
-
-  async _cargarOrigenes() {
-    try {
-      const [ncs, res] = await Promise.all([
-        api.get('/api/nc?fecha=todos'),
-        api.get('/api/rechazos-externos'),
-      ]);
-      this._origenes.nc = Array.isArray(ncs) ? ncs : [];
-      this._origenes.re = Array.isArray(res) ? res : [];
+      const org = await api.get('/api/organigrama-qc');
+      const sel = document.getElementById('capa-responsable');
+      if (!sel) return;
+      const activos = (Array.isArray(org) ? org : org.rows || []).filter(c => c.estatus === 'activo');
+      sel.innerHTML = '<option value="">— Seleccionar —</option>' +
+        activos.map(c => `<option value="${c.nombre_completo}">${c.nombre_completo}</option>`).join('');
     } catch(_) {}
   },
 
-  renderTabla() {
-    const tipo    = document.getElementById('capa-filtro-tipo').value;
-    const estatus = document.getElementById('capa-filtro-estatus').value;
-    let filas = this.registros;
-    if (tipo)    filas = filas.filter(r => r.origen_tipo === tipo);
-    if (estatus) filas = filas.filter(r => r.estatus === estatus);
+  async _actualizarConteos() {
+    try {
+      const d = await api.get('/api/capas/conteos');
+      document.getElementById('capa-cnt-todas').textContent   = d.total || 0;
+      document.getElementById('capa-cnt-abierta').textContent = d.Abierta || 0;
+      document.getElementById('capa-cnt-proceso').textContent = d['En Progreso'] || 0;
+      document.getElementById('capa-cnt-cerrada').textContent = d.Cerrada || 0;
+    } catch(_) {}
+  },
 
+  cambiarTab(estatus) {
+    this._tabEstatus = estatus;
+    this._page = 1;
+    // highlight tab
+    ['todas','abierta','proceso','cerrada'].forEach(t => {
+      document.getElementById('capa-tab-' + t)?.classList.remove('activo');
+    });
+    const tabMap = { '': 'todas', 'Abierta': 'abierta', 'En Progreso': 'proceso', 'Cerrada': 'cerrada' };
+    document.getElementById('capa-tab-' + (tabMap[estatus] || 'todas'))?.classList.add('activo');
+    this.cargar();
+  },
+
+  _onBusqueda() {
+    clearTimeout(this._busquedaTimer);
+    this._busquedaTimer = setTimeout(() => { this._page = 1; this.cargar(); }, 500);
+  },
+
+  async cargar() {
+    const busqueda = document.getElementById('capa-busqueda')?.value || '';
+    const tipo     = document.getElementById('capa-filtro-tipo')?.value || '';
+    const estatus  = this._tabEstatus;
+    // map "En Progreso" tab to "En proceso" DB value
+    const estatusDB = estatus === 'En Progreso' ? 'En proceso' : estatus;
+    const params = new URLSearchParams({ busqueda, estatus: estatusDB, tipo, page: this._page, limit: this._limit });
+    try {
+      const d = await api.get('/api/capas?' + params.toString());
+      const rows = d.rows || d;
+      this._total = d.total || rows.length;
+      this._renderTabla(rows);
+      this._renderPaginacion();
+    } catch(e) { ui.notificar(e.error || 'Error al cargar CAPAs.'); }
+    this._actualizarConteos();
+  },
+
+  _renderTabla(filas) {
     const tbody = document.getElementById('capa-tabla-cuerpo');
     const vacio = document.getElementById('capa-tabla-vacio');
     if (!filas.length) { tbody.innerHTML = ''; vacio.style.display = 'block'; return; }
     vacio.style.display = 'none';
 
-    const badgeCls = { 'Abierta': 'badge-abierta-capa', 'En proceso': 'badge-proceso-capa', 'Cerrada': 'badge-cerrada-capa' };
-    const metodoLabel = { '5porques': '5 Porqués', 'ishikawa': 'Ishikawa' };
+    const badgeCls = {
+      'Abierta':    'badge-abierta-capa',
+      'En proceso': 'badge-proceso-capa',
+      'En Progreso':'badge-proceso-capa',
+      'Cerrada':    'badge-cerrada-capa',
+    };
 
-    tbody.innerHTML = filas.map(r => `
+    tbody.innerHTML = filas.map((r, i) => {
+      const desc = (r.descripcion_problema || r.titulo || '').slice(0, 60) + ((r.descripcion_problema||'').length > 60 ? '…' : '');
+      const idx  = (this._page - 1) * this._limit + i + 1;
+      const fechaCreacion = r.created_at ? String(r.created_at).slice(0,10) : '—';
+      const fechaLimite   = r.fecha_compromiso ? String(r.fecha_compromiso).slice(0,10) : '—';
+      return `
       <tr style="cursor:pointer" onclick="modCAPA.abrirDetalle(${r.id})">
-        <td>${r.id}</td>
-        <td><span class="capa-origen-badge capa-origen-${r.origen_tipo}">${r.origen_tipo === 'nc' ? 'NC' : 'RE'}</span>
-            <span style="font-size:11px;color:var(--gris);margin-left:5px">${r.origen_ref || ''}</span></td>
-        <td style="font-size:12px">${r.titulo}</td>
-        <td style="font-size:11px">${metodoLabel[r.metodo_analisis] || r.metodo_analisis}</td>
+        <td style="font-size:11px;color:var(--gris)">${idx}</td>
+        <td style="font-size:11px">${fechaCreacion}</td>
+        <td style="font-size:11px"><span class="capa-origen-badge capa-origen-${r.tipo==='Correctiva'?'nc':'re'}">${r.tipo||'Correctiva'}</span></td>
+        <td style="font-size:12px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.descripcion_problema||'').replace(/"/g,'&quot;')}">${desc}</td>
         <td style="font-size:12px">${r.responsable}</td>
-        <td style="font-size:11px">${r.fecha_compromiso ? String(r.fecha_compromiso).slice(0,10) : '—'}</td>
-        <td><span class="${badgeCls[r.estatus] || ''}">${r.estatus}</span></td>
-        <td><button class="btn-accion" onclick="event.stopPropagation();modCAPA.abrirDetalle(${r.id})">&#8250;</button></td>
-      </tr>`).join('');
+        <td style="font-size:11px">${fechaLimite}</td>
+        <td><span class="${badgeCls[r.estatus]||''}">${r.estatus}</span></td>
+        <td>
+          <button class="btn-accion" onclick="event.stopPropagation();modCAPA.abrirDetalle(${r.id})" title="Ver detalle">&#8250;</button>
+        </td>
+      </tr>`;
+    }).join('');
   },
 
-  _initPorques() {
-    document.getElementById('capa-porques-tbody').innerHTML = [1,2,3,4,5].map(i => `
-      <tr>
-        <td>${i}</td>
-        <td style="font-size:11px;color:var(--gris)">${PORQUES_LABEL[i-1]}</td>
-        <td><textarea name="porq-${i}" rows="2" style="width:100%;resize:vertical;padding:4px 6px;font-size:12px;border:1px solid var(--gris-claro);font-family:inherit"></textarea></td>
-      </tr>`).join('');
+  _renderPaginacion() {
+    const totalPages = Math.ceil(this._total / this._limit);
+    const wrap = document.getElementById('capa-paginacion');
+    if (!wrap) return;
+    if (totalPages <= 1) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = `
+      <button class="btn btn-secundario" style="padding:4px 10px" ${this._page <= 1 ? 'disabled' : ''} onclick="modCAPA._irPagina(${this._page - 1})">&#8249;</button>
+      <span>Página ${this._page} de ${totalPages} (${this._total} registros)</span>
+      <button class="btn btn-secundario" style="padding:4px 10px" ${this._page >= totalPages ? 'disabled' : ''} onclick="modCAPA._irPagina(${this._page + 1})">&#8250;</button>`;
   },
 
-  _initIshikawa(datos) {
-    document.getElementById('capa-ishi-grid').innerHTML = ISHIKAWA_CATS.map(cat => {
-      const causas = datos ? datos.filter(d => d.categoria === cat) : [];
-      const filas = causas.length
-        ? causas.map(d => `<div class="ishikawa-causa-fila"><input type="text" value="${d.causa}" data-cat="${cat}"><button type="button" class="btn-accion rojo" onclick="this.closest('.ishikawa-causa-fila').remove()">&#x2715;</button></div>`).join('')
-        : `<div class="ishikawa-causa-fila"><input type="text" data-cat="${cat}" placeholder="Agregar causa..."><button type="button" class="btn-accion rojo" onclick="this.closest('.ishikawa-causa-fila').remove()">&#x2715;</button></div>`;
-      return `<div class="ishikawa-cat">
-        <div class="ishikawa-cat-label">${cat}</div>
-        <div id="ishi-cat-${cat.replace(/\s/g,'_')}">
-          ${filas}
+  _irPagina(p) { this._page = p; this.cargar(); },
+
+  _initPorques(datos) {
+    const wrap = document.getElementById('capa-porques-contenido');
+    wrap.innerHTML = [1,2,3,4,5].map(i => {
+      const stored = datos ? datos.find(p => p.orden === i) : null;
+      return `
+      <div style="margin-bottom:14px;padding:12px;background:var(--fondo);border:1px solid var(--gris-claro)">
+        <div style="font-size:11px;font-weight:700;color:var(--azul);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">Nivel ${i}</div>
+        <div class="form-grid" style="gap:8px">
+          <div>
+            <label style="font-size:11px">Por Qué</label>
+            <input type="text" id="porq-pregunta-${i}" placeholder="${PORQUES_LABEL[i-1]}"
+                   value="${stored ? (stored.pregunta||'').replace(/"/g,'&quot;') : ''}"
+                   style="width:100%;padding:5px 7px;font-size:12px;border:1px solid var(--gris-claro);background:#fff">
+          </div>
+          <div>
+            <label style="font-size:11px">Respuesta</label>
+            <textarea id="porq-respuesta-${i}" rows="2" placeholder="Causa encontrada..."
+                      style="width:100%;resize:vertical;padding:5px 7px;font-size:12px;border:1px solid var(--gris-claro);font-family:inherit">${stored ? (stored.respuesta||'') : ''}</textarea>
+          </div>
         </div>
-        <button type="button" class="btn-accion" style="font-size:11px;margin-top:4px"
-                onclick="modCAPA._agregarCausaIshi('${cat}')">+ causa</button>
       </div>`;
     }).join('');
   },
 
-  _agregarCausaIshi(cat) {
-    const wrap = document.getElementById('ishi-cat-' + cat.replace(/\s/g,'_'));
-    const fila = document.createElement('div');
-    fila.className = 'ishikawa-causa-fila';
-    fila.innerHTML = `<input type="text" data-cat="${cat}" placeholder="Agregar causa..."><button type="button" class="btn-accion rojo" onclick="this.closest('.ishikawa-causa-fila').remove()">&#x2715;</button>`;
-    wrap.appendChild(fila);
+  _initIshikawa(datos) {
+    // datos can be array [{categoria,causa}] or object {hombre:'', ...}
+    const getVal = (key) => {
+      if (!datos) return '';
+      if (Array.isArray(datos)) {
+        const row = datos.find(d => d.categoria === key);
+        return row ? (row.causa||'') : '';
+      }
+      return datos[key] || '';
+    };
+    document.getElementById('capa-ishi-grid').innerHTML = ISHIKAWA_KEYS.map(key => `
+      <div class="ishikawa-cat">
+        <div class="ishikawa-cat-label">${ISHIKAWA_CATS_MAP[key]}</div>
+        <textarea id="ishi-${key}" data-cat="${key}" rows="3" placeholder="Describir causas..."
+                  style="width:100%;resize:vertical;padding:5px 7px;font-size:12px;border:1px solid var(--gris-claro);font-family:inherit;background:#fff">${getVal(key)}</textarea>
+      </div>`).join('');
   },
 
   _toggleMetodo(metodo) {
@@ -3663,54 +4098,18 @@ const modCAPA = {
     document.getElementById('capa-panel-ishikawa').style.display = metodo === 'ishikawa'  ? '' : 'none';
   },
 
-  agregarAccion(data) {
-    const fila = document.createElement('div');
-    fila.className = 'capa-accion-fila';
-    fila.innerHTML = `
-      <textarea placeholder="Descripción de la acción..." rows="2">${data?.accion || ''}</textarea>
-      <input type="text" placeholder="Responsable" value="${data?.responsable || ''}">
-      <input type="date" value="${data?.fecha_compromiso ? String(data.fecha_compromiso).slice(0,10) : ''}">
-      <select>
-        <option value="Pendiente"   ${(!data||data.estatus==='Pendiente')   ?'selected':''}>Pendiente</option>
-        <option value="En proceso"  ${data?.estatus==='En proceso'          ?'selected':''}>En proceso</option>
-        <option value="Completada"  ${data?.estatus==='Completada'          ?'selected':''}>Completada</option>
-      </select>
-      <button type="button" class="btn-accion rojo" onclick="this.closest('.capa-accion-fila').remove()">&#x2715;</button>`;
-    document.getElementById('capa-acciones-lista').appendChild(fila);
-  },
-
-  _cargarOrigenSelect() {
-    const tipo = document.getElementById('capa-origen-tipo').value;
-    const sel  = document.getElementById('capa-origen-id');
-    if (!tipo) { sel.innerHTML = '<option value="">— Primero selecciona tipo —</option>'; return; }
-    const items = this._origenes[tipo] || [];
-    if (!items.length) { sel.innerHTML = '<option value="">Sin registros disponibles</option>'; return; }
-    sel.innerHTML = '<option value="">— Seleccionar —</option>' +
-      items.map(r => {
-        const label = tipo === 'nc'
-          ? `NC #${r.id} — ${r.area} / ${r.tipo} (${r.fecha})`
-          : `RE #${r.id} — ${r.license_plate} (${r.brand || ''})`;
-        return `<option value="${r.id}">${label}</option>`;
-      }).join('');
-  },
-
-  abrirFormulario(origenTipo, origenId) {
+  abrirFormulario() {
     document.getElementById('capa-edit-id').value = '';
-    document.getElementById('modal-capa-form-titulo').textContent = 'Nueva Acción Correctiva (CAPA)';
+    document.getElementById('modal-capa-form-titulo').textContent = 'Nueva CAPA';
     document.getElementById('form-capa').reset();
-    document.getElementById('capa-fecha-apertura').value = new Date().toISOString().slice(0,10);
+    document.getElementById('capa-tipo-correctiva').checked = true;
+    document.getElementById('capa-estatus').value = 'Abierta';
+    document.getElementById('capa-fecha-limite').value = '';
     document.getElementById('capa-metodo-5p').checked = true;
     this._toggleMetodo('5porques');
-    this._initPorques();
+    this._initPorques(null);
     this._initIshikawa(null);
-    document.getElementById('capa-acciones-lista').innerHTML = '';
-    this.agregarAccion();
-
-    if (origenTipo) {
-      document.getElementById('capa-origen-tipo').value = origenTipo;
-      this._cargarOrigenSelect();
-      if (origenId) setTimeout(() => { document.getElementById('capa-origen-id').value = origenId; }, 0);
-    }
+    this._cargarColaboradores();
     ui.abrirModal('modal-capa-form');
   },
 
@@ -3718,99 +4117,98 @@ const modCAPA = {
     try {
       const c = await api.get(`/api/capas/${id}`);
       document.getElementById('capa-edit-id').value = id;
-      document.getElementById('modal-capa-form-titulo').textContent = 'Editar CAPA';
-      document.getElementById('capa-origen-tipo').value = c.origen_tipo;
-      this._cargarOrigenSelect();
-      setTimeout(() => { document.getElementById('capa-origen-id').value = c.origen_id; }, 0);
-      document.getElementById('capa-titulo').value         = c.titulo;
-      document.getElementById('capa-descripcion').value    = c.descripcion_problema;
-      document.getElementById('capa-responsable').value    = c.responsable;
-      document.getElementById('capa-fecha-apertura').value = String(c.fecha_apertura).slice(0,10);
-      document.getElementById('capa-fecha-compromiso').value = c.fecha_compromiso ? String(c.fecha_compromiso).slice(0,10) : '';
+      document.getElementById('modal-capa-form-titulo').textContent = 'Editar CAPA #' + id;
+      document.getElementById(c.tipo === 'Preventiva' ? 'capa-tipo-preventiva' : 'capa-tipo-correctiva').checked = true;
+      document.getElementById('capa-descripcion').value = c.descripcion_problema || '';
+      await this._cargarColaboradores();
+      const selResp = document.getElementById('capa-responsable');
+      selResp.value = c.responsable || '';
+      if (!selResp.value && c.responsable) {
+        // fallback: add as freetext option
+        const opt = document.createElement('option');
+        opt.value = c.responsable; opt.textContent = c.responsable; opt.selected = true;
+        selResp.appendChild(opt);
+      }
+      document.getElementById('capa-estatus').value     = c.estatus || 'Abierta';
+      document.getElementById('capa-fecha-limite').value = c.fecha_compromiso ? String(c.fecha_compromiso).slice(0,10) : '';
 
       const metodo = c.metodo_analisis;
       document.getElementById(metodo === '5porques' ? 'capa-metodo-5p' : 'capa-metodo-ish').checked = true;
       this._toggleMetodo(metodo);
       if (metodo === '5porques') {
-        this._initPorques();
-        c.porques.forEach(p => {
-          const ta = document.querySelector(`#capa-porques-tbody tr:nth-child(${p.orden}) textarea`);
-          if (ta) ta.value = p.respuesta;
-        });
+        this._initPorques(c.porques);
       } else {
         this._initIshikawa(c.ishikawa);
       }
-      document.getElementById('capa-acciones-lista').innerHTML = '';
-      c.acciones.forEach(a => this.agregarAccion(a));
       ui.cerrarModal('modal-capa-detalle');
       ui.abrirModal('modal-capa-form');
     } catch(e) { ui.notificar(e.error || 'Error al cargar CAPA.'); }
   },
 
   async abrirDetalle(id) {
+    this._capaIdDetalle = id;
     try {
       const c = await api.get(`/api/capas/${id}`);
-      document.getElementById('capa-det-titulo').textContent = c.titulo;
-      const badgeCls = { 'Abierta': 'badge-abierta-capa', 'En proceso': 'badge-proceso-capa', 'Cerrada': 'badge-cerrada-capa' };
-      const metodoLabel = { '5porques': '5 Porqués', 'ishikawa': 'Ishikawa (6M)' };
+      document.getElementById('capa-det-titulo').textContent = 'CAPA #' + id + ' — ' + (c.tipo || 'Correctiva');
+      const badgeCls = {
+        'Abierta':    'badge-abierta-capa',
+        'En proceso': 'badge-proceso-capa',
+        'En Progreso':'badge-proceso-capa',
+        'Cerrada':    'badge-cerrada-capa',
+      };
+      const metodoLabel = { '5porques': '5 Por Qués', 'ishikawa': 'Diagrama Ishikawa (6M)' };
 
       let analisisHtml = '';
       if (c.metodo_analisis === '5porques') {
-        const filas = c.porques.filter(p => p.respuesta).map(p =>
-          `<tr><td>${p.orden}</td><td style="font-size:11px;color:var(--gris)">${PORQUES_LABEL[p.orden-1]}</td><td>${p.respuesta}</td></tr>`).join('');
+        const nivelFilled = c.porques.filter(p => p.respuesta || p.pregunta);
+        const filas = nivelFilled.map(p =>
+          `<tr>
+            <td style="font-weight:700;color:var(--azul);text-align:center">${p.orden}</td>
+            <td style="font-size:11px;color:var(--gris)">${p.pregunta || PORQUES_LABEL[p.orden-1]}</td>
+            <td>${p.respuesta || '<span style="color:var(--gris)">—</span>'}</td>
+          </tr>`).join('');
         analisisHtml = filas
-          ? `<table class="porques-tabla"><thead><tr><th>#</th><th>Pregunta</th><th>Respuesta</th></tr></thead><tbody>${filas}</tbody></table>`
+          ? `<table class="porques-tabla"><thead><tr><th>#</th><th>Por Qué</th><th>Respuesta</th></tr></thead><tbody>${filas}</tbody></table>`
           : '<p style="font-size:12px;color:var(--gris)">Sin respuestas registradas.</p>';
       } else {
+        // ishikawa — c.ishikawa is array [{categoria, causa}]
         const catMap = {};
-        c.ishikawa.forEach(r => { if (!catMap[r.categoria]) catMap[r.categoria] = []; catMap[r.categoria].push(r.causa); });
-        analisisHtml = `<div class="ishikawa-grid">${ISHIKAWA_CATS.map(cat => `
+        (c.ishikawa||[]).forEach(r => { catMap[r.categoria] = r.causa; });
+        analisisHtml = `<div class="ishikawa-grid">${ISHIKAWA_KEYS.map(key => `
           <div class="ishikawa-cat">
-            <div class="ishikawa-cat-label">${cat}</div>
-            ${(catMap[cat]||[]).length ? catMap[cat].map(ca => `<div style="font-size:12px;padding:3px 0;border-bottom:1px solid var(--gris-claro)">${ca}</div>`).join('') : '<div style="font-size:11px;color:var(--gris)">Sin causas registradas.</div>'}
+            <div class="ishikawa-cat-label">${ISHIKAWA_CATS_MAP[key]}</div>
+            <div style="font-size:12px;padding:4px 0;white-space:pre-wrap">${catMap[key] || '<span style="color:var(--gris)">Sin causas registradas.</span>'}</div>
           </div>`).join('')}</div>`;
       }
 
-      const accionesHtml = c.acciones.length ? `
-        <table class="capa-acciones-tabla"><thead><tr>
-          <th>Acción</th><th>Responsable</th><th>F. Compromiso</th><th>Estatus</th>
-        </tr></thead><tbody>${c.acciones.map(a => `
-          <tr>
-            <td>${a.accion}</td>
-            <td>${a.responsable}</td>
-            <td>${a.fecha_compromiso ? String(a.fecha_compromiso).slice(0,10) : '—'}</td>
-            <td>
-              <select class="accion-estatus-sel" onchange="modCAPA.cambiarEstatusAccion(${c.id},${a.id},this.value)">
-                <option ${a.estatus==='Pendiente'  ?'selected':''}>Pendiente</option>
-                <option ${a.estatus==='En proceso' ?'selected':''}>En proceso</option>
-                <option ${a.estatus==='Completada' ?'selected':''}>Completada</option>
-              </select>
-            </td>
-          </tr>`).join('')}</tbody></table>` : '<p style="font-size:12px;color:var(--gris)">Sin acciones registradas.</p>';
-
       document.getElementById('capa-det-contenido').innerHTML = `
         <div class="nc-det-grid" style="margin-bottom:14px">
-          <div><label>Origen</label><span><span class="capa-origen-badge capa-origen-${c.origen_tipo}">${c.origen_tipo==='nc'?'NC':'RE'}</span> ${c.origen_ref||''}</span></div>
+          <div><label>Tipo</label><span><span class="capa-origen-badge capa-origen-${c.tipo==='Correctiva'?'nc':'re'}">${c.tipo||'Correctiva'}</span></span></div>
           <div><label>Estatus</label><span><span class="${badgeCls[c.estatus]||''}">${c.estatus}</span></span></div>
           <div><label>Responsable</label><span>${c.responsable}</span></div>
           <div><label>Método de análisis</label><span>${metodoLabel[c.metodo_analisis]||c.metodo_analisis}</span></div>
-          <div><label>Fecha apertura</label><span>${String(c.fecha_apertura).slice(0,10)}</span></div>
-          <div><label>Fecha compromiso</label><span>${c.fecha_compromiso?String(c.fecha_compromiso).slice(0,10):'—'}</span></div>
+          <div><label>Fecha apertura</label><span>${c.fecha_apertura ? String(c.fecha_apertura).slice(0,10) : '—'}</span></div>
+          <div><label>Fecha límite</label><span>${c.fecha_compromiso ? String(c.fecha_compromiso).slice(0,10) : '—'}</span></div>
           ${c.fecha_cierre ? `<div><label>Fecha cierre</label><span>${String(c.fecha_cierre).slice(0,10)}</span></div>` : ''}
           ${c.verificado_por ? `<div><label>Verificado por</label><span>${c.verificado_por}</span></div>` : ''}
-          <div class="full"><label>Descripción del problema</label><span>${c.descripcion_problema||'—'}</span></div>
+          ${c.registrado_por ? `<div><label>Registrado por</label><span>${c.registrado_por}</span></div>` : ''}
+          <div class="full"><label>Descripción</label><span>${c.descripcion_problema||'—'}</span></div>
           ${c.observaciones ? `<div class="full"><label>Observaciones</label><span>${c.observaciones}</span></div>` : ''}
         </div>
-        <div class="seccion-titulo">Análisis de Causa Raíz — ${metodoLabel[c.metodo_analisis]||''}</div>
+
+        <div class="seccion-titulo">Análisis: ${metodoLabel[c.metodo_analisis]||''}</div>
         ${analisisHtml}
-        <div class="seccion-titulo" style="margin-top:18px">Acciones Correctivas</div>
-        ${accionesHtml}`;
+
+        <div class="seccion-titulo" style="margin-top:18px">Acciones de Seguimiento</div>
+        ${this._renderAccionesTable(c.id, c.acciones)}
+        <button class="btn btn-secundario" style="margin-top:8px" onclick="modCAPA.abrirNuevaAccion(${c.id})">+ Agregar Acción</button>
+      `;
 
       const btns = document.getElementById('capa-det-botones');
       btns.innerHTML = '';
-      if (c.estatus === 'Abierta')    btns.innerHTML += `<button class="btn btn-secundario" onclick="modCAPA.cambiarEstatus(${c.id},'En proceso')">En proceso</button>`;
-      if (c.estatus !== 'Cerrada')    btns.innerHTML += `<button class="btn btn-primario"   onclick="modCAPA.cambiarEstatus(${c.id},'Cerrada')">Cerrar CAPA</button>`;
-      if (c.estatus === 'Cerrada')    btns.innerHTML += `<button class="btn btn-secundario" onclick="modCAPA.cambiarEstatus(${c.id},'Abierta')">Reabrir</button>`;
+      if (c.estatus === 'Abierta')     btns.innerHTML += `<button class="btn btn-secundario" onclick="modCAPA.cambiarEstatus(${c.id},'En proceso')">Marcar En Progreso</button>`;
+      if (c.estatus !== 'Cerrada')     btns.innerHTML += `<button class="btn btn-primario" onclick="modCAPA.cambiarEstatus(${c.id},'Cerrada')">Cerrar CAPA</button>`;
+      if (c.estatus === 'Cerrada')     btns.innerHTML += `<button class="btn btn-secundario" onclick="modCAPA.cambiarEstatus(${c.id},'Abierta')">Reabrir</button>`;
       btns.innerHTML += `<span class="spacer"></span>
         <button class="btn btn-secundario" onclick="modCAPA.abrirEditar(${c.id})">Editar</button>
         <button class="btn" style="color:var(--rojo);border:1px solid var(--rojo);background:transparent"
@@ -3819,6 +4217,75 @@ const modCAPA = {
 
       ui.abrirModal('modal-capa-detalle');
     } catch(e) { ui.notificar(e.error || 'Error al cargar CAPA.'); }
+  },
+
+  _renderAccionesTable(capaId, acciones) {
+    const badgeCls = {
+      'Abierta':    'badge-abierta-capa',
+      'En proceso': 'badge-proceso-capa',
+      'En Progreso':'badge-proceso-capa',
+      'Cerrada':    'badge-cerrada-capa',
+      'Pendiente':  'badge-abierta-capa',
+      'Completada': 'badge-cerrada-capa',
+    };
+    if (!acciones || !acciones.length) {
+      return '<p style="font-size:12px;color:var(--gris)">Sin acciones registradas.</p>';
+    }
+    return `<table class="capa-acciones-tabla"><thead><tr>
+      <th>#</th><th>Descripción</th><th>Responsable</th><th>F. Límite</th><th>Estatus</th><th></th>
+    </tr></thead><tbody>${acciones.map((a, i) => `
+      <tr>
+        <td style="font-size:11px;color:var(--gris)">${i+1}</td>
+        <td style="font-size:12px">${a.accion||a.descripcion||''}</td>
+        <td style="font-size:12px">${a.responsable||'—'}</td>
+        <td style="font-size:11px">${a.fecha_compromiso ? String(a.fecha_compromiso).slice(0,10) : '—'}</td>
+        <td><span class="${badgeCls[a.estatus]||''}">${a.estatus}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn-accion" title="Editar" onclick="modCAPA.abrirEditarAccion(${capaId},${a.id},'${(a.accion||'').replace(/'/g,'\\'')}','${(a.responsable||'').replace(/'/g,'\\'')}','${a.fecha_compromiso?String(a.fecha_compromiso).slice(0,10):''}','${a.estatus}')">&#9998;</button>
+          <button class="btn-accion" title="Ciclar estatus" onclick="modCAPA.ciclarEstatusAccion(${capaId},${a.id},'${a.estatus}')">&#8635;</button>
+          <button class="btn-accion rojo" title="Eliminar" onclick="modCAPA.eliminarAccion(${capaId},${a.id})">&#x2715;</button>
+        </td>
+      </tr>`).join('')}</tbody></table>`;
+  },
+
+  abrirNuevaAccion(capaId) {
+    document.getElementById('accion-capa-id').value  = capaId;
+    document.getElementById('accion-edit-id').value  = '';
+    document.getElementById('modal-accion-titulo').textContent = 'Agregar Acción';
+    document.getElementById('form-accion').reset();
+    document.getElementById('accion-estatus').value = 'Abierta';
+    ui.abrirModal('modal-accion-form');
+  },
+
+  abrirEditarAccion(capaId, aid, descripcion, responsable, fechaLimite, estatus) {
+    document.getElementById('accion-capa-id').value  = capaId;
+    document.getElementById('accion-edit-id').value  = aid;
+    document.getElementById('modal-accion-titulo').textContent = 'Editar Acción';
+    document.getElementById('accion-descripcion').value  = descripcion;
+    document.getElementById('accion-responsable').value  = responsable;
+    document.getElementById('accion-fecha-limite').value = fechaLimite;
+    document.getElementById('accion-estatus').value      = estatus;
+    ui.abrirModal('modal-accion-form');
+  },
+
+  async ciclarEstatusAccion(capaId, aid, estatusActual) {
+    const ciclo = { 'Abierta': 'En Progreso', 'Pendiente': 'En Progreso',
+                    'En proceso': 'Cerrada',   'En Progreso': 'Cerrada',
+                    'Cerrada': 'Abierta',      'Completada': 'Abierta' };
+    const nuevo = ciclo[estatusActual] || 'Abierta';
+    try {
+      await api.patch(`/api/capas/${capaId}/acciones/${aid}`, { estatus: nuevo });
+      await this.abrirDetalle(capaId);
+    } catch(e) { ui.notificar(e.error || 'Error al actualizar.'); }
+  },
+
+  eliminarAccion(capaId, aid) {
+    ui.confirmar('Se eliminará esta acción de forma permanente.', async () => {
+      try {
+        await api.del(`/api/capas/${capaId}/acciones/${aid}`);
+        await this.abrirDetalle(capaId);
+      } catch(e) { ui.notificar(e.error || 'Error al eliminar.'); }
+    }, 'Eliminar Acción');
   },
 
   cambiarEstatus(id, estatus) {
@@ -3837,12 +4304,6 @@ const modCAPA = {
     }
   },
 
-  async cambiarEstatusAccion(capaId, accionId, estatus) {
-    try {
-      await api.patch(`/api/capas/${capaId}/acciones/${accionId}`, { estatus });
-    } catch(e) { ui.notificar(e.error || 'Error al actualizar acción.'); }
-  },
-
   eliminar(id) {
     ui.confirmar('Se eliminará la CAPA y todo su análisis de forma permanente.', async () => {
       try {
@@ -3856,18 +4317,19 @@ const modCAPA = {
   _recopilarDatos() {
     const metodo = document.querySelector('input[name="capa-metodo"]:checked').value;
     const porques = metodo === '5porques' ? [1,2,3,4,5].map(i => ({
+      nivel: i,
       orden: i,
-      respuesta: (document.querySelector(`#capa-porques-tbody tr:nth-child(${i}) textarea`)?.value || '').trim(),
-    })) : [];
-    const ishikawa = metodo === 'ishikawa' ? [...document.querySelectorAll('#capa-ishi-grid input[data-cat]')]
-      .map(inp => ({ categoria: inp.dataset.cat, causa: inp.value.trim() }))
-      .filter(c => c.causa) : [];
-    const acciones = [...document.querySelectorAll('#capa-acciones-lista .capa-accion-fila')].map(fila => {
-      const inputs = fila.querySelectorAll('textarea,input,select');
-      return { accion: inputs[0].value.trim(), responsable: inputs[1].value.trim(),
-               fecha_compromiso: inputs[2].value || null, estatus: inputs[3].value };
-    }).filter(a => a.accion);
-    return { metodo, porques, ishikawa, acciones };
+      pregunta:  (document.getElementById(`porq-pregunta-${i}`)?.value  || '').trim(),
+      respuesta: (document.getElementById(`porq-respuesta-${i}`)?.value || '').trim(),
+    })).filter(p => p.pregunta || p.respuesta) : [];
+    const ishikawa = metodo === 'ishikawa' ? (() => {
+      const obj = {};
+      ISHIKAWA_KEYS.forEach(key => {
+        obj[key] = (document.getElementById(`ishi-${key}`)?.value || '').trim();
+      });
+      return obj;
+    })() : {};
+    return { metodo, porques, ishikawa };
   },
 };
 
@@ -3876,24 +4338,42 @@ document.getElementById('form-capa').addEventListener('submit', async function(e
   const btn = document.getElementById('btn-capa-guardar');
   btn.disabled = true;
   const id = document.getElementById('capa-edit-id').value;
-  const { metodo, porques, ishikawa, acciones } = modCAPA._recopilarDatos();
-  const body = {
-    origen_tipo:          document.getElementById('capa-origen-tipo').value,
-    origen_id:            parseInt(document.getElementById('capa-origen-id').value),
-    titulo:               document.getElementById('capa-titulo').value.trim(),
-    descripcion_problema: document.getElementById('capa-descripcion').value.trim(),
-    metodo_analisis:      metodo,
-    responsable:          document.getElementById('capa-responsable').value.trim(),
-    fecha_apertura:       document.getElementById('capa-fecha-apertura').value,
-    fecha_compromiso:     document.getElementById('capa-fecha-compromiso').value || null,
-    porques, ishikawa, acciones,
-  };
+  const { metodo, porques, ishikawa } = modCAPA._recopilarDatos();
+  const tipo        = document.querySelector('input[name="capa-tipo"]:checked').value;
+  const descripcion = document.getElementById('capa-descripcion').value.trim();
+  const responsable = document.getElementById('capa-responsable').value.trim();
+  const fecha_limite= document.getElementById('capa-fecha-limite').value || null;
+  const estatus     = document.getElementById('capa-estatus').value;
+  const body = { tipo, descripcion, responsable, fecha_limite, estatus,
+                 metodo_analisis: metodo, porques, ishikawa };
   try {
     if (id) { await api.put(`/api/capas/${id}`, body); }
     else    { await api.post('/api/capas', body); }
     ui.cerrarModal('modal-capa-form');
+    ui.notificar(id ? 'CAPA actualizada.' : 'CAPA creada.', 'Éxito');
     await modCAPA.cargar();
   } catch(e) { ui.notificar(e.error || 'Error al guardar CAPA.'); }
+  finally { btn.disabled = false; }
+});
+
+document.getElementById('form-accion').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-accion-guardar');
+  btn.disabled = true;
+  const capaId = document.getElementById('accion-capa-id').value;
+  const aid    = document.getElementById('accion-edit-id').value;
+  const body = {
+    descripcion:  document.getElementById('accion-descripcion').value.trim(),
+    responsable:  document.getElementById('accion-responsable').value.trim(),
+    fecha_limite: document.getElementById('accion-fecha-limite').value || null,
+    estatus:      document.getElementById('accion-estatus').value,
+  };
+  try {
+    if (aid) { await api.put(`/api/capas/${capaId}/acciones/${aid}`, body); }
+    else     { await api.post(`/api/capas/${capaId}/acciones`, body); }
+    ui.cerrarModal('modal-accion-form');
+    await modCAPA.abrirDetalle(parseInt(capaId));
+  } catch(e) { ui.notificar(e.error || 'Error al guardar acción.'); }
   finally { btn.disabled = false; }
 });
 
@@ -5015,29 +5495,13 @@ const modCAL = {
   _anio: new Date().getFullYear(),
   _tab:  'calendario',
 
-  cambiarTab(tab) {
-    this._tab = tab;
-    document.getElementById('cal-panel-calendario').style.display = tab === 'calendario' ? '' : 'none';
-    document.getElementById('cal-panel-saldo').style.display      = tab === 'saldo'      ? '' : 'none';
-    document.getElementById('cal-tab-calendario').classList.toggle('activo', tab === 'calendario');
-    document.getElementById('cal-tab-saldo').classList.toggle('activo',      tab === 'saldo');
-  },
+  // cambiarTab e init se redefinen más abajo (override)
 
-  async init() {
-    try {
-      await Promise.all([
-        this.cargarColaboradores(),
-        this.cargar(),
-        this.cargarFestivos(),
-        this.cargarSaldo(),
-      ]);
-    } catch (e) { ui.notificar('Error cargando el calendario.'); }
-  },
+
 
   async cargar() {
     this.solicitudes = await api.get('/api/calendario');
     this.renderCalendario();
-    this.renderSaldo();
   },
 
   async cargarColaboradores() {
@@ -5050,11 +5514,12 @@ const modCAL = {
 
   async cargarFestivos() {
     this.festivos = await api.get('/api/calendario/festivos');
+    if (this._tab === 'festivos') this.renderFestivosPanel();
   },
 
   async cargarSaldo() {
     this.saldo = await api.get('/api/calendario/saldo');
-    this.renderSaldo();
+    if (this._tab === 'saldo') this.renderSaldo();
   },
 
   _esFestivo(dateObj) {
@@ -5102,7 +5567,6 @@ const modCAL = {
     if (this._mes > 11) { this._mes = 0;  this._anio++; }
     if (this._mes < 0)  { this._mes = 11; this._anio--; }
     this.renderCalendario();
-    this.renderSaldo();
   },
 
   renderCalendario() {
@@ -5214,23 +5678,6 @@ const modCAL = {
     document.getElementById('cal-area').value = c ? c.area : '';
   },
 
-  recalcularDias() {
-    const ini = document.getElementById('cal-fecha-inicio').value;
-    const fin = document.getElementById('cal-fecha-fin').value;
-    if (ini && fin && fin >= ini) {
-      document.getElementById('cal-dias-habiles').value = this._diasHabiles(ini, fin) + ' día(s)';
-    } else {
-      document.getElementById('cal-dias-habiles').value = '';
-    }
-  },
-
-  abrirFormulario() {
-    document.getElementById('form-cal').reset();
-    document.getElementById('cal-edit-id').value = '';
-    document.getElementById('modal-cal-form-titulo').textContent = 'Nueva Solicitud';
-    ui.abrirModal('modal-cal-form');
-  },
-
   abrirEditar(id) {
     const s = this.solicitudes.find(x => x.id === id);
     if (!s) return;
@@ -5243,6 +5690,10 @@ const modCAL = {
     document.getElementById('cal-fecha-fin').value = s.fecha_fin.slice(0,10);
     document.getElementById('cal-dias-habiles').value = s.dias_habiles + ' día(s)';
     document.getElementById('cal-motivo').value = s.motivo || '';
+    const errEl  = document.getElementById('cal-err-fecha');
+    const warnEl = document.getElementById('cal-warn-solapamiento');
+    if (errEl)  errEl.style.display  = 'none';
+    if (warnEl) warnEl.style.display = 'none';
     document.getElementById('modal-cal-form-titulo').textContent = 'Editar Solicitud';
     ui.cerrarModal('modal-cal-detalle');
     ui.abrirModal('modal-cal-form');
@@ -5342,26 +5793,345 @@ const modCAL = {
 
   editarSaldo(colabId, nombre, actual) {
     ui.preguntar(
-      `Días de vacaciones asignados para ${nombre} en ${this._anio}:`,
+      `Saldo inicial de vacaciones para ${nombre} en ${this._anio}:`,
       actual,
       (val) => {
         const n = parseInt(val);
-        if (isNaN(n) || n < 0) { ui.notificar('Ingresa un número válido.'); return; }
+        if (isNaN(n) || n < 0) { ui.notificar('Ingresa un número válido (0 o mayor).'); return; }
         api.post('/api/calendario/saldo', { colaborador_id: colabId, anio: this._anio, dias_asignados: n })
-          .then(() => this.cargarSaldo())
+          .then(() => { this.cargarSaldo(); ui.notificar('Saldo actualizado correctamente.', 'Saldo'); })
           .catch(e => ui.notificar(e.error || 'Error al guardar saldo.'));
       },
       'Saldo de vacaciones'
     );
   },
+
+  // ── Nuevos métodos — Tabs, Gestión, Festivos Panel ──────────
+
+  _TABS: ['calendario','mis','gestion','saldo','festivos'],
+
+  _aplicarVisibilidadRoles() {
+    const esAdmin = sesionActual?.rol === 'Administrador';
+    document.querySelectorAll('.cal-tab-admin').forEach(el => {
+      el.style.display = esAdmin ? '' : 'none';
+    });
+  },
+
+  _badgeCal(estatus) {
+    const map = { pendiente:'cal-badge-pendiente', aprobado:'cal-badge-aprobado', rechazado:'cal-badge-rechazado' };
+    return `<span class="cal-badge ${map[estatus]||''}">${estatus}</span>`;
+  },
+
+  cambiarAnioSaldo(delta) {
+    this._anio += delta;
+    this.renderSaldo();
+  },
+
+  renderMisSolicitudes() {
+    const filtro  = (document.getElementById('cal-mis-filtro') || {}).value || '';
+    const tablaEl = document.getElementById('cal-mis-tabla');
+    const vacioEl = document.getElementById('cal-mis-vacio');
+    if (!tablaEl || !vacioEl) return;
+    const miNombre = sesionActual?.nombre || '';
+    let lista = this.solicitudes.filter(s => s.registrado_por === miNombre);
+    if (filtro) lista = lista.filter(s => s.estatus === filtro);
+    if (!lista.length) { tablaEl.innerHTML = ''; vacioEl.style.display = ''; return; }
+    vacioEl.style.display = 'none';
+    const rows = lista.map(s => `<tr>
+      <td>${s.nombre_completo || s.registrado_por}</td>
+      <td>${s.tipo}</td>
+      <td>${s.fecha_inicio.slice(0,10)}</td>
+      <td>${s.fecha_fin.slice(0,10)}</td>
+      <td style="text-align:center">${s.dias_habiles}</td>
+      <td>${this._badgeCal(s.estatus)}</td>
+      <td style="color:var(--gris);font-size:11px">${s.motivo || '—'}</td>
+      <td><button class="btn-accion" title="Ver detalle" onclick="modCAL.abrirDetalle(${s.id})">&#128065;</button></td>
+    </tr>`).join('');
+    tablaEl.innerHTML = `<div class="tabla-wrap"><table>
+      <thead><tr><th>Colaborador</th><th>Tipo</th><th>Inicio</th><th>Fin</th>
+      <th>Días</th><th>Estatus</th><th>Motivo</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  },
+
+  renderGestion() {
+    const filtroTipo  = (document.getElementById('cal-gest-filtro-tipo')    || {}).value || '';
+    const filtroEst   = (document.getElementById('cal-gest-filtro-estatus') || {}).value || '';
+    const tablaEl = document.getElementById('cal-gest-tabla');
+    const vacioEl = document.getElementById('cal-gest-vacio');
+    if (!tablaEl || !vacioEl) return;
+    let lista = [...this.solicitudes];
+    if (filtroTipo) lista = lista.filter(s => s.tipo === filtroTipo);
+    if (filtroEst)  lista = lista.filter(s => s.estatus === filtroEst);
+    lista.sort((a, b) => ({ pendiente:0, aprobado:1, rechazado:2 }[a.estatus]||0) - ({ pendiente:0, aprobado:1, rechazado:2 }[b.estatus]||0));
+    if (!lista.length) { tablaEl.innerHTML = ''; vacioEl.style.display = ''; return; }
+    vacioEl.style.display = 'none';
+    const rows = lista.map(s => {
+      const btnApr = s.estatus === 'pendiente' ? `<button class="btn-aprobar" onclick="modCAL.aprobarRapido(${s.id})">Aprobar</button>` : '';
+      const btnRec = s.estatus === 'pendiente' ? `<button class="btn-rechazar" onclick="modCAL.rechazarRapido(${s.id})">Rechazar</button>` : '';
+      return `<tr>
+        <td>${s.nombre_completo}</td><td>${s.area||'—'}</td><td>${s.tipo}</td>
+        <td>${s.fecha_inicio.slice(0,10)}</td><td>${s.fecha_fin.slice(0,10)}</td>
+        <td style="text-align:center">${s.dias_habiles}</td>
+        <td>${this._badgeCal(s.estatus)}</td>
+        <td><div class="cal-gestion-btns">${btnApr}${btnRec}<button class="btn-accion" title="Detalle" onclick="modCAL.abrirDetalle(${s.id})">&#128065;</button></div></td>
+      </tr>`;
+    }).join('');
+    tablaEl.innerHTML = `<div class="tabla-wrap"><table>
+      <thead><tr><th>Colaborador</th><th>Área</th><th>Tipo</th>
+      <th>Inicio</th><th>Fin</th><th>Días</th><th>Estatus</th><th>Acciones</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  },
+
+  renderFestivosPanel() {
+    const listaEl = document.getElementById('cal-festivos-panel-lista');
+    const vacioEl = document.getElementById('cal-festivos-panel-vacio');
+    if (!listaEl) return;
+    if (!this.festivos.length) { listaEl.innerHTML = ''; if (vacioEl) vacioEl.style.display = ''; return; }
+    if (vacioEl) vacioEl.style.display = 'none';
+    const rows = this.festivos.map(f => `<tr>
+      <td>${f.fecha.slice(0,10)}</td><td>${f.nombre}</td>
+      <td style="text-align:center;font-size:10px;color:var(--gris)">${f.recurrente ? 'Anual' : 'Una vez'}</td>
+      <td style="text-align:center"><button class="btn-accion rojo" title="Eliminar" onclick="modCAL.eliminarFestivoPanel(${f.id})">&#x2715;</button></td>
+    </tr>`).join('');
+    listaEl.innerHTML = `<div class="tabla-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Nombre</th><th>Tipo</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  },
+
+  recalcularDias() {
+    const ini    = document.getElementById('cal-fecha-inicio').value;
+    const fin    = document.getElementById('cal-fecha-fin').value;
+    const errEl  = document.getElementById('cal-err-fecha');
+    const warnEl = document.getElementById('cal-warn-solapamiento');
+    if (ini && fin) {
+      if (fin < ini) {
+        if (errEl)  errEl.style.display  = '';
+        if (warnEl) warnEl.style.display = 'none';
+        document.getElementById('cal-dias-habiles').value = '';
+        return;
+      }
+      if (errEl) errEl.style.display = 'none';
+      document.getElementById('cal-dias-habiles').value = this._diasHabiles(ini, fin) + ' día(s)';
+      const colabId = parseInt(document.getElementById('cal-colaborador').value);
+      const editId  = document.getElementById('cal-edit-id').value;
+      const solapa  = this.solicitudes.some(s => {
+        if (editId && s.id === parseInt(editId)) return false;
+        if (s.colaborador_id !== colabId) return false;
+        if (s.estatus === 'rechazado') return false;
+        const sIni = s.fecha_inicio.slice(0,10);
+        const sFin = s.fecha_fin.slice(0,10);
+        return ini <= sFin && fin >= sIni;
+      });
+      if (warnEl) warnEl.style.display = solapa ? '' : 'none';
+    } else {
+      if (errEl)  errEl.style.display  = 'none';
+      if (warnEl) warnEl.style.display = 'none';
+      document.getElementById('cal-dias-habiles').value = '';
+    }
+  },
+
+  abrirFormulario(fechaISO) {
+    document.getElementById('form-cal').reset();
+    document.getElementById('cal-edit-id').value = '';
+    const errEl  = document.getElementById('cal-err-fecha');
+    const warnEl = document.getElementById('cal-warn-solapamiento');
+    if (errEl)  errEl.style.display  = 'none';
+    if (warnEl) warnEl.style.display = 'none';
+    document.getElementById('modal-cal-form-titulo').textContent = 'Nueva Solicitud';
+    if (fechaISO) {
+      document.getElementById('cal-fecha-inicio').value = fechaISO;
+      document.getElementById('cal-fecha-fin').value = fechaISO;
+      this.recalcularDias();
+    }
+    ui.abrirModal('modal-cal-form');
+  },
+
+  abrirAgregarFestivo() {
+    this._renderFestivosList();
+    ui.abrirModal('modal-cal-festivos');
+  },
+
+  eliminarFestivoPanel(id) {
+    ui.confirmar('¿Eliminar este festivo? Afecta el cálculo de días hábiles.', async () => {
+      try {
+        await api.del(`/api/calendario/festivos/${id}`);
+        await this.cargarFestivos();
+        this.renderFestivosPanel();
+        this.renderCalendario();
+      } catch (e) { ui.notificar(e.error || 'Error al eliminar festivo.'); }
+    }, 'Eliminar festivo');
+  },
+
+  aprobarRapido(id) {
+    ui.confirmar('¿Aprobar esta solicitud?', async () => {
+      try {
+        await api.patch(`/api/calendario/${id}/estatus`, { estatus: 'aprobado', motivo_rechazo: '', observaciones: '' });
+        await this.cargar();
+        this.renderGestion();
+        ui.notificar('Solicitud aprobada.', 'Aprobado');
+      } catch (e) { ui.notificar(e.error || 'Error al aprobar.'); }
+    }, 'Aprobar solicitud');
+  },
+
+  rechazarRapido(id) {
+    ui.preguntar('Motivo del rechazo (opcional):', '', async (motivo) => {
+      try {
+        await api.patch(`/api/calendario/${id}/estatus`, {
+          estatus: 'rechazado', motivo_rechazo: motivo || '', observaciones: motivo || ''
+        });
+        await this.cargar();
+        this.renderGestion();
+        ui.notificar('Solicitud rechazada.', 'Rechazado');
+      } catch (e) { ui.notificar(e.error || 'Error al rechazar.'); }
+    }, 'Rechazar solicitud');
+  },
+};
+
+// ── Override métodos modCAL para nuevas funcionalidades ───────
+
+modCAL.cambiarTab = function(tab) {
+  this._tab = tab;
+  this._TABS.forEach(t => {
+    const panel  = document.getElementById('cal-panel-' + t);
+    const tabBtn = document.getElementById('cal-tab-' + t);
+    if (panel)  panel.style.display  = (t === tab) ? '' : 'none';
+    if (tabBtn) tabBtn.classList.toggle('activo', t === tab);
+  });
+  if (tab === 'mis')        this.renderMisSolicitudes();
+  else if (tab === 'gestion')  this.renderGestion();
+  else if (tab === 'saldo')    this.renderSaldo();
+  else if (tab === 'festivos') this.renderFestivosPanel();
+  else                         this.renderCalendario();
+};
+
+modCAL.init = async function() {
+  this._aplicarVisibilidadRoles();
+  try {
+    await Promise.all([
+      this.cargarColaboradores(),
+      this.cargar(),
+      this.cargarFestivos(),
+      this.cargarSaldo(),
+    ]);
+    this.cambiarTab(this._tab);
+  } catch (e) { ui.notificar('Error cargando el calendario.'); }
+};
+
+modCAL.renderSaldo = function() {
+  document.getElementById('cal-saldo-anio').textContent = this._anio;
+  const tablaEl = document.getElementById('cal-saldo-tabla');
+  const vacioEl = document.getElementById('cal-saldo-vacio');
+  const activos = this.colaboradores;
+  if (!activos.length) { tablaEl.innerHTML = ''; vacioEl.style.display = ''; return; }
+  vacioEl.style.display = 'none';
+  const esAdmin = sesionActual?.rol === 'Administrador';
+  const rows = activos.map(c => {
+    const reg  = this.saldo.find(s => s.colaborador_id === c.id && parseInt(s.anio) === this._anio);
+    const saldoInicial   = reg ? parseInt(reg.dias_asignados) : 0;
+    const diasUtilizados = this.solicitudes
+      .filter(s => s.colaborador_id === c.id && s.tipo === 'Vacaciones' && s.estatus === 'aprobado' &&
+        s.fecha_inicio.slice(0,4) === String(this._anio))
+      .reduce((sum, s) => sum + (parseInt(s.dias_habiles)||0), 0);
+    const saldoPendiente = saldoInicial - diasUtilizados;
+    const colorPend = saldoPendiente < 0 ? 'color:var(--rojo)' : saldoPendiente === 0 ? 'color:var(--gris)' : 'color:var(--verde)';
+    const nombreEsc = c.nombre_completo.replace(/'/g, "\\'");
+    const btnEditar = esAdmin
+      ? `<button class="btn-accion" title="Editar saldo inicial" onclick="modCAL.editarSaldo(${c.id},'${nombreEsc}',${saldoInicial})">&#9998;</button>`
+      : '';
+    return `<tr>
+      <td>${c.nombre_completo}</td><td>${c.area||'—'}</td>
+      <td style="text-align:center">${saldoInicial}</td>
+      <td style="text-align:center">${diasUtilizados}</td>
+      <td style="text-align:center;font-weight:700;${colorPend}">${saldoPendiente}</td>
+      <td style="text-align:center">${btnEditar}</td>
+    </tr>`;
+  }).join('');
+  tablaEl.innerHTML = `<div class="tabla-wrap"><table>
+    <thead><tr>
+      <th>Colaborador</th><th>Área</th>
+      <th>Saldo Inicial</th><th>Días Utilizados</th><th>Saldo Pendiente</th><th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+};
+
+modCAL.abrirDetalle = function(id) {
+  const s = this.solicitudes.find(x => x.id === id);
+  if (!s) return;
+  const badgeMap = { pendiente:'badge-proceso', aprobado:'badge-activo', rechazado:'badge-inactivo' };
+  document.getElementById('cal-det-titulo').textContent = s.nombre_completo;
+  document.getElementById('cal-det-nombre').textContent = s.nombre_completo;
+  document.getElementById('cal-det-area').textContent = s.area || '—';
+  document.getElementById('cal-det-tipo').textContent = s.tipo;
+  document.getElementById('cal-det-estatus').innerHTML = `<span class="badge ${badgeMap[s.estatus]||''}">${s.estatus}</span>`;
+  document.getElementById('cal-det-fecha-inicio').textContent = s.fecha_inicio.slice(0,10);
+  document.getElementById('cal-det-fecha-fin').textContent = s.fecha_fin.slice(0,10);
+  document.getElementById('cal-det-dias').textContent = s.dias_habiles + ' día(s)';
+  document.getElementById('cal-det-registrado').textContent = s.registrado_por || '—';
+  document.getElementById('cal-det-motivo').textContent = s.motivo || '—';
+  document.getElementById('cal-det-aprobado-por').textContent = s.aprobado_por || '—';
+  document.getElementById('cal-det-observaciones').textContent = s.motivo_rechazo || s.observaciones || '—';
+  const esAdmin = sesionActual?.rol === 'Administrador';
+  let botones = '';
+  if (s.estatus === 'pendiente') {
+    botones += `<button class="btn btn-secundario" style="background:#e8f5ee;color:#1a6b3c;border-color:#1a6b3c" onclick="modCAL.cambiarEstatus(${s.id},'aprobado')">Aprobar</button>`;
+    botones += `<button class="btn btn-secundario" style="background:#fde8e8;color:var(--rojo);border-color:var(--rojo)" onclick="modCAL.cambiarEstatus(${s.id},'rechazado')">Rechazar</button>`;
+  }
+  if (esAdmin) {
+    botones += `<button class="btn btn-secundario" onclick="modCAL.abrirEditar(${s.id})">Editar</button>`;
+    botones += `<span class="spacer"></span>`;
+    botones += `<button class="btn btn-rojo" onclick="modCAL.eliminar(${s.id})">Eliminar</button>`;
+  }
+  botones += `<button class="btn btn-secundario" onclick="ui.cerrarModal('modal-cal-detalle')">Cerrar</button>`;
+  document.getElementById('cal-det-botones').innerHTML = botones;
+  ui.abrirModal('modal-cal-detalle');
+};
+
+modCAL.cambiarEstatus = function(id, estatus) {
+  const _hacer = async (motivo) => {
+    try {
+      await api.patch(`/api/calendario/${id}/estatus`, {
+        estatus,
+        motivo_rechazo: estatus === 'rechazado' ? (motivo || '') : '',
+        observaciones:  motivo || ''
+      });
+      ui.cerrarModal('modal-cal-detalle');
+      await this.cargar();
+      if (this._tab === 'gestion') this.renderGestion();
+      ui.notificar(`Solicitud ${estatus === 'aprobado' ? 'aprobada' : 'rechazada'} correctamente.`);
+    } catch (e) { ui.notificar(e.error || 'Error al cambiar estatus.'); }
+  };
+  if (estatus === 'rechazado') {
+    ui.preguntar('Motivo del rechazo (opcional):', '', _hacer, 'Rechazar solicitud');
+  } else {
+    _hacer('');
+  }
+};
+
+modCAL.eliminar = function(id) {
+  ui.confirmar('Se eliminará la solicitud de forma permanente.', async () => {
+    try {
+      await api.del(`/api/calendario/${id}`);
+      ui.cerrarModal('modal-cal-detalle');
+      await this.cargar();
+      if (this._tab === 'mis')     this.renderMisSolicitudes();
+      if (this._tab === 'gestion') this.renderGestion();
+    } catch (e) { ui.notificar(e.error || 'Error al eliminar.'); }
+  }, 'Eliminar solicitud');
 };
 
 document.getElementById('form-cal').addEventListener('submit', async function(e) {
   e.preventDefault();
+  const ini    = document.getElementById('cal-fecha-inicio').value;
+  const fin    = document.getElementById('cal-fecha-fin').value;
+  const errEl  = document.getElementById('cal-err-fecha');
+  if (fin < ini) { if (errEl) errEl.style.display = ''; return; }
+  if (errEl) errEl.style.display = 'none';
   const btn = document.getElementById('btn-cal-guardar');
   const id  = document.getElementById('cal-edit-id').value;
-  const ini = document.getElementById('cal-fecha-inicio').value;
-  const fin = document.getElementById('cal-fecha-fin').value;
   const data = {
     colaborador_id: parseInt(document.getElementById('cal-colaborador').value),
     tipo:           document.getElementById('cal-tipo').value,
@@ -5377,6 +6147,9 @@ document.getElementById('form-cal').addEventListener('submit', async function(e)
     else    { await api.post('/api/calendario', data); }
     ui.cerrarModal('modal-cal-form');
     await modCAL.cargar();
+    if (modCAL._tab === 'mis')     modCAL.renderMisSolicitudes();
+    if (modCAL._tab === 'gestion') modCAL.renderGestion();
+    ui.notificar('Solicitud guardada correctamente.');
   } catch (err) {
     ui.notificar(err.error || 'Error al guardar la solicitud.');
   } finally { btn.disabled = false; }

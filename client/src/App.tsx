@@ -8,6 +8,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Router, Route } from 'wouter';
 import './config/i18n';
 import Layout from './components/Layout';
+import { NotifyProvider } from './context/NotifyContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 
 // Page imports
 import Login from './pages/Login';
@@ -52,103 +54,107 @@ function LoadingFallback() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Suspense fallback={<LoadingFallback />}>
-          {/* Login route - no layout */}
-          <Route path="/login" component={Login} />
+      <NotifyProvider>
+        <ConfirmProvider>
+          <Router>
+            <Suspense fallback={<LoadingFallback />}>
+              {/* Login route - no layout */}
+              <Route path="/login" component={Login} />
 
-          {/* Protected routes with layout */}
-          <Route path="/">
-            {() => (
-              <Layout>
-                <Dashboard />
-              </Layout>
-            )}
-          </Route>
+              {/* Protected routes with layout */}
+              <Route path="/">
+                {() => (
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                )}
+              </Route>
 
-          <Route path="/nc">
-            {() => (
-              <Layout>
-                <NoConformidades />
-              </Layout>
-            )}
-          </Route>
+              <Route path="/nc">
+                {() => (
+                  <Layout>
+                    <NoConformidades />
+                  </Layout>
+                )}
+              </Route>
 
-          <Route path="/recepciones">
-            {() => (
-              <Layout>
-                <Recepciones />
-              </Layout>
-            )}
-          </Route>
+              <Route path="/recepciones">
+                {() => (
+                  <Layout>
+                    <Recepciones />
+                  </Layout>
+                )}
+              </Route>
 
-          <Route path="/rechazos-ext">
-            {() => (
-              <Layout>
-                <RechazosExternos />
-              </Layout>
-            )}
-          </Route>
+              <Route path="/rechazos-ext">
+                {() => (
+                  <Layout>
+                    <RechazosExternos />
+                  </Layout>
+                )}
+              </Route>
 
-          <Route path="/rechazos-int">
-            {() => (
-              <Layout>
-                <RechazosInternos />
-              </Layout>
-            )}
-          </Route>
+              <Route path="/rechazos-int">
+                {() => (
+                  <Layout>
+                    <RechazosInternos />
+                  </Layout>
+                )}
+              </Route>
 
-          <Route path="/capas">
-            {() => (
-              <Layout>
-                <Capas />
-              </Layout>
-            )}
-          </Route>
+              <Route path="/capas">
+                {() => (
+                  <Layout>
+                    <Capas />
+                  </Layout>
+                )}
+              </Route>
 
-          <Route path="/aql">
-            {() => (
-              <Layout>
-                <Aql />
-              </Layout>
-            )}
-          </Route>
+              <Route path="/aql">
+                {() => (
+                  <Layout>
+                    <Aql />
+                  </Layout>
+                )}
+              </Route>
 
-          <Route path="/liberacion-shipping">
-            {() => (
-              <Layout>
-                <LiberacionShipping />
-              </Layout>
-            )}
-          </Route>
+              <Route path="/liberacion-shipping">
+                {() => (
+                  <Layout>
+                    <LiberacionShipping />
+                  </Layout>
+                )}
+              </Route>
 
-          <Route path="/organigrama-qc">
-            {() => (
-              <Layout>
-                <OrganigramaQc />
-              </Layout>
-            )}
-          </Route>
+              <Route path="/organigrama-qc">
+                {() => (
+                  <Layout>
+                    <OrganigramaQc />
+                  </Layout>
+                )}
+              </Route>
 
-          <Route path="/calendario">
-            {() => (
-              <Layout>
-                <Calendario />
-              </Layout>
-            )}
-          </Route>
+              <Route path="/calendario">
+                {() => (
+                  <Layout>
+                    <Calendario />
+                  </Layout>
+                )}
+              </Route>
 
-          {/* Catch all - redirect to home */}
-          <Route path="*">
-            {() => {
-              if (typeof window !== 'undefined') {
-                window.location.href = '/';
-              }
-              return null;
-            }}
-          </Route>
-        </Suspense>
-      </Router>
+              {/* Catch all - redirect to home */}
+              <Route path="*">
+                {() => {
+                  if (typeof window !== 'undefined') {
+                    window.location.href = '/';
+                  }
+                  return null;
+                }}
+              </Route>
+            </Suspense>
+          </Router>
+        </ConfirmProvider>
+      </NotifyProvider>
     </QueryClientProvider>
   );
 }

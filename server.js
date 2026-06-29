@@ -166,10 +166,13 @@ async function initDB() {
   `);
 
   await pool.query('ALTER TABLE recepciones DROP COLUMN IF EXISTS trailer');
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS marca       VARCHAR(100) NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS modelo      VARCHAR(100) NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS pulgada     VARCHAR(20)  NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS descripcion TEXT         NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS marca            VARCHAR(100) NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS modelo           VARCHAR(100) NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS pulgada          VARCHAR(20)  NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS descripcion      TEXT         NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS observaciones    TEXT         NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS estatus          VARCHAR(20)  NOT NULL DEFAULT 'Abierto'`);
+  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_digital    TEXT         NOT NULL DEFAULT ''`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS rechazos_externos (
@@ -203,6 +206,10 @@ async function initDB() {
 
   await pool.query('ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS registration_date DATE');
   await pool.query('ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS sale_price NUMERIC(10,2)');
+  await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS estatus VARCHAR(50) NOT NULL DEFAULT 'Pendiente'`);
+  await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS modelo      VARCHAR(100) NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS pulgada     VARCHAR(20)  NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS descripcion TEXT         NOT NULL DEFAULT ''`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS re_images (
@@ -258,10 +265,12 @@ async function initDB() {
       estatus        VARCHAR(20)  NOT NULL DEFAULT 'pendiente',
       aprobado_por   VARCHAR(100) NOT NULL DEFAULT '',
       observaciones  TEXT         NOT NULL DEFAULT '',
+      motivo_rechazo TEXT         NOT NULL DEFAULT '',
       registrado_por VARCHAR(100) NOT NULL DEFAULT '',
       created_at     TIMESTAMP    DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE calendario_solicitudes ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT NOT NULL DEFAULT ''`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS calendario_festivos (
@@ -312,6 +321,10 @@ async function initDB() {
       respuesta TEXT     NOT NULL DEFAULT ''
     )
   `);
+  // Columnas nuevas CAPA (idempotentes)
+  await pool.query(`ALTER TABLE capas ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) NOT NULL DEFAULT 'Correctiva'`);
+  await pool.query(`ALTER TABLE capa_5porques ADD COLUMN IF NOT EXISTS pregunta TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE capa_acciones ADD COLUMN IF NOT EXISTS descripcion TEXT NOT NULL DEFAULT ''`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS capa_ishikawa (
@@ -393,6 +406,24 @@ async function initDB() {
     )
   `);
 
+  // AQL Phase 2D: nuevas columnas
+  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS order_id          VARCHAR(100) NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS lote              VARCHAR(100) NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS muestra_total     INTEGER      NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS defectos_encontrados INTEGER   NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS observaciones     TEXT         NOT NULL DEFAULT ''`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS aql_checklist (
+      id           SERIAL PRIMARY KEY,
+      aql_id       INTEGER      NOT NULL REFERENCES aql_registros(id) ON DELETE CASCADE,
+      item_number  SMALLINT     NOT NULL,
+      descripcion  TEXT         NOT NULL DEFAULT '',
+      estado       VARCHAR(10)  NOT NULL DEFAULT 'pass',
+      created_at   TIMESTAMP    DEFAULT NOW()
+    )
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS catalogo_sku (
       id          SERIAL PRIMARY KEY,
@@ -435,6 +466,26 @@ async function initDB() {
       created_at              TIMESTAMP     DEFAULT NOW()
     )
   `);
+
+  // ── Liberación Shipping — nuevas columnas (Phase 2D) ──
+  const lsNewCols = [
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS order_id VARCHAR(100) NOT NULL DEFAULT ''`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS referencia VARCHAR(200)`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS sku VARCHAR(100) NOT NULL DEFAULT ''`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS marca VARCHAR(100) NOT NULL DEFAULT ''`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS modelo VARCHAR(100) NOT NULL DEFAULT ''`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS pulgada VARCHAR(50) NOT NULL DEFAULT ''`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS descripcion TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS tipo_contenedor VARCHAR(50) NOT NULL DEFAULT ''`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS peso_total NUMERIC(12,2)`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS volumen_cubico NUMERIC(12,2)`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS bill_of_lading VARCHAR(200)`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS pro_number VARCHAR(200)`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS purchase_order VARCHAR(200)`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS observaciones TEXT`,
+    `ALTER TABLE liberacion_shipping ADD COLUMN IF NOT EXISTS estatus VARCHAR(30) NOT NULL DEFAULT 'Programado'`,
+  ];
+  for (const sql of lsNewCols) await pool.query(sql);
 
   // Festivos oficiales México (solo si la tabla está vacía)
   const { rows: fRows } = await pool.query('SELECT COUNT(*) FROM calendario_festivos');
@@ -496,30 +547,82 @@ app.get('/api/me', (req, res) => {
 
 // ── NO CONFORMIDADES ───────────────────────────────────────────
 app.get('/api/nc', auth, async (req, res) => {
-  const fecha = req.query.fecha || new Date().toISOString().slice(0, 10);
   try {
-    let rows;
-    if (fecha === 'todos') {
-      ({ rows } = await pool.query(
-        `SELECT nc.*,
-           (SELECT COUNT(*) FROM capas WHERE origen_tipo='nc' AND origen_id=nc.id) AS cnt_capas
-         FROM no_conformidades nc ORDER BY fecha DESC, hora DESC`
-      ));
-    } else {
-      ({ rows } = await pool.query(
-        `SELECT nc.*,
-           (SELECT COUNT(*) FROM capas WHERE origen_tipo='nc' AND origen_id=nc.id) AS cnt_capas
-         FROM no_conformidades nc WHERE fecha = $1 ORDER BY hora`,
-        [fecha]
-      ));
+    // Supports: estatus, area, tipo, search, start_date, end_date, page, limit
+    const { estatus, area, tipo, search, start_date, end_date, page = 1, limit = 20 } = req.query;
+    const conditions = [];
+    const params = [];
+    let idx = 1;
+
+    if (estatus && estatus !== 'Todas') {
+      conditions.push(`nc.estatus = $${idx++}`);
+      params.push(estatus);
     }
-    res.json(rows);
+    if (area) {
+      conditions.push(`nc.area = $${idx++}`);
+      params.push(area);
+    }
+    if (tipo) {
+      conditions.push(`nc.tipo = $${idx++}`);
+      params.push(tipo);
+    }
+    if (search) {
+      conditions.push(`(nc.area ILIKE $${idx} OR nc.tipo ILIKE $${idx} OR nc.descripcion ILIKE $${idx})`);
+      params.push(`%${search}%`);
+      idx++;
+    }
+    if (start_date) {
+      conditions.push(`nc.fecha >= $${idx++}`);
+      params.push(start_date);
+    }
+    if (end_date) {
+      conditions.push(`nc.fecha <= $${idx++}`);
+      params.push(end_date);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) AS total FROM no_conformidades nc ${where}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].total, 10);
+
+    const pageNum  = Math.max(1, parseInt(page, 10) || 1);
+    const pageSize = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const offset   = (pageNum - 1) * pageSize;
+
+    const dataParams = [...params, pageSize, offset];
+    const { rows } = await pool.query(
+      `SELECT nc.*,
+         (SELECT COUNT(*) FROM capas WHERE origen_tipo='nc' AND origen_id=nc.id) AS cnt_capas
+       FROM no_conformidades nc
+       ${where}
+       ORDER BY nc.fecha DESC, nc.hora DESC
+       LIMIT $${idx++} OFFSET $${idx++}`,
+      dataParams
+    );
+
+    res.json({ data: rows, total, page: pageNum, pageSize });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/nc/:id', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT nc.*,
+         (SELECT COUNT(*) FROM capas WHERE origen_tipo='nc' AND origen_id=nc.id) AS cnt_capas
+       FROM no_conformidades nc WHERE nc.id = $1`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    res.json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/nc', auth, async (req, res) => {
   const { hora, area, tipo, descripcion, severidad, responsable, accion } = req.body;
-  const fecha         = new Date().toISOString().slice(0, 10);
+  const fecha          = new Date().toISOString().slice(0, 10);
   const registrado_por = req.session.usuario.nombre;
   try {
     const { rows } = await pool.query(
@@ -530,6 +633,21 @@ app.post('/api/nc', auth, async (req, res) => {
       [hora, area, tipo, descripcion, severidad,
        responsable || '—', accion || '—', registrado_por, fecha]
     );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/nc/:id', auth, async (req, res) => {
+  const { hora, area, tipo, descripcion, severidad, responsable, accion } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE no_conformidades
+       SET hora=$1, area=$2, tipo=$3, descripcion=$4, severidad=$5, responsable=$6, accion=$7
+       WHERE id=$8
+       RETURNING *`,
+      [hora, area, tipo, descripcion, severidad, responsable || '—', accion || '—', req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -555,24 +673,46 @@ app.delete('/api/nc/:id', auth, async (req, res) => {
 // ── RECEPCIONES ────────────────────────────────────────────────
 app.get('/api/recepciones', auth, async (req, res) => {
   try {
+    const { company, origen, estatus, page = 1, limit = 20 } = req.query;
+    const params  = [];
+    const filters = [];
+    if (company) { params.push(`%${company}%`);  filters.push(`company ILIKE $${params.length}`); }
+    if (origen)  { params.push(`%${origen}%`);   filters.push(`origen  ILIKE $${params.length}`); }
+    if (estatus && estatus !== 'Todas') { params.push(estatus); filters.push(`estatus = $${params.length}`); }
+    const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+
+    const countRow = await pool.query(`SELECT COUNT(*) FROM recepciones ${where}`, params);
+    const total    = parseInt(countRow.rows[0].count, 10);
+
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    params.push(parseInt(limit, 10), offset);
     const { rows } = await pool.query(
-      'SELECT * FROM recepciones ORDER BY fecha DESC, hora, id'
+      `SELECT * FROM recepciones ${where} ORDER BY fecha DESC, hora DESC, id DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
     );
-    res.json(rows);
+    res.json({ data: rows, total, page: parseInt(page, 10), limit: parseInt(limit, 10) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/recepciones/:id', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM recepciones WHERE id=$1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    res.json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/recepciones', auth, async (req, res) => {
-  const { hora, company, origen, cargo, unit_qty, pallet_qty, tipo, fecha: fechaBody } = req.body;
+  const { hora, company, origen, cargo, unit_qty, pallet_qty, tipo, estatus, fecha: fechaBody } = req.body;
   const fecha          = fechaBody || new Date().toISOString().slice(0, 10);
   const registrado_por = req.session.usuario.nombre;
   try {
     const { rows } = await pool.query(
       `INSERT INTO recepciones
          (hora, company, origen, cargo, unit_qty, pallet_qty, tipo, estatus, registrado_por, fecha)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'Confirmado',$8,$9)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        RETURNING *`,
-      [hora, company, origen, cargo, unit_qty || 0, pallet_qty || 0, tipo || 'Import', registrado_por, fecha]
+      [hora, company, origen, cargo, unit_qty || 0, pallet_qty || 0, tipo || 'Import', estatus || 'Confirmado', registrado_por, fecha]
     );
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -611,15 +751,48 @@ app.delete('/api/recepciones/:id', auth, async (req, res) => {
 // ── RECHAZOS EXTERNOS ─────────────────────────────────────────
 app.get('/api/rechazos-externos', auth, async (req, res) => {
   try {
+    const page    = Math.max(1, parseInt(req.query.page  || '1',  10));
+    const limit   = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
+    const offset  = (page - 1) * limit;
+    const estatus = req.query.estatus || '';
+    const search  = (req.query.search || '').trim();
+
+    const conditions = [];
+    const params     = [];
+
+    if (estatus) {
+      params.push(estatus);
+      conditions.push(`re.estatus = $${params.length}`);
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      const n = params.length;
+      conditions.push(`(re.return_order ILIKE $${n} OR re.license_plate ILIKE $${n} OR re.classification ILIKE $${n})`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countParams = [...params];
+    const { rows: countRows } = await pool.query(
+      `SELECT COUNT(*) AS total FROM rechazos_externos re ${where}`,
+      countParams
+    );
+    const total = parseInt(countRows[0].total, 10);
+
+    params.push(limit, offset);
     const { rows } = await pool.query(`
       SELECT re.*,
         (SELECT COUNT(*) FROM re_problem_descriptions WHERE rechazo_id = re.id) AS cnt_problemas,
         (SELECT COUNT(*) FROM re_corrective_actions   WHERE rechazo_id = re.id) AS cnt_acciones,
+        (SELECT COUNT(*) FROM re_images               WHERE rechazo_id = re.id) AS cnt_images,
         (SELECT COUNT(*) FROM capas WHERE origen_tipo='re' AND origen_id=re.id) AS cnt_capas
       FROM rechazos_externos re
+      ${where}
       ORDER BY re.created_at DESC
-    `);
-    res.json(rows);
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `, params);
+
+    res.json({ data: rows, total, page, limit });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -646,8 +819,10 @@ app.get('/api/rechazos-externos/:id', auth, async (req, res) => {
 app.post('/api/rechazos-externos', auth, async (req, res) => {
   const {
     return_order, license_plate, classification, inches, sales_channel,
-    sku, brand, plant_entry, plant_exit, total_time_minutes, outbound_order,
-    processed_by, registration_date, sale_price,
+    sku, brand, modelo = '', pulgada = '', descripcion = '',
+    plant_entry, plant_exit, total_time_minutes, outbound_order,
+    processed_by, registration_date, sale_price, estatus,
+    problems = [],
     problem_descriptions = [], corrective_actions = []
   } = req.body;
   const registrado_por = req.session.usuario.nombre;
@@ -657,16 +832,29 @@ app.post('/api/rechazos-externos', auth, async (req, res) => {
     const { rows } = await client.query(
       `INSERT INTO rechazos_externos
          (return_order, license_plate, classification, inches, sales_channel,
-          sku, brand, plant_entry, plant_exit, total_time_minutes,
-          outbound_order, processed_by, registration_date, sale_price, registrado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+          sku, brand, modelo, pulgada, descripcion,
+          plant_entry, plant_exit, total_time_minutes,
+          outbound_order, processed_by, registration_date, sale_price, estatus, registrado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        RETURNING *`,
       [return_order, license_plate, classification || '', inches || '', sales_channel || '',
-       sku || '', brand || '', plant_entry, plant_exit || null, total_time_minutes || null,
+       sku || '', brand || '', modelo, pulgada, descripcion,
+       plant_entry, plant_exit || null, total_time_minutes || null,
        outbound_order || '', processed_by || '', registration_date || null,
-       sale_price || null, registrado_por]
+       sale_price || null, estatus || 'Pendiente', registrado_por]
     );
     const id = rows[0].id;
+    for (let i = 0; i < problems.length; i++) {
+      const p = problems[i];
+      await client.query(
+        'INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)',
+        [id, i + 1, p.descripcion || '']
+      );
+      await client.query(
+        'INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)',
+        [id, 'General', i + 1, p.accion || '']
+      );
+    }
     for (const p of problem_descriptions) {
       await client.query(
         'INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)',
@@ -690,8 +878,10 @@ app.post('/api/rechazos-externos', auth, async (req, res) => {
 app.put('/api/rechazos-externos/:id', auth, async (req, res) => {
   const {
     return_order, license_plate, classification, inches, sales_channel,
-    sku, brand, plant_entry, plant_exit, total_time_minutes, outbound_order,
-    processed_by, registration_date, sale_price,
+    sku, brand, modelo = '', pulgada = '', descripcion = '',
+    plant_entry, plant_exit, total_time_minutes, outbound_order,
+    processed_by, registration_date, sale_price, estatus,
+    problems = [],
     problem_descriptions = [], corrective_actions = []
   } = req.body;
   const client = await pool.connect();
@@ -700,16 +890,29 @@ app.put('/api/rechazos-externos/:id', auth, async (req, res) => {
     const { rows } = await client.query(
       `UPDATE rechazos_externos SET
          return_order=$1, license_plate=$2, classification=$3, inches=$4, sales_channel=$5,
-         sku=$6, brand=$7, plant_entry=$8, plant_exit=$9, total_time_minutes=$10,
-         outbound_order=$11, processed_by=$12, registration_date=$13, sale_price=$14
-       WHERE id=$15 RETURNING *`,
+         sku=$6, brand=$7, modelo=$8, pulgada=$9, descripcion=$10,
+         plant_entry=$11, plant_exit=$12, total_time_minutes=$13,
+         outbound_order=$14, processed_by=$15, registration_date=$16, sale_price=$17, estatus=$18
+       WHERE id=$19 RETURNING *`,
       [return_order, license_plate, classification || '', inches || '', sales_channel || '',
-       sku || '', brand || '', plant_entry, plant_exit || null, total_time_minutes || null,
+       sku || '', brand || '', modelo, pulgada, descripcion,
+       plant_entry, plant_exit || null, total_time_minutes || null,
        outbound_order || '', processed_by || '', registration_date || null,
-       sale_price || null, req.params.id]
+       sale_price || null, estatus || 'Pendiente', req.params.id]
     );
     await client.query('DELETE FROM re_problem_descriptions WHERE rechazo_id=$1', [req.params.id]);
     await client.query('DELETE FROM re_corrective_actions WHERE rechazo_id=$1', [req.params.id]);
+    for (let i = 0; i < problems.length; i++) {
+      const p = problems[i];
+      await client.query(
+        'INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)',
+        [req.params.id, i + 1, p.descripcion || '']
+      );
+      await client.query(
+        'INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)',
+        [req.params.id, 'General', i + 1, p.accion || '']
+      );
+    }
     for (const p of problem_descriptions) {
       await client.query(
         'INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)',
@@ -946,13 +1149,44 @@ ${accsHtml}
 // ── RECHAZOS INTERNOS ─────────────────────────────────────────
 app.get('/api/rechazos-internos', auth, async (req, res) => {
   try {
+    const page   = Math.max(1, parseInt(req.query.page  || '1',  10));
+    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
+    const offset = (page - 1) * limit;
+    const search = (req.query.search || '').trim();
+    const estatus = (req.query.estatus || '').trim();
+
+    const conditions = [];
+    const params = [];
+
+    if (search) {
+      params.push(`%${search}%`);
+      conditions.push(`(ri.license_plate ILIKE $${params.length} OR ri.sku ILIKE $${params.length} OR ri.defecto ILIKE $${params.length})`);
+    }
+    if (estatus && estatus !== 'Todas') {
+      params.push(estatus);
+      conditions.push(`ri.estatus = $${params.length}`);
+    }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+
+    const countRes = await pool.query(
+      `SELECT COUNT(*) AS total FROM rechazos_internos ri ${where}`,
+      params
+    );
+    const total = parseInt(countRes.rows[0].total, 10);
+
+    params.push(limit);
+    params.push(offset);
     const { rows } = await pool.query(`
       SELECT ri.*,
         (SELECT COUNT(*) FROM ri_images WHERE rechazo_id = ri.id) AS cnt_images
       FROM rechazos_internos ri
+      ${where}
       ORDER BY ri.fecha_registro DESC, ri.created_at DESC
-    `);
-    res.json(rows);
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `, params);
+
+    res.json({ data: rows, total, page, limit });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -963,71 +1197,98 @@ app.get('/api/rechazos-internos/:id', auth, async (req, res) => {
       pool.query('SELECT * FROM ri_images WHERE rechazo_id=$1 ORDER BY id', [req.params.id]),
     ]);
     if (!rec.rows.length) return res.status(404).json({ error: 'No encontrado' });
-    res.json({ ...rec.rows[0], images: imgs.rows });
+    const images = imgs.rows.map(img => ({
+      id:       String(img.id),
+      filename: img.filename,
+      url:      `/uploads/rechazos-internos/${img.filename}`,
+    }));
+    res.json({ data: { ...rec.rows[0], images } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/rechazos-internos', auth, async (req, res) => {
   const { fecha_registro, license_plate, sku, marca, modelo, pulgada, descripcion,
-          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector } = req.body;
+          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector,
+          observaciones, firma_digital } = req.body;
   const registrado_por = req.session.usuario.nombre;
   try {
     const { rows } = await pool.query(
       `INSERT INTO rechazos_internos
          (fecha_registro, license_plate, sku, marca, modelo, pulgada, descripcion,
-          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector, registrado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector,
+          observaciones, firma_digital, registrado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
       [fecha_registro, license_plate, sku || '', marca || '', modelo || '', pulgada || '', descripcion || '',
        defecto, actividad_realizar || '', costo_no_calidad || 0,
-       origen_hallazgo || '', inspector || registrado_por, registrado_por]
+       origen_hallazgo || '', inspector || registrado_por,
+       observaciones || '', firma_digital || '', registrado_por]
     );
-    res.json(rows[0]);
+    res.json({ data: rows[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.put('/api/rechazos-internos/:id', auth, async (req, res) => {
   const { fecha_registro, license_plate, sku, marca, modelo, pulgada, descripcion,
-          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector } = req.body;
+          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector,
+          observaciones, firma_digital } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE rechazos_internos SET
          fecha_registro=$1, license_plate=$2, sku=$3, marca=$4, modelo=$5,
          pulgada=$6, descripcion=$7, defecto=$8, actividad_realizar=$9,
-         costo_no_calidad=$10, origen_hallazgo=$11, inspector=$12
-       WHERE id=$13 RETURNING *`,
+         costo_no_calidad=$10, origen_hallazgo=$11, inspector=$12,
+         observaciones=$13, firma_digital=$14
+       WHERE id=$15 RETURNING *`,
       [fecha_registro, license_plate, sku || '', marca || '', modelo || '', pulgada || '', descripcion || '',
        defecto, actividad_realizar || '', costo_no_calidad || 0,
-       origen_hallazgo || '', inspector || '', req.params.id]
+       origen_hallazgo || '', inspector || '', observaciones || '',
+       firma_digital || '', req.params.id]
     );
-    res.json(rows[0]);
+    res.json({ data: rows[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/rechazos-internos/:id/images', auth, uploadInt.array('images', 10), async (req, res) => {
   if (!req.files?.length) return res.status(400).json({ error: 'No se recibieron imágenes.' });
   try {
+    const inserted = [];
     for (const file of req.files) {
-      await pool.query(
-        'INSERT INTO ri_images (rechazo_id, filename) VALUES ($1,$2)',
+      const { rows } = await pool.query(
+        'INSERT INTO ri_images (rechazo_id, filename) VALUES ($1,$2) RETURNING *',
         [req.params.id, file.filename]
       );
+      inserted.push({
+        id:       String(rows[0].id),
+        filename: rows[0].filename,
+        url:      `/uploads/rechazos-internos/${rows[0].filename}`,
+      });
     }
-    res.json({ ok: true, count: req.files.length });
+    res.json({ ok: true, count: inserted.length, images: inserted });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/rechazos-internos/:id/firma', auth, uploadInt.single('firma'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió firma.' });
   try {
-    const { rows: [old] } = await pool.query(
-      'SELECT firma_filename FROM rechazos_internos WHERE id=$1', [req.params.id]
-    );
-    if (old?.firma_filename) fs.unlink(path.join(uploadsIntDir, old.firma_filename), () => {});
+    if (req.file) {
+      // Multipart file upload (legacy SPA)
+      const { rows: [old] } = await pool.query(
+        'SELECT firma_filename FROM rechazos_internos WHERE id=$1', [req.params.id]
+      );
+      if (old?.firma_filename) fs.unlink(path.join(uploadsIntDir, old.firma_filename), () => {});
+      await pool.query(
+        'UPDATE rechazos_internos SET firma_filename=$1 WHERE id=$2',
+        [req.file.filename, req.params.id]
+      );
+      return res.json({ firma_filename: req.file.filename });
+    }
+    // JSON base64 body (React SPA)
+    const { firma_digital } = req.body;
+    if (!firma_digital) return res.status(400).json({ error: 'No se recibió firma.' });
     await pool.query(
-      'UPDATE rechazos_internos SET firma_filename=$1 WHERE id=$2',
-      [req.file.filename, req.params.id]
+      'UPDATE rechazos_internos SET firma_digital=$1 WHERE id=$2',
+      [firma_digital, req.params.id]
     );
-    res.json({ firma_filename: req.file.filename });
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1090,10 +1351,51 @@ app.get('/api/catalogo-sku/:sku', auth, async (req, res) => {
 // ── AQL ───────────────────────────────────────────────────────
 app.get('/api/aql', auth, async (req, res) => {
   try {
+    const { estado, search, page = 1, limit = 20 } = req.query;
+    const conditions = [];
+    const params = [];
+    let idx = 1;
+
+    if (estado && estado !== 'Todas') {
+      conditions.push(`estado_aql = $${idx++}`);
+      params.push(estado);
+    }
+    if (search) {
+      conditions.push(`(order_id ILIKE $${idx} OR sku ILIKE $${idx} OR lote ILIKE $${idx})`);
+      params.push(`%${search}%`);
+      idx++;
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countRes = await pool.query(`SELECT COUNT(*) AS total FROM aql_registros ${where}`, params);
+    const total    = parseInt(countRes.rows[0].total, 10);
+
+    const pageNum  = Math.max(1, parseInt(page, 10) || 1);
+    const pageSize = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const offset   = (pageNum - 1) * pageSize;
+
+    const dataParams = [...params, pageSize, offset];
     const { rows } = await pool.query(
-      `SELECT * FROM aql_registros ORDER BY fecha_registro DESC, created_at DESC`
+      `SELECT * FROM aql_registros ${where} ORDER BY fecha_registro DESC, created_at DESC LIMIT $${idx++} OFFSET $${idx++}`,
+      dataParams
     );
-    res.json(rows);
+
+    // Counts for tabs
+    const [cAll, cAcep, cRech] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM aql_registros'),
+      pool.query("SELECT COUNT(*) FROM aql_registros WHERE estado_aql='Aceptado'"),
+      pool.query("SELECT COUNT(*) FROM aql_registros WHERE estado_aql='Rechazado'"),
+    ]);
+
+    res.json({
+      data: rows, total, page: pageNum, pageSize,
+      counts: {
+        todas:     parseInt(cAll.rows[0].count),
+        aceptado:  parseInt(cAcep.rows[0].count),
+        rechazado: parseInt(cRech.rows[0].count),
+      },
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1101,82 +1403,93 @@ app.get('/api/aql/:id', auth, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM aql_registros WHERE id=$1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
-    res.json(rows[0]);
+    const { rows: checklist } = await pool.query(
+      'SELECT * FROM aql_checklist WHERE aql_id=$1 ORDER BY item_number',
+      [req.params.id]
+    );
+    res.json({ ...rows[0], checklist });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/aql', auth, async (req, res) => {
   const u = req.session.usuario;
   const {
-    fecha_registro, license_plate, clasificacion, sku, marca, modelo, pulgada, descripcion,
-    accesorios_presentes, estado_accesorios, accesorios_defectos,
-    estado_bolsa, bolsa_defectos,
-    estado_audio, audio_defectos,
-    estado_video, video_defectos,
-    estado_fisico_pantalla, fisico_pantalla_defectos,
-    estado_limpieza, limpieza_defectos,
-    estado_aql, inspector,
+    fecha_registro, order_id, sku, marca, modelo, pulgada, descripcion,
+    lote, muestra_total, defectos_encontrados, observaciones, checklist,
+    // legacy fields kept for backward compat
+    license_plate, clasificacion,
   } = req.body;
+  const defectos = parseInt(defectos_encontrados) || 0;
+  const estado_aql = defectos === 0 ? 'Aceptado' : 'Rechazado';
+  const client = await pool.connect();
   try {
-    const { rows: [r] } = await pool.query(`
+    await client.query('BEGIN');
+    const { rows: [r] } = await client.query(`
       INSERT INTO aql_registros
-        (fecha_registro, license_plate, clasificacion, sku, marca, modelo, pulgada, descripcion,
-         accesorios_presentes, estado_accesorios, accesorios_defectos,
-         estado_bolsa, bolsa_defectos,
-         estado_audio, audio_defectos,
-         estado_video, video_defectos,
-         estado_fisico_pantalla, fisico_pantalla_defectos,
-         estado_limpieza, limpieza_defectos,
-         estado_aql, inspector, registrado_por)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+        (fecha_registro, order_id, license_plate, clasificacion, sku, marca, modelo, pulgada, descripcion,
+         lote, muestra_total, defectos_encontrados, observaciones, estado_aql, inspector, registrado_por)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING *`,
-      [fecha_registro, license_plate, clasificacion||'', sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
-       accesorios_presentes||'', estado_accesorios||'', accesorios_defectos||'',
-       estado_bolsa||'', bolsa_defectos||'',
-       estado_audio||'', audio_defectos||'',
-       estado_video||'', video_defectos||'',
-       estado_fisico_pantalla||'', fisico_pantalla_defectos||'',
-       estado_limpieza||'', limpieza_defectos||'',
-       estado_aql||'', inspector||u.nombre, u.nombre]
+      [fecha_registro,
+       order_id||'', license_plate||order_id||'', clasificacion||'',
+       sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
+       lote||'', parseInt(muestra_total)||0, defectos, observaciones||'',
+       estado_aql, u.nombre, u.nombre]
     );
-    res.json(r);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    if (Array.isArray(checklist)) {
+      for (const item of checklist) {
+        await client.query(
+          'INSERT INTO aql_checklist (aql_id, item_number, descripcion, estado) VALUES ($1,$2,$3,$4)',
+          [r.id, item.item_number, item.descripcion||'', item.estado||'pass']
+        );
+      }
+    }
+    await client.query('COMMIT');
+    const { rows: cl } = await pool.query('SELECT * FROM aql_checklist WHERE aql_id=$1 ORDER BY item_number', [r.id]);
+    res.status(201).json({ ...r, checklist: cl });
+  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
+  finally { client.release(); }
 });
 
 app.put('/api/aql/:id', auth, async (req, res) => {
   const {
-    fecha_registro, license_plate, clasificacion, sku, marca, modelo, pulgada, descripcion,
-    accesorios_presentes, estado_accesorios, accesorios_defectos,
-    estado_bolsa, bolsa_defectos,
-    estado_audio, audio_defectos,
-    estado_video, video_defectos,
-    estado_fisico_pantalla, fisico_pantalla_defectos,
-    estado_limpieza, limpieza_defectos,
-    estado_aql, inspector,
+    fecha_registro, order_id, sku, marca, modelo, pulgada, descripcion,
+    lote, muestra_total, defectos_encontrados, observaciones, checklist,
+    license_plate, clasificacion,
   } = req.body;
+  const defectos = parseInt(defectos_encontrados) || 0;
+  const estado_aql = defectos === 0 ? 'Aceptado' : 'Rechazado';
+  const cid = req.params.id;
+  const client = await pool.connect();
   try {
-    const { rows: [r] } = await pool.query(`
+    await client.query('BEGIN');
+    const { rows: [r] } = await client.query(`
       UPDATE aql_registros SET
-        fecha_registro=$1, license_plate=$2, clasificacion=$3, sku=$4, marca=$5, modelo=$6,
-        pulgada=$7, descripcion=$8, accesorios_presentes=$9, estado_accesorios=$10,
-        accesorios_defectos=$11, estado_bolsa=$12, bolsa_defectos=$13,
-        estado_audio=$14, audio_defectos=$15,
-        estado_video=$16, video_defectos=$17,
-        estado_fisico_pantalla=$18, fisico_pantalla_defectos=$19,
-        estado_limpieza=$20, limpieza_defectos=$21,
-        estado_aql=$22, inspector=$23
-      WHERE id=$24 RETURNING *`,
-      [fecha_registro, license_plate, clasificacion||'', sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
-       accesorios_presentes||'', estado_accesorios||'', accesorios_defectos||'',
-       estado_bolsa||'', bolsa_defectos||'',
-       estado_audio||'', audio_defectos||'',
-       estado_video||'', video_defectos||'',
-       estado_fisico_pantalla||'', fisico_pantalla_defectos||'',
-       estado_limpieza||'', limpieza_defectos||'',
-       estado_aql||'', inspector||'', req.params.id]
+        fecha_registro=$1, order_id=$2, license_plate=$3, clasificacion=$4,
+        sku=$5, marca=$6, modelo=$7, pulgada=$8, descripcion=$9,
+        lote=$10, muestra_total=$11, defectos_encontrados=$12, observaciones=$13, estado_aql=$14
+      WHERE id=$15 RETURNING *`,
+      [fecha_registro,
+       order_id||'', license_plate||order_id||'', clasificacion||'',
+       sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
+       lote||'', parseInt(muestra_total)||0, defectos, observaciones||'',
+       estado_aql, cid]
     );
-    res.json(r);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    if (!r) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'No encontrado' }); }
+    await client.query('DELETE FROM aql_checklist WHERE aql_id=$1', [cid]);
+    if (Array.isArray(checklist)) {
+      for (const item of checklist) {
+        await client.query(
+          'INSERT INTO aql_checklist (aql_id, item_number, descripcion, estado) VALUES ($1,$2,$3,$4)',
+          [cid, item.item_number, item.descripcion||'', item.estado||'pass']
+        );
+      }
+    }
+    await client.query('COMMIT');
+    const { rows: cl } = await pool.query('SELECT * FROM aql_checklist WHERE aql_id=$1 ORDER BY item_number', [cid]);
+    res.json({ ...r, checklist: cl });
+  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
+  finally { client.release(); }
 });
 
 app.post('/api/aql/:id/foto-lpn', auth, uploadAql.single('foto'), async (req, res) => {
@@ -1204,24 +1517,50 @@ app.delete('/api/aql/:id', auth, async (req, res) => {
     const { rows: [rec] } = await pool.query('SELECT foto_lpn_filename, foto_pantalla_filename FROM aql_registros WHERE id=$1', [req.params.id]);
     if (rec?.foto_lpn_filename)      fs.unlink(path.join(uploadsAqlDir, rec.foto_lpn_filename),      () => {});
     if (rec?.foto_pantalla_filename) fs.unlink(path.join(uploadsAqlDir, rec.foto_pantalla_filename), () => {});
+    await pool.query('DELETE FROM aql_checklist WHERE aql_id=$1', [req.params.id]);
     await pool.query('DELETE FROM aql_registros WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── CAPAS (Acciones Correctivas) ──────────────────────────────
+// ── CAPAS (Acciones Correctivas y Preventivas) ────────────────
 app.get('/api/capas', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT c.*,
-        CASE c.origen_tipo
-          WHEN 'nc' THEN (SELECT CONCAT('NC — ', area, ' / ', tipo) FROM no_conformidades WHERE id = c.origen_id)
-          WHEN 're' THEN (SELECT CONCAT('RE — ', license_plate)     FROM rechazos_externos  WHERE id = c.origen_id)
-        END AS origen_ref
-      FROM capas c
-      ORDER BY c.created_at DESC
-    `);
-    res.json(rows);
+    const { busqueda = '', estatus = '', tipo = '', page = '1', limit = '20' } = req.query;
+    const pageN  = Math.max(1, parseInt(page)  || 1);
+    const limitN = Math.min(100, parseInt(limit) || 20);
+    const offset = (pageN - 1) * limitN;
+    const conds = []; const vals = []; let idx = 1;
+    if (estatus) { conds.push(`c.estatus = $${idx++}`); vals.push(estatus); }
+    if (tipo)    { conds.push(`COALESCE(c.tipo,'Correctiva') = $${idx++}`); vals.push(tipo); }
+    if (busqueda.trim()) {
+      const q = `%${busqueda.trim()}%`;
+      conds.push(`(c.descripcion_problema ILIKE $${idx} OR c.responsable ILIKE $${idx} OR c.titulo ILIKE $${idx})`);
+      vals.push(q); idx++;
+    }
+    const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+    const [rowsRes, countRes] = await Promise.all([
+      pool.query(
+        `SELECT c.*, COALESCE(c.tipo,'Correctiva') AS tipo FROM capas c ${where}
+         ORDER BY c.created_at DESC LIMIT $${idx} OFFSET $${idx+1}`,
+        [...vals, limitN, offset]
+      ),
+      pool.query(`SELECT COUNT(*) AS total FROM capas c ${where}`, vals),
+    ]);
+    res.json({ rows: rowsRes.rows, total: parseInt(countRes.rows[0].total), page: pageN, limit: limitN });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/capas/conteos', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`SELECT estatus, COUNT(*) AS cnt FROM capas GROUP BY estatus`);
+    const map = { total: 0, Abierta: 0, 'En Progreso': 0, Cerrada: 0 };
+    rows.forEach(r => {
+      const k = r.estatus === 'En proceso' ? 'En Progreso' : r.estatus;
+      map[k] = (map[k] || 0) + parseInt(r.cnt);
+      map.total += parseInt(r.cnt);
+    });
+    res.json(map);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1229,13 +1568,8 @@ app.get('/api/capas/:id', auth, async (req, res) => {
   try {
     const id = req.params.id;
     const [resCapa, resPorques, resIshikawa, resAcciones] = await Promise.all([
-      pool.query(`SELECT c.*,
-        CASE c.origen_tipo
-          WHEN 'nc' THEN (SELECT CONCAT('NC — ', area, ' / ', tipo) FROM no_conformidades WHERE id = c.origen_id)
-          WHEN 're' THEN (SELECT CONCAT('RE — ', license_plate)     FROM rechazos_externos  WHERE id = c.origen_id)
-        END AS origen_ref
-        FROM capas c WHERE c.id=$1`, [id]),
-      pool.query('SELECT * FROM capa_5porques  WHERE capa_id=$1 ORDER BY orden', [id]),
+      pool.query(`SELECT c.*, COALESCE(c.tipo,'Correctiva') AS tipo FROM capas c WHERE c.id=$1`, [id]),
+      pool.query('SELECT * FROM capa_5porques WHERE capa_id=$1 ORDER BY orden', [id]),
       pool.query('SELECT * FROM capa_ishikawa  WHERE capa_id=$1', [id]),
       pool.query('SELECT * FROM capa_acciones  WHERE capa_id=$1 ORDER BY id', [id]),
     ]);
@@ -1245,41 +1579,35 @@ app.get('/api/capas/:id', auth, async (req, res) => {
 });
 
 app.post('/api/capas', auth, async (req, res) => {
-  const { origen_tipo, origen_id, titulo, descripcion_problema, metodo_analisis,
-          responsable, fecha_apertura, fecha_compromiso, porques, ishikawa, acciones } = req.body;
+  const { tipo = 'Correctiva', descripcion, responsable, fecha_limite, estatus = 'Abierta',
+          metodo_analisis = '5porques', porques = [], ishikawa = {} } = req.body;
   const registrado_por = req.session.usuario.nombre;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows: [capa] } = await client.query(
-      `INSERT INTO capas (origen_tipo,origen_id,titulo,descripcion_problema,metodo_analisis,
-         responsable,fecha_apertura,fecha_compromiso,registrado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-      [origen_tipo, origen_id, titulo, descripcion_problema, metodo_analisis,
-       responsable, fecha_apertura, fecha_compromiso || null, registrado_por]
+      `INSERT INTO capas (tipo, titulo, descripcion_problema, metodo_analisis,
+         responsable, fecha_apertura, fecha_compromiso, estatus, registrado_por, origen_tipo, origen_id)
+       VALUES ($1,$2,$3,$4,$5,CURRENT_DATE,$6,$7,$8,'manual',0) RETURNING id`,
+      [tipo, (descripcion||'').slice(0,80), descripcion||'', metodo_analisis,
+       responsable||'', fecha_limite||null, estatus, registrado_por]
     );
     const cid = capa.id;
     if (metodo_analisis === '5porques' && Array.isArray(porques)) {
       for (const p of porques) {
-        await client.query('INSERT INTO capa_5porques (capa_id,orden,respuesta) VALUES ($1,$2,$3)',
-          [cid, p.orden, p.respuesta || '']);
-      }
-    }
-    if (metodo_analisis === 'ishikawa' && Array.isArray(ishikawa)) {
-      for (const c of ishikawa) {
-        if (c.causa && c.causa.trim()) {
-          await client.query('INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)',
-            [cid, c.categoria, c.causa]);
-        }
-      }
-    }
-    if (Array.isArray(acciones)) {
-      for (const a of acciones) {
-        if (a.accion && a.accion.trim()) {
+        if ((p.pregunta||'').trim() || (p.respuesta||'').trim())
           await client.query(
-            'INSERT INTO capa_acciones (capa_id,accion,responsable,fecha_compromiso,estatus) VALUES ($1,$2,$3,$4,$5)',
-            [cid, a.accion, a.responsable || '', a.fecha_compromiso || null, a.estatus || 'Pendiente']);
-        }
+            'INSERT INTO capa_5porques (capa_id,orden,pregunta,respuesta) VALUES ($1,$2,$3,$4)',
+            [cid, p.nivel||p.orden||1, p.pregunta||'', p.respuesta||'']);
+      }
+    }
+    if (metodo_analisis === 'ishikawa') {
+      const cats = ['hombre','maquina','metodo','material','medicion','medio_ambiente'];
+      const src = Array.isArray(ishikawa) ? {} : (ishikawa || {});
+      for (const cat of cats) {
+        const val = (src[cat] || '').trim();
+        if (val) await client.query(
+          'INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)', [cid, cat, val]);
       }
     }
     await client.query('COMMIT');
@@ -1289,42 +1617,35 @@ app.post('/api/capas', auth, async (req, res) => {
 });
 
 app.put('/api/capas/:id', auth, async (req, res) => {
-  const { titulo, descripcion_problema, metodo_analisis, responsable,
-          fecha_apertura, fecha_compromiso, porques, ishikawa, acciones } = req.body;
+  const { tipo, descripcion, responsable, fecha_limite, estatus,
+          metodo_analisis = '5porques', porques = [], ishikawa = {} } = req.body;
   const cid = req.params.id;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     await client.query(
-      `UPDATE capas SET titulo=$1,descripcion_problema=$2,metodo_analisis=$3,responsable=$4,
-         fecha_apertura=$5,fecha_compromiso=$6 WHERE id=$7`,
-      [titulo, descripcion_problema, metodo_analisis, responsable,
-       fecha_apertura, fecha_compromiso || null, cid]
+      `UPDATE capas SET tipo=$1, titulo=$2, descripcion_problema=$3, metodo_analisis=$4,
+         responsable=$5, fecha_compromiso=$6, estatus=$7 WHERE id=$8`,
+      [tipo||'Correctiva', (descripcion||'').slice(0,80), descripcion||'', metodo_analisis,
+       responsable||'', fecha_limite||null, estatus||'Abierta', cid]
     );
     await client.query('DELETE FROM capa_5porques WHERE capa_id=$1', [cid]);
     await client.query('DELETE FROM capa_ishikawa  WHERE capa_id=$1', [cid]);
-    await client.query('DELETE FROM capa_acciones  WHERE capa_id=$1', [cid]);
     if (metodo_analisis === '5porques' && Array.isArray(porques)) {
       for (const p of porques) {
-        await client.query('INSERT INTO capa_5porques (capa_id,orden,respuesta) VALUES ($1,$2,$3)',
-          [cid, p.orden, p.respuesta || '']);
-      }
-    }
-    if (metodo_analisis === 'ishikawa' && Array.isArray(ishikawa)) {
-      for (const c of ishikawa) {
-        if (c.causa && c.causa.trim()) {
-          await client.query('INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)',
-            [cid, c.categoria, c.causa]);
-        }
-      }
-    }
-    if (Array.isArray(acciones)) {
-      for (const a of acciones) {
-        if (a.accion && a.accion.trim()) {
+        if ((p.pregunta||'').trim() || (p.respuesta||'').trim())
           await client.query(
-            'INSERT INTO capa_acciones (capa_id,accion,responsable,fecha_compromiso,estatus) VALUES ($1,$2,$3,$4,$5)',
-            [cid, a.accion, a.responsable || '', a.fecha_compromiso || null, a.estatus || 'Pendiente']);
-        }
+            'INSERT INTO capa_5porques (capa_id,orden,pregunta,respuesta) VALUES ($1,$2,$3,$4)',
+            [cid, p.nivel||p.orden||1, p.pregunta||'', p.respuesta||'']);
+      }
+    }
+    if (metodo_analisis === 'ishikawa') {
+      const cats = ['hombre','maquina','metodo','material','medicion','medio_ambiente'];
+      const src = Array.isArray(ishikawa) ? {} : (ishikawa || {});
+      for (const cat of cats) {
+        const val = (src[cat] || '').trim();
+        if (val) await client.query(
+          'INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)', [cid, cat, val]);
       }
     }
     await client.query('COMMIT');
@@ -1340,9 +1661,35 @@ app.patch('/api/capas/:id/estatus', auth, async (req, res) => {
     await pool.query(
       `UPDATE capas SET estatus=$1, verificado_por=COALESCE($2,verificado_por),
          observaciones=COALESCE($3,observaciones),
-         fecha_cierre=CASE WHEN $1='Cerrada' THEN $4::date ELSE fecha_cierre END
-       WHERE id=$5`,
-      [estatus, verificado_por || null, observaciones || null, fechaCierre, req.params.id]
+         fecha_cierre=CASE WHEN $1='Cerrada' THEN $4::date ELSE fecha_cierre END WHERE id=$5`,
+      [estatus, verificado_por||null, observaciones||null, fechaCierre, req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Acciones de seguimiento individuales
+app.post('/api/capas/:id/acciones', auth, async (req, res) => {
+  const { descripcion, responsable, fecha_limite, estatus = 'Abierta' } = req.body;
+  if (!(descripcion||'').trim()) return res.status(400).json({ error: 'Descripcion requerida' });
+  try {
+    const { rows: [a] } = await pool.query(
+      `INSERT INTO capa_acciones (capa_id,accion,descripcion,responsable,fecha_compromiso,estatus)
+       VALUES ($1,$2,$2,$3,$4,$5) RETURNING *`,
+      [req.params.id, descripcion.trim(), responsable||'', fecha_limite||null, estatus]
+    );
+    res.status(201).json(a);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/capas/:id/acciones/:aid', auth, async (req, res) => {
+  const { descripcion, responsable, fecha_limite, estatus } = req.body;
+  try {
+    await pool.query(
+      `UPDATE capa_acciones SET accion=$1,descripcion=$1,responsable=$2,fecha_compromiso=$3,estatus=$4
+       WHERE id=$5 AND capa_id=$6`,
+      [descripcion||'', responsable||'', fecha_limite||null, estatus||'Abierta',
+       req.params.aid, req.params.id]
     );
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1353,6 +1700,14 @@ app.patch('/api/capas/:id/acciones/:aid', auth, async (req, res) => {
   try {
     await pool.query('UPDATE capa_acciones SET estatus=$1 WHERE id=$2 AND capa_id=$3',
       [estatus, req.params.aid, req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/capas/:id/acciones/:aid', auth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM capa_acciones WHERE id=$1 AND capa_id=$2',
+      [req.params.aid, req.params.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1559,11 +1914,11 @@ app.put('/api/calendario/:id', auth, async (req, res) => {
 });
 
 app.patch('/api/calendario/:id/estatus', auth, async (req, res) => {
-  const { estatus, observaciones } = req.body;
+  const { estatus, observaciones, motivo_rechazo } = req.body;
   try {
     const { rows } = await pool.query(
-      `UPDATE calendario_solicitudes SET estatus=$1, observaciones=$2, aprobado_por=$3 WHERE id=$4 RETURNING *`,
-      [estatus, observaciones||'', req.session.usuario?.nombre||'', req.params.id]
+      `UPDATE calendario_solicitudes SET estatus=$1, observaciones=$2, aprobado_por=$3, motivo_rechazo=$4 WHERE id=$5 RETURNING *`,
+      [estatus, observaciones||'', req.session.usuario?.nombre||'', motivo_rechazo||'', req.params.id]
     );
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1623,6 +1978,19 @@ app.post('/api/calendario/saldo', auth, async (req, res) => {
        RETURNING *`,
       [colaborador_id, anio, dias_asignados]
     );
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/calendario/:id', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT cs.*, oq.nombre_completo, oq.area, oq.puesto
+      FROM calendario_solicitudes cs
+      JOIN organigrama_qc oq ON cs.colaborador_id = oq.id
+      WHERE cs.id = $1
+    `, [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1707,12 +2075,51 @@ app.delete('/api/usuarios/:id', auth, admin, async (req, res) => {
 });
 
 // ── LIBERACIÓN SHIPPING ───────────────────────────────────────
+
+// Helper: normalise a raw DB row into the client-expected shape
+function _normalizeLsRow(r) {
+  if (!r) return r;
+  r.fotos = {
+    contenedor_vacio:   r.foto_contenedor_vacio   || '',
+    contenedor_cargado: r.foto_contenedor_cargado || '',
+    caja_sellada:       r.foto_caja_sellada       || '',
+    placas:             r.foto_placas             || '',
+    manifiesto:         r.foto_manifiesto         || '',
+  };
+  return r;
+}
+
 app.get('/api/liberacion-shipping', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT * FROM liberacion_shipping ORDER BY fecha DESC, created_at DESC`
-    );
-    res.json(rows);
+    const { q, estatus, page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const params = [];
+    const conds  = [];
+
+    if (q) {
+      params.push(`%${q}%`);
+      conds.push(`(order_id ILIKE $${params.length} OR destino ILIKE $${params.length})`);
+    }
+    if (estatus && estatus !== 'Todas') {
+      params.push(estatus);
+      conds.push(`estatus = $${params.length}`);
+    }
+
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+    const countSql = `SELECT COUNT(*) FROM liberacion_shipping ${where}`;
+    const dataSql  = `SELECT * FROM liberacion_shipping ${where} ORDER BY fecha DESC, created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+    const [countRes, dataRes] = await Promise.all([
+      pool.query(countSql, params),
+      pool.query(dataSql,  [...params, parseInt(limit), offset]),
+    ]);
+
+    res.json({
+      data:  dataRes.rows.map(_normalizeLsRow),
+      total: parseInt(countRes.rows[0].count),
+      page:  parseInt(page),
+      limit: parseInt(limit),
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1720,66 +2127,73 @@ app.get('/api/liberacion-shipping/:id', auth, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM liberacion_shipping WHERE id=$1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
-    res.json(rows[0]);
+    res.json(_normalizeLsRow(rows[0]));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/liberacion-shipping', auth, async (req, res) => {
   const u = req.session.usuario;
   const {
-    fecha, numero_orden, hora_inicio, hora_fin,
-    destino, tipo_envio, tipo_orden, paqueteria,
-    numero_contenedor, numero_sello, cantidad_pallets,
-    cantidad_manifiesto, cantidad_fisica, estado, cantidad_diferencia,
-    resultado_inspeccion, inspector, estatus_carga, comentarios,
+    fecha, order_id, destino, referencia,
+    sku, marca, modelo, pulgada, descripcion,
+    numero_contenedor, tipo_contenedor, peso_total, volumen_cubico,
+    bill_of_lading, pro_number, purchase_order,
+    observaciones, estatus,
   } = req.body;
   try {
     const { rows: [r] } = await pool.query(`
       INSERT INTO liberacion_shipping
-        (fecha, numero_orden, hora_inicio, hora_fin,
-         destino, tipo_envio, tipo_orden, paqueteria,
-         numero_contenedor, numero_sello, cantidad_pallets,
-         cantidad_manifiesto, cantidad_fisica, estado, cantidad_diferencia,
-         resultado_inspeccion, inspector, estatus_carga, comentarios, registrado_por)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+        (fecha, order_id, destino, referencia,
+         sku, marca, modelo, pulgada, descripcion,
+         numero_contenedor, tipo_contenedor, peso_total, volumen_cubico,
+         bill_of_lading, pro_number, purchase_order,
+         observaciones, estatus, registrado_por)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
       RETURNING *`,
-      [fecha, numero_orden||'', hora_inicio||'00:00', hora_fin||'00:00',
-       destino||'', tipo_envio||'', tipo_orden||'', paqueteria||'',
-       numero_contenedor||'', numero_sello||'', parseInt(cantidad_pallets)||0,
-       parseInt(cantidad_manifiesto)||0, parseInt(cantidad_fisica)||0,
-       estado||'', parseInt(cantidad_diferencia)||0,
-       resultado_inspeccion||'', inspector||u.nombre, estatus_carga||'', comentarios||'', u.nombre]
+      [
+        fecha, order_id||'', destino||'', referencia||null,
+        sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
+        numero_contenedor||'', tipo_contenedor||'',
+        peso_total != null ? parseFloat(peso_total) : null,
+        volumen_cubico != null ? parseFloat(volumen_cubico) : null,
+        bill_of_lading||null, pro_number||null, purchase_order||null,
+        observaciones||null, estatus||'Programado', u.nombre,
+      ]
     );
-    res.json(r);
+    res.status(201).json(_normalizeLsRow(r));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.put('/api/liberacion-shipping/:id', auth, async (req, res) => {
   const {
-    fecha, numero_orden, hora_inicio, hora_fin,
-    destino, tipo_envio, tipo_orden, paqueteria,
-    numero_contenedor, numero_sello, cantidad_pallets,
-    cantidad_manifiesto, cantidad_fisica, estado, cantidad_diferencia,
-    resultado_inspeccion, inspector, estatus_carga, comentarios,
+    fecha, order_id, destino, referencia,
+    sku, marca, modelo, pulgada, descripcion,
+    numero_contenedor, tipo_contenedor, peso_total, volumen_cubico,
+    bill_of_lading, pro_number, purchase_order,
+    observaciones, estatus,
   } = req.body;
   try {
     const { rows: [r] } = await pool.query(`
       UPDATE liberacion_shipping SET
-        fecha=$1, numero_orden=$2, hora_inicio=$3, hora_fin=$4,
-        destino=$5, tipo_envio=$6, tipo_orden=$7, paqueteria=$8,
-        numero_contenedor=$9, numero_sello=$10, cantidad_pallets=$11,
-        cantidad_manifiesto=$12, cantidad_fisica=$13, estado=$14, cantidad_diferencia=$15,
-        resultado_inspeccion=$16, inspector=$17, estatus_carga=$18, comentarios=$19
-      WHERE id=$20 RETURNING *`,
-      [fecha, numero_orden||'', hora_inicio||'00:00', hora_fin||'00:00',
-       destino||'', tipo_envio||'', tipo_orden||'', paqueteria||'',
-       numero_contenedor||'', numero_sello||'', parseInt(cantidad_pallets)||0,
-       parseInt(cantidad_manifiesto)||0, parseInt(cantidad_fisica)||0,
-       estado||'', parseInt(cantidad_diferencia)||0,
-       resultado_inspeccion||'', inspector||'', estatus_carga||'', comentarios||'',
-       req.params.id]
+        fecha=$1, order_id=$2, destino=$3, referencia=$4,
+        sku=$5, marca=$6, modelo=$7, pulgada=$8, descripcion=$9,
+        numero_contenedor=$10, tipo_contenedor=$11, peso_total=$12, volumen_cubico=$13,
+        bill_of_lading=$14, pro_number=$15, purchase_order=$16,
+        observaciones=$17, estatus=$18
+      WHERE id=$19 RETURNING *`,
+      [
+        fecha, order_id||'', destino||'', referencia||null,
+        sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
+        numero_contenedor||'', tipo_contenedor||'',
+        peso_total != null ? parseFloat(peso_total) : null,
+        volumen_cubico != null ? parseFloat(volumen_cubico) : null,
+        bill_of_lading||null, pro_number||null, purchase_order||null,
+        observaciones||null, estatus||'Programado',
+        req.params.id,
+      ]
     );
-    res.json(r);
+    if (!r) return res.status(404).json({ error: 'No encontrado' });
+    res.json(_normalizeLsRow(r));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

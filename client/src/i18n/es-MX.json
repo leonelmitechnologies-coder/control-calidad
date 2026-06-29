@@ -35,5 +35,458 @@
   "layout": {
     "menu": "Menú",
     "language": "Idioma"
+  },
+  "notify": {
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia"
+  },
+  "confirm": {
+    "title": "Confirmar",
+    "delete_confirm": "¿Estás seguro de que deseas eliminar?",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "sku": {
+    "search": "Buscar SKU",
+    "notfound": "Sin resultados"
+  },
+  "signature": {
+    "draw": "Firma",
+    "clear": "Limpiar Firma",
+    "required": "Se requiere firma"
+  },
+  "upload": {
+    "select_photos": "Seleccionar Fotos",
+    "max_files": "Máximo {{count}} archivos",
+    "file_too_large": "Archivo demasiado grande",
+    "delete": "Eliminar",
+    "drag_drop": "O arrastra archivos aquí"
+  },
+  "forms": {
+    "required_field": "Campo requerido",
+    "invalid_email": "Email inválido",
+    "invalid_phone": "Teléfono inválido",
+    "invalid_date": "Fecha inválida"
+  },
+  "recepciones": {
+    "title": "Recepciones",
+    "add": "Agregar Recepción",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "view": "Ver",
+    "detail_title": "Detalle Recepción",
+    "registered_by": "Registrado por {{name}} el {{date}}",
+    "search_placeholder": "Buscar por Company u Origen…",
+    "status_tabs": {
+      "todas": "Todas",
+      "confirmado": "Confirmado",
+      "pendiente": "Pendiente",
+      "rechazado": "Rechazado"
+    },
+    "tipos": {
+      "import": "Importación",
+      "export": "Exportación"
+    },
+    "cargos": {
+      "electronica": "Electrónica",
+      "accesorios": "Accesorios",
+      "embalaje": "Embalaje",
+      "otros": "Otros"
+    },
+    "estatus_full": {
+      "confirmado": "Confirmado",
+      "pendiente": "Pendiente",
+      "rechazado": "Rechazado",
+      "en_descarga": "En Descarga",
+      "descargado": "Descargado"
+    },
+    "actions": {
+      "marcar_en_descarga": "Marcar en Descarga",
+      "marcar_descargado": "Marcar Descargado",
+      "marcar_rechazado": "Marcar Rechazado"
+    },
+    "form": {
+      "edit_title": "Editar Recepción",
+      "section_general": "Información General",
+      "section_carga": "Carga",
+      "section_logistica": "Logística",
+      "section_auditoria": "Auditoría",
+      "fecha": "Fecha",
+      "hora": "Hora",
+      "company": "Company",
+      "origen": "Origen",
+      "cargo": "Cargo",
+      "unit_qty": "Cantidad de Unidades",
+      "pallet_qty": "Cantidad de Pallets",
+      "tipo": "Tipo",
+      "estatus": "Estatus",
+      "registrado_por": "Registrado Por",
+      "fecha_actualizado": "Última Actualización",
+      "update": "Actualizar"
+    }
+  },
+  "nc": {
+    "title": "No Conformidades",
+    "add": "Agregar NC",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "view": "Ver",
+    "status_tabs": {
+      "todas": "Todas",
+      "abierta": "Abierta",
+      "en_progreso": "En Progreso",
+      "cerrada": "Cerrada",
+      "rechazada": "Rechazada"
+    },
+    "severities": {
+      "critica": "Crítica",
+      "mayor": "Mayor",
+      "menor": "Menor"
+    },
+    "areas": {
+      "recepcion": "Recepción",
+      "almacen": "Almacén",
+      "inspeccion": "Inspección",
+      "expedicion": "Expedición",
+      "otros": "Otros"
+    },
+    "tipos": {
+      "defecto": "Defecto",
+      "proceso": "Proceso",
+      "documentacion": "Documentación"
+    },
+    "form": {
+      "hora": "Hora",
+      "area": "Área",
+      "tipo": "Tipo",
+      "descripcion": "Descripción",
+      "severidad": "Severidad",
+      "responsable": "Responsable",
+      "accion": "Acción",
+      "registrado_por": "Registrado Por",
+      "fecha": "Fecha"
+    },
+    "detail": {
+      "title": "Detalle NC",
+      "created_by": "Registrado por {{name}} el {{date}}",
+      "close": "Cerrar"
+    }
+  },
+  "rechazos_internos": {
+    "title": "Rechazos Internos",
+    "add": "Agregar Rechazo",
+    "form": {
+      "fecha_registro": "Fecha de Registro",
+      "license_plate": "Placa (License Plate)",
+      "sku": "SKU",
+      "marca": "Marca",
+      "modelo": "Modelo",
+      "pulgada": "Pulgada",
+      "descripcion": "Descripción",
+      "defecto": "Defecto",
+      "actividad_realizar": "Actividad a Realizar",
+      "costo_no_calidad": "Costo de No Calidad (MXN)",
+      "manual_override": "Anular COPQ Manual",
+      "origen_hallazgo": "Origen del Hallazgo",
+      "inspector": "Inspector",
+      "observaciones": "Observaciones",
+      "firma_digital": "Firma Digital",
+      "limpiar_firma": "Limpiar Firma",
+      "firma_requerida": "Se requiere firma digital",
+      "fotos": "Fotos (Máx 5)"
+    },
+    "defectos": {
+      "duplicado": "Duplicado",
+      "pulgada_incorrecta": "Pulgada Incorrecta",
+      "clasificacion_incorrecta": "Clasificación Incorrecta",
+      "marca_incorrecta": "Marca Incorrecta",
+      "pantalla_caida": "Pantalla Caida",
+      "etiqueta_quemada": "Etiqueta Quemada",
+      "sin_etiqueta": "Sin Etiqueta",
+      "falta_tape": "Falta de Tape",
+      "falta_limpieza": "Falta de Limpieza en Caja",
+      "tv_con_salida": "Tv con Salida",
+      "modelo_incorrecto": "Modelo Incorrecto"
+    },
+    "table": {
+      "fecha": "Fecha",
+      "license_plate": "Placa",
+      "sku": "SKU",
+      "defecto": "Defecto",
+      "actividad": "Actividad",
+      "copq": "COPQ (MXN)",
+      "origen": "Origen",
+      "inspector": "Inspector",
+      "fotos": "Fotos",
+      "firma": "Firma",
+      "status": "Estatus"
+    },
+    "copq": {
+      "auto_filled": "Auto-llenado desde COPQ",
+      "mapping_display": "Defecto: {{defecto}} → Actividad: {{actividad}} → Costo: {{costo}}",
+      "manual_mode": "Modo Manual"
+    }
+  },
+  "rechazos_externos": {
+    "title": "Rechazos Externos",
+    "add": "Agregar Rechazo",
+    "search_placeholder": "Buscar por Devolución, Placa o Clasificación…",
+    "status_tabs": {
+      "todas": "Todas",
+      "aceptado": "Aceptado",
+      "pendiente": "Pendiente",
+      "rechazado": "Rechazado"
+    },
+    "actions": {
+      "view":   "Ver",
+      "edit":   "Editar",
+      "delete": "Eliminar"
+    },
+    "table": {
+      "fecha":          "Fecha",
+      "return_order":   "Devolución",
+      "license_plate":  "Placa",
+      "classification": "Clasificación",
+      "sku":            "SKU",
+      "brand":          "Marca",
+      "sale_price":     "Precio",
+      "processed_by":   "Procesado Por",
+      "photos":         "Fotos",
+      "status":         "Estatus",
+      "empty":          "Sin registros"
+    },
+    "form": {
+      "edit_title":       "Editar Rechazo Externo",
+      "section_base":     "Información Base",
+      "section_product":  "Producto / SKU",
+      "section_plant":    "Tiempos en Planta",
+      "section_order":    "Información de Orden",
+      "section_pricing":  "Precios y Estatus",
+      "section_problems": "Problemas y Acciones Correctivas",
+      "section_photos":   "Fotos",
+      "return_order":      "Número de Devolución",
+      "license_plate":     "Placa (License Plate)",
+      "classification":    "Clasificación",
+      "inches":            "Pulgadas",
+      "sales_channel":     "Canal de Venta",
+      "sku":               "SKU",
+      "brand":             "Marca",
+      "modelo":            "Modelo",
+      "pulgada":           "Pulgada",
+      "descripcion":       "Descripción",
+      "plant_entry":       "Entrada en Planta",
+      "plant_exit":        "Salida de Planta",
+      "total_time":        "Tiempo Total (minutos)",
+      "outbound_order":    "Orden de Salida",
+      "processed_by":      "Procesado Por",
+      "processed_by_placeholder": "Nombre del responsable",
+      "registration_date": "Fecha de Registro",
+      "sale_price":        "Precio de Venta (MXN)",
+      "estatus":           "Estatus",
+      "registrado_por":    "Registrado Por",
+      "photos":            "Fotos",
+      "max_photos":        "Máximo 10 fotos",
+      "problem_label":     "Problema #{{num}}",
+      "problem_description": "Descripción del Problema",
+      "problem_description_placeholder": "Describe el problema encontrado…",
+      "corrective_action": "Acción Correctiva",
+      "corrective_action_placeholder": "Describe la acción correctiva tomada…",
+      "add_problem":       "Agregar Problema",
+      "remove_problem":    "Quitar",
+      "update":            "Actualizar",
+      "override_sku_fields": "Editar campos de SKU manualmente",
+      "existing_photos_note": "Este registro ya tiene {{count}} foto(s). Las fotos nuevas se agregarán."
+    },
+    "detail": {
+      "title":        "Detalle Rechazo Externo",
+      "registered_by": "Registrado por {{name}} el {{date}}"
+    },
+    "gallery": {
+      "lightbox":   "Vista de imagen",
+      "prev":       "Anterior",
+      "next":       "Siguiente",
+      "go_to":      "Ir a imagen",
+      "no_photos":  "Sin fotos"
+    }
+  },
+  "organigrama": {
+    "title": "Organigrama QC",
+    "subtitle": "Estructura Organizacional de Control de Calidad",
+    "add": "Agregar Colaborador",
+    "edit": "Editar",
+    "edit_title": "Editar Colaborador",
+    "delete": "Eliminar",
+    "ver": "Ver Detalle",
+    "detail_title": "Detalle Colaborador",
+    "cambiar_estatus": "Cambiar Estatus",
+    "actualizar": "Actualizar",
+    "seleccionar": "Seleccionar...",
+    "activos_label": "colaboradores activos",
+    "sin_resultados": "No se encontraron colaboradores con los filtros actuales",
+    "delete_confirm": "¿Deseas eliminar al colaborador",
+    "creado": "Colaborador creado correctamente",
+    "actualizado": "Colaborador actualizado correctamente",
+    "eliminado": "Colaborador eliminado correctamente",
+    "estatus_actualizado": "Estatus actualizado correctamente",
+    "registrado_el": "Registrado el",
+    "filtro_buscar": "Buscar",
+    "filtro_buscar_placeholder": "Nombre o puesto...",
+    "filtro_todos": "Todos",
+    "filtro_todos_puestos": "Todos los puestos",
+    "foto_subir": "Clic para subir foto",
+    "foto_cambiar": "Cambiar Foto",
+    "foto_quitar": "Quitar Foto",
+    "section_personal": "Información Personal",
+    "section_laboral": "Información Laboral",
+    "section_contacto": "Contacto",
+    "section_foto": "Foto de Perfil",
+    "form": {
+      "nombre_completo": "Nombre Completo",
+      "no_empleado": "No. Empleado",
+      "sexo": "Sexo",
+      "fecha_nacimiento": "Fecha de Nacimiento",
+      "puesto": "Puesto",
+      "area": "Área",
+      "turno": "Turno",
+      "fecha_ingreso": "Fecha de Ingreso",
+      "estatus": "Estatus",
+      "telefono": "Teléfono",
+      "correo": "Correo",
+      "foto": "Foto de Perfil"
+    },
+    "puestos": {
+      "jefe_qc": "Jefe de QC",
+      "supervisor_qc": "Supervisor de QC",
+      "inspector": "Inspector",
+      "otro": "Otro"
+    },
+    "areas": {
+      "recepcion": "Recepción",
+      "almacen": "Almacén",
+      "inspeccion": "Inspección",
+      "expedicion": "Expedición",
+      "otros": "Otros"
+    },
+    "turnos": {
+      "matutino": "Matutino",
+      "vespertino": "Vespertino",
+      "nocturno": "Nocturno"
+    },
+    "estatus": {
+      "activo": "Activo",
+      "inactivo": "Inactivo"
+    },
+    "sexo": {
+      "m": "Masculino",
+      "f": "Femenino",
+      "otro": "Otro"
+    },
+    "card": {
+      "puesto": "Puesto",
+      "turno": "Turno"
+    }
+  },
+  "liberacion_shipping": {
+    "title": "Liberación Shipping",
+    "add": "Agregar Envío",
+    "form": {
+      "section_envio": "Información de Envío",
+      "section_producto": "Información del Producto",
+      "section_contenedor": "Contenedor",
+      "section_documentacion": "Documentación",
+      "section_fotos": "Fotos Requeridas",
+      "section_adicional": "Información Adicional",
+      "fecha": "Fecha",
+      "order_id": "ID de Orden",
+      "destino": "Destino",
+      "referencia": "Referencia",
+      "sku": "SKU",
+      "marca": "Marca",
+      "modelo": "Modelo",
+      "pulgada": "Pulgada",
+      "descripcion": "Descripción",
+      "numero_contenedor": "Número de Contenedor",
+      "tipo_contenedor": "Tipo de Contenedor",
+      "peso_total": "Peso Total",
+      "volumen_cubico": "Volumen Cúbico",
+      "bill_of_lading": "Bill of Lading",
+      "pro_number": "Pro Number",
+      "purchase_order": "Purchase Order",
+      "observaciones": "Observaciones",
+      "estatus": "Estatus",
+      "registrado_por": "Registrado Por",
+      "foto_contenedor_vacio": "Foto de Contenedor Vacío",
+      "foto_contenedor_cargado": "Foto de Contenedor Cargado",
+      "foto_caja_sellada": "Foto de Caja Sellada",
+      "foto_placas": "Foto de Placas / Identificación",
+      "foto_manifiesto": "Foto de Manifiesto",
+      "fotos_requeridas": "Se requieren exactamente 5 fotos para guardar el registro"
+    },
+    "table": {
+      "fecha": "Fecha",
+      "order_id": "Orden",
+      "destino": "Destino",
+      "sku": "SKU",
+      "contenedor": "Contenedor",
+      "peso": "Peso",
+      "status": "Estatus",
+      "fotos": "Fotos"
+    },
+    "status_tabs": {
+      "todas": "Todas",
+      "programado": "Programado",
+      "en_transito": "En Tránsito",
+      "entregado": "Entregado",
+      "cancelado": "Cancelado"
+    },
+    "tipos_contenedor": {
+      "20ft": "20 pies",
+      "40ft": "40 pies",
+      "40ft_hc": "40 pies High Cube"
+    },
+    "estatus": {
+      "programado": "Programado",
+      "en_transito": "En Tránsito",
+      "entregado": "Entregado",
+      "cancelado": "Cancelado"
+    },
+    "actions": {
+      "view": "Ver",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "search_placeholder": "Buscar por Orden o Destino…",
+    "delete_confirm": "¿Estás seguro de que deseas eliminar este registro de Liberación Shipping?",
+    "deleted_ok": "Registro eliminado correctamente",
+    "saved_ok": "Registro guardado correctamente",
+    "updated_ok": "Registro actualizado correctamente"
+  },
+  "dashboard": {
+    "title": "Panel Principal",
+    "error_loading": "No se pudo cargar el panel. Por favor intente de nuevo.",
+    "no_data": "Sin datos para este período",
+    "period": {
+      "mes": "Mes",
+      "ytd": "Año Completo"
+    },
+    "year": "Año",
+    "month": "Mes",
+    "kpis": {
+      "tasa_rechazos": "Tasa de Rechazos",
+      "copq_total": "COPQ Total",
+      "nc_abiertas": "NC Abiertas",
+      "colaboradores": "Colaboradores Activos",
+      "valor_rechazos": "Valor Total Rechazos",
+      "tiempo_promedio": "Tiempo Promedio"
+    },
+    "charts": {
+      "rechazos_marca": "Rechazos por Marca",
+      "rechazos_clasif": "Rechazos por Clasificación",
+      "nc_severidad": "NC por Severidad",
+      "nc_area": "NC por Área"
+    }
   }
 }

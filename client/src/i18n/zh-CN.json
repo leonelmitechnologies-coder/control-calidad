@@ -35,5 +35,453 @@
   "layout": {
     "menu": "菜单",
     "language": "语言"
+  },
+  "notify": {
+    "success": "成功",
+    "error": "错误",
+    "warning": "警告"
+  },
+  "confirm": {
+    "title": "确认",
+    "delete_confirm": "确定要删除吗？",
+    "cancel": "取消",
+    "delete": "删除",
+    "yes": "是",
+    "no": "否"
+  },
+  "sku": {
+    "search": "搜索SKU",
+    "notfound": "无结果"
+  },
+  "signature": {
+    "draw": "签名",
+    "clear": "清除签名",
+    "required": "需要签名"
+  },
+  "upload": {
+    "select_photos": "选择照片",
+    "max_files": "最多 {{count}} 个文件",
+    "file_too_large": "文件过大",
+    "delete": "删除",
+    "drag_drop": "或将文件拖放到此处"
+  },
+  "forms": {
+    "required_field": "必填字段",
+    "invalid_email": "无效邮箱",
+    "invalid_phone": "无效电话",
+    "invalid_date": "无效日期"
+  },
+  "recepciones": {
+    "title": "接收记录",
+    "add": "新增接收",
+    "edit": "编辑",
+    "delete": "删除",
+    "view": "查看",
+    "detail_title": "接收详情",
+    "registered_by": "由 {{name}} 于 {{date}} 登记",
+    "search_placeholder": "按公司或来源地搜索…",
+    "status_tabs": {
+      "todas": "全部",
+      "confirmado": "已确认",
+      "pendiente": "待处理",
+      "rechazado": "已拒收"
+    },
+    "tipos": {
+      "import": "进口",
+      "export": "出口"
+    },
+    "cargos": {
+      "electronica": "电子产品",
+      "accesorios": "配件",
+      "embalaje": "包装材料",
+      "otros": "其他"
+    },
+    "estatus_full": {
+      "confirmado": "已确认",
+      "pendiente": "待处理",
+      "rechazado": "已拒收",
+      "en_descarga": "卸货中",
+      "descargado": "已卸货"
+    },
+    "actions": {
+      "marcar_en_descarga": "标记为卸货中",
+      "marcar_descargado": "标记为已卸货",
+      "marcar_rechazado": "标记为已拒收"
+    },
+    "form": {
+      "edit_title": "编辑接收记录",
+      "section_general": "基本信息",
+      "section_carga": "货物",
+      "section_logistica": "物流",
+      "section_auditoria": "审计",
+      "fecha": "日期",
+      "hora": "时间",
+      "company": "公司",
+      "origen": "来源地",
+      "cargo": "货物类型",
+      "unit_qty": "单位数量",
+      "pallet_qty": "托盘数量",
+      "tipo": "类型",
+      "estatus": "状态",
+      "registrado_por": "登记人",
+      "fecha_actualizado": "最后更新",
+      "update": "更新"
+    }
+  },
+  "nc": {
+    "title": "不符合项",
+    "add": "新增不符合项",
+    "edit": "编辑",
+    "delete": "删除",
+    "view": "查看",
+    "status_tabs": {
+      "todas": "全部",
+      "abierta": "已开启",
+      "en_progreso": "处理中",
+      "cerrada": "已关闭",
+      "rechazada": "已拒绝"
+    },
+    "severities": {
+      "critica": "严重",
+      "mayor": "重大",
+      "menor": "轻微"
+    },
+    "areas": {
+      "recepcion": "收货",
+      "almacen": "仓库",
+      "inspeccion": "检验",
+      "expedicion": "发货",
+      "otros": "其他"
+    },
+    "tipos": {
+      "defecto": "缺陷",
+      "proceso": "流程",
+      "documentacion": "文件"
+    },
+    "form": {
+      "hora": "时间",
+      "area": "区域",
+      "tipo": "类型",
+      "descripcion": "描述",
+      "severidad": "严重程度",
+      "responsable": "负责人",
+      "accion": "措施",
+      "registrado_por": "登记人",
+      "fecha": "日期"
+    },
+    "detail": {
+      "title": "不符合项详情",
+      "created_by": "由 {{name}} 于 {{date}} 登记",
+      "close": "关闭"
+    }
+  },
+  "rechazos_internos": {
+    "title": "内部拒收",
+    "add": "添加拒收",
+    "form": {
+      "fecha_registro": "登记日期",
+      "license_plate": "车牌号",
+      "sku": "SKU",
+      "marca": "品牌",
+      "modelo": "型号",
+      "pulgada": "尺寸",
+      "descripcion": "描述",
+      "defecto": "缺陷类型",
+      "actividad_realizar": "待执行活动",
+      "costo_no_calidad": "质量成本（MXN）",
+      "manual_override": "手动覆盖COPQ",
+      "origen_hallazgo": "发现来源",
+      "inspector": "检验员",
+      "observaciones": "备注",
+      "firma_digital": "数字签名",
+      "limpiar_firma": "清除签名",
+      "firma_requerida": "需要数字签名",
+      "fotos": "照片（最多5张）"
+    },
+    "defectos": {
+      "duplicado": "重复",
+      "pulgada_incorrecta": "尺寸错误",
+      "clasificacion_incorrecta": "分类错误",
+      "marca_incorrecta": "品牌错误",
+      "pantalla_caida": "屏幕脱落",
+      "etiqueta_quemada": "标签损坏",
+      "sin_etiqueta": "缺少标签",
+      "falta_tape": "缺少胶带",
+      "falta_limpieza": "箱体清洁不足",
+      "tv_con_salida": "电视有输出",
+      "modelo_incorrecto": "型号错误"
+    },
+    "table": {
+      "fecha": "日期",
+      "license_plate": "车牌",
+      "sku": "SKU",
+      "defecto": "缺陷",
+      "actividad": "活动",
+      "copq": "质量成本（MXN）",
+      "origen": "来源",
+      "inspector": "检验员",
+      "fotos": "照片",
+      "firma": "签名",
+      "status": "状态"
+    },
+    "copq": {
+      "auto_filled": "已从COPQ自动填充",
+      "mapping_display": "缺陷: {{defecto}} → 活动: {{actividad}} → 成本: {{costo}}",
+      "manual_mode": "手动模式"
+    }
+  },
+  "rechazos_externos": {
+    "title": "外部拒收",
+    "add": "添加拒收",
+    "search_placeholder": "按退货单、车牌或分类搜索…",
+    "status_tabs": {
+      "todas":     "全部",
+      "aceptado":  "已接受",
+      "pendiente": "待处理",
+      "rechazado": "已拒收"
+    },
+    "actions": {
+      "view":   "查看",
+      "edit":   "编辑",
+      "delete": "删除"
+    },
+    "table": {
+      "fecha":          "日期",
+      "return_order":   "退货单",
+      "license_plate":  "车牌",
+      "classification": "分类",
+      "sku":            "SKU",
+      "brand":          "品牌",
+      "sale_price":     "价格",
+      "processed_by":   "处理人",
+      "photos":         "照片",
+      "status":         "状态",
+      "empty":          "无记录"
+    },
+    "form": {
+      "edit_title":       "编辑外部拒收",
+      "section_base":     "基本信息",
+      "section_product":  "产品/SKU",
+      "section_plant":    "工厂时间",
+      "section_order":    "订单信息",
+      "section_pricing":  "价格与状态",
+      "section_problems": "问题与纠正措施",
+      "section_photos":   "照片",
+      "return_order":      "退货单号",
+      "license_plate":     "车牌号",
+      "classification":    "分类",
+      "inches":            "英寸",
+      "sales_channel":     "销售渠道",
+      "sku":               "SKU",
+      "brand":             "品牌",
+      "modelo":            "型号",
+      "pulgada":           "英寸",
+      "descripcion":       "描述",
+      "plant_entry":       "入厂时间",
+      "plant_exit":        "出厂时间",
+      "total_time":        "总时间（分钟）",
+      "outbound_order":    "出库订单",
+      "processed_by":      "处理人",
+      "processed_by_placeholder": "负责人姓名",
+      "registration_date": "登记日期",
+      "sale_price":        "售价（MXN）",
+      "estatus":           "状态",
+      "registrado_por":    "登记人",
+      "photos":            "照片",
+      "max_photos":        "最多10张照片",
+      "problem_label":     "问题 #{{num}}",
+      "problem_description": "问题描述",
+      "problem_description_placeholder": "描述发现的问题…",
+      "corrective_action": "纠正措施",
+      "corrective_action_placeholder": "描述采取的纠正措施…",
+      "add_problem":       "添加问题",
+      "remove_problem":    "删除",
+      "update":            "更新",
+      "override_sku_fields": "手动编辑SKU字段",
+      "existing_photos_note": "此记录已有 {{count}} 张照片，新照片将被添加。"
+    },
+    "detail": {
+      "title":         "外部拒收详情",
+      "registered_by": "由 {{name}} 于 {{date}} 登记"
+    },
+    "gallery": {
+      "lightbox":  "图片视图",
+      "prev":      "上一张",
+      "next":      "下一张",
+      "go_to":     "跳转到图片",
+      "no_photos": "无照片"
+    }
+  },
+  "organigrama": {
+    "title": "质量控制组织架构",
+    "subtitle": "质量控制组织结构",
+    "add": "添加员工",
+    "edit": "编辑",
+    "edit_title": "编辑员工",
+    "delete": "删除",
+    "ver": "查看详情",
+    "detail_title": "员工详情",
+    "cambiar_estatus": "更改状态",
+    "actualizar": "更新",
+    "seleccionar": "请选择...",
+    "activos_label": "名在职员工",
+    "sin_resultados": "当前筛选条件下未找到员工",
+    "delete_confirm": "是否删除员工",
+    "creado": "员工创建成功",
+    "actualizado": "员工更新成功",
+    "eliminado": "员工删除成功",
+    "estatus_actualizado": "状态更新成功",
+    "registrado_el": "登记于",
+    "filtro_buscar": "搜索",
+    "filtro_buscar_placeholder": "姓名或职位...",
+    "filtro_todos": "全部",
+    "filtro_todos_puestos": "所有职位",
+    "foto_subir": "点击上传照片",
+    "foto_cambiar": "更换照片",
+    "foto_quitar": "删除照片",
+    "section_personal": "个人信息",
+    "section_laboral": "工作信息",
+    "section_contacto": "联系方式",
+    "section_foto": "头像",
+    "form": {
+      "nombre_completo": "全名",
+      "no_empleado": "员工编号",
+      "sexo": "性别",
+      "fecha_nacimiento": "出生日期",
+      "puesto": "职位",
+      "area": "部门",
+      "turno": "班次",
+      "fecha_ingreso": "入职日期",
+      "estatus": "状态",
+      "telefono": "电话",
+      "correo": "邮箱",
+      "foto": "头像"
+    },
+    "puestos": {
+      "jefe_qc": "质量控制主管",
+      "supervisor_qc": "质量控制监督员",
+      "inspector": "检验员",
+      "otro": "其他"
+    },
+    "areas": {
+      "recepcion": "接收",
+      "almacen": "仓库",
+      "inspeccion": "检验",
+      "expedicion": "发货",
+      "otros": "其他"
+    },
+    "turnos": {
+      "matutino": "早班",
+      "vespertino": "午班",
+      "nocturno": "夜班"
+    },
+    "estatus": {
+      "activo": "在职",
+      "inactivo": "离职"
+    },
+    "sexo": {
+      "m": "男",
+      "f": "女",
+      "otro": "其他"
+    },
+    "card": {
+      "puesto": "职位",
+      "turno": "班次"
+    }
+  },
+  "liberacion_shipping": {
+    "title": "发货放行",
+    "add": "添加发货",
+    "form": {
+      "section_envio": "发货信息",
+      "section_producto": "产品信息",
+      "section_contenedor": "集装箱",
+      "section_documentacion": "文件",
+      "section_fotos": "必需照片",
+      "section_adicional": "其他信息",
+      "fecha": "日期",
+      "order_id": "订单编号",
+      "destino": "目的地",
+      "referencia": "参考号",
+      "sku": "SKU",
+      "marca": "品牌",
+      "modelo": "型号",
+      "pulgada": "英寸",
+      "descripcion": "描述",
+      "numero_contenedor": "集装箱号",
+      "tipo_contenedor": "集装箱类型",
+      "peso_total": "总重量",
+      "volumen_cubico": "立方体积",
+      "bill_of_lading": "提单",
+      "pro_number": "运单号",
+      "purchase_order": "采购订单",
+      "observaciones": "备注",
+      "estatus": "状态",
+      "registrado_por": "登记人",
+      "foto_contenedor_vacio": "空集装箱照片",
+      "foto_contenedor_cargado": "装载集装箱照片",
+      "foto_caja_sellada": "密封箱照片",
+      "foto_placas": "车牌/身份识别照片",
+      "foto_manifiesto": "清单照片",
+      "fotos_requeridas": "保存记录需要恰好5张照片"
+    },
+    "table": {
+      "fecha": "日期",
+      "order_id": "订单",
+      "destino": "目的地",
+      "sku": "SKU",
+      "contenedor": "集装箱",
+      "peso": "重量",
+      "status": "状态",
+      "fotos": "照片"
+    },
+    "status_tabs": {
+      "todas": "全部",
+      "programado": "已计划",
+      "en_transito": "运输中",
+      "entregado": "已交付",
+      "cancelado": "已取消"
+    },
+    "estatus": {
+      "programado": "已计划",
+      "en_transito": "运输中",
+      "entregado": "已交付",
+      "cancelado": "已取消"
+    },
+    "actions": {
+      "view": "查看",
+      "edit": "编辑",
+      "delete": "删除"
+    },
+    "search_placeholder": "按订单号或目的地搜索…",
+    "delete_confirm": "确定要删除此发货放行记录吗？",
+    "deleted_ok": "记录删除成功",
+    "saved_ok": "记录保存成功",
+    "updated_ok": "记录更新成功"
+  },
+  "dashboard": {
+    "title": "主面板",
+    "error_loading": "无法加载仪表板数据，请重试。",
+    "no_data": "本期无数据",
+    "period": {
+      "mes": "月度",
+      "ytd": "全年"
+    },
+    "year": "年份",
+    "month": "月份",
+    "kpis": {
+      "tasa_rechazos": "拒收率",
+      "copq_total": "质量成本合计",
+      "nc_abiertas": "未关闭不符合项",
+      "colaboradores": "在职员工",
+      "valor_rechazos": "拒收总价值",
+      "tiempo_promedio": "平均处理时间"
+    },
+    "charts": {
+      "rechazos_marca": "按品牌拒收",
+      "rechazos_clasif": "按分类拒收",
+      "nc_severidad": "按严重程度不符合项",
+      "nc_area": "按区域不符合项"
+    }
   }
 }

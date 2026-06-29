@@ -35,5 +35,458 @@
   "layout": {
     "menu": "Menu",
     "language": "Language"
+  },
+  "notify": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning"
+  },
+  "confirm": {
+    "title": "Confirm",
+    "delete_confirm": "Are you sure you want to delete?",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "sku": {
+    "search": "Search SKU",
+    "notfound": "No results"
+  },
+  "signature": {
+    "draw": "Signature",
+    "clear": "Clear Signature",
+    "required": "Signature required"
+  },
+  "upload": {
+    "select_photos": "Select Photos",
+    "max_files": "Maximum {{count}} files",
+    "file_too_large": "File too large",
+    "delete": "Delete",
+    "drag_drop": "Or drag files here"
+  },
+  "forms": {
+    "required_field": "Required field",
+    "invalid_email": "Invalid email",
+    "invalid_phone": "Invalid phone",
+    "invalid_date": "Invalid date"
+  },
+  "recepciones": {
+    "title": "Receptions",
+    "add": "Add Reception",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view": "View",
+    "detail_title": "Reception Detail",
+    "registered_by": "Registered by {{name}} on {{date}}",
+    "search_placeholder": "Search by Company or Origin…",
+    "status_tabs": {
+      "todas": "All",
+      "confirmado": "Confirmed",
+      "pendiente": "Pending",
+      "rechazado": "Rejected"
+    },
+    "tipos": {
+      "import": "Import",
+      "export": "Export"
+    },
+    "cargos": {
+      "electronica": "Electronics",
+      "accesorios": "Accessories",
+      "embalaje": "Packaging",
+      "otros": "Others"
+    },
+    "estatus_full": {
+      "confirmado": "Confirmed",
+      "pendiente": "Pending",
+      "rechazado": "Rejected",
+      "en_descarga": "Unloading",
+      "descargado": "Unloaded"
+    },
+    "actions": {
+      "marcar_en_descarga": "Mark as Unloading",
+      "marcar_descargado": "Mark as Unloaded",
+      "marcar_rechazado": "Mark as Rejected"
+    },
+    "form": {
+      "edit_title": "Edit Reception",
+      "section_general": "General Information",
+      "section_carga": "Cargo",
+      "section_logistica": "Logistics",
+      "section_auditoria": "Audit",
+      "fecha": "Date",
+      "hora": "Time",
+      "company": "Company",
+      "origen": "Origin",
+      "cargo": "Cargo Type",
+      "unit_qty": "Unit Quantity",
+      "pallet_qty": "Pallet Quantity",
+      "tipo": "Type",
+      "estatus": "Status",
+      "registrado_por": "Registered By",
+      "fecha_actualizado": "Last Updated",
+      "update": "Update"
+    }
+  },
+  "nc": {
+    "title": "Non-Conformities",
+    "add": "Add NC",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view": "View",
+    "status_tabs": {
+      "todas": "All",
+      "abierta": "Open",
+      "en_progreso": "In Progress",
+      "cerrada": "Closed",
+      "rechazada": "Rejected"
+    },
+    "severities": {
+      "critica": "Critical",
+      "mayor": "Major",
+      "menor": "Minor"
+    },
+    "areas": {
+      "recepcion": "Reception",
+      "almacen": "Warehouse",
+      "inspeccion": "Inspection",
+      "expedicion": "Shipping",
+      "otros": "Others"
+    },
+    "tipos": {
+      "defecto": "Defect",
+      "proceso": "Process",
+      "documentacion": "Documentation"
+    },
+    "form": {
+      "hora": "Time",
+      "area": "Area",
+      "tipo": "Type",
+      "descripcion": "Description",
+      "severidad": "Severity",
+      "responsable": "Responsible",
+      "accion": "Action",
+      "registrado_por": "Registered By",
+      "fecha": "Date"
+    },
+    "detail": {
+      "title": "NC Detail",
+      "created_by": "Registered by {{name}} on {{date}}",
+      "close": "Close"
+    }
+  },
+  "rechazos_internos": {
+    "title": "Internal Rejects",
+    "add": "Add Reject",
+    "form": {
+      "fecha_registro": "Registration Date",
+      "license_plate": "License Plate",
+      "sku": "SKU",
+      "marca": "Brand",
+      "modelo": "Model",
+      "pulgada": "Size (in)",
+      "descripcion": "Description",
+      "defecto": "Defect",
+      "actividad_realizar": "Activity to Perform",
+      "costo_no_calidad": "Cost of Non-Quality (MXN)",
+      "manual_override": "Manual COPQ Override",
+      "origen_hallazgo": "Finding Origin",
+      "inspector": "Inspector",
+      "observaciones": "Observations",
+      "firma_digital": "Digital Signature",
+      "limpiar_firma": "Clear Signature",
+      "firma_requerida": "Digital signature is required",
+      "fotos": "Photos (Max 5)"
+    },
+    "defectos": {
+      "duplicado": "Duplicate",
+      "pulgada_incorrecta": "Incorrect Size",
+      "clasificacion_incorrecta": "Incorrect Classification",
+      "marca_incorrecta": "Incorrect Brand",
+      "pantalla_caida": "Fallen Screen",
+      "etiqueta_quemada": "Burned Label",
+      "sin_etiqueta": "Missing Label",
+      "falta_tape": "Missing Tape",
+      "falta_limpieza": "Insufficient Box Cleaning",
+      "tv_con_salida": "TV with Output",
+      "modelo_incorrecto": "Incorrect Model"
+    },
+    "table": {
+      "fecha": "Date",
+      "license_plate": "License Plate",
+      "sku": "SKU",
+      "defecto": "Defect",
+      "actividad": "Activity",
+      "copq": "COPQ (MXN)",
+      "origen": "Origin",
+      "inspector": "Inspector",
+      "fotos": "Photos",
+      "firma": "Signature",
+      "status": "Status"
+    },
+    "copq": {
+      "auto_filled": "Auto-filled from COPQ",
+      "mapping_display": "Defect: {{defecto}} → Activity: {{actividad}} → Cost: {{costo}}",
+      "manual_mode": "Manual Mode"
+    }
+  },
+  "rechazos_externos": {
+    "title": "External Rejects",
+    "add": "Add Reject",
+    "search_placeholder": "Search by Return Order, License Plate or Classification…",
+    "status_tabs": {
+      "todas":     "All",
+      "aceptado":  "Accepted",
+      "pendiente": "Pending",
+      "rechazado": "Rejected"
+    },
+    "actions": {
+      "view":   "View",
+      "edit":   "Edit",
+      "delete": "Delete"
+    },
+    "table": {
+      "fecha":          "Date",
+      "return_order":   "Return Order",
+      "license_plate":  "License Plate",
+      "classification": "Classification",
+      "sku":            "SKU",
+      "brand":          "Brand",
+      "sale_price":     "Price",
+      "processed_by":   "Processed By",
+      "photos":         "Photos",
+      "status":         "Status",
+      "empty":          "No records found"
+    },
+    "form": {
+      "edit_title":       "Edit External Reject",
+      "section_base":     "Base Information",
+      "section_product":  "Product / SKU",
+      "section_plant":    "Plant Timing",
+      "section_order":    "Order Information",
+      "section_pricing":  "Pricing & Status",
+      "section_problems": "Problems & Corrective Actions",
+      "section_photos":   "Photos",
+      "return_order":      "Return Order Number",
+      "license_plate":     "License Plate",
+      "classification":    "Classification",
+      "inches":            "Inches",
+      "sales_channel":     "Sales Channel",
+      "sku":               "SKU",
+      "brand":             "Brand",
+      "modelo":            "Model",
+      "pulgada":           "Inches",
+      "descripcion":       "Description",
+      "plant_entry":       "Plant Entry",
+      "plant_exit":        "Plant Exit",
+      "total_time":        "Total Time (minutes)",
+      "outbound_order":    "Outbound Order",
+      "processed_by":      "Processed By",
+      "processed_by_placeholder": "Responsible person's name",
+      "registration_date": "Registration Date",
+      "sale_price":        "Sale Price (MXN)",
+      "estatus":           "Status",
+      "registrado_por":    "Registered By",
+      "photos":            "Photos",
+      "max_photos":        "Maximum 10 photos",
+      "problem_label":     "Problem #{{num}}",
+      "problem_description": "Problem Description",
+      "problem_description_placeholder": "Describe the problem found…",
+      "corrective_action": "Corrective Action",
+      "corrective_action_placeholder": "Describe the corrective action taken…",
+      "add_problem":       "Add Problem",
+      "remove_problem":    "Remove",
+      "update":            "Update",
+      "override_sku_fields": "Manually edit SKU fields",
+      "existing_photos_note": "This record already has {{count}} photo(s). New photos will be added."
+    },
+    "detail": {
+      "title":         "External Reject Detail",
+      "registered_by": "Registered by {{name}} on {{date}}"
+    },
+    "gallery": {
+      "lightbox":  "Image view",
+      "prev":      "Previous",
+      "next":      "Next",
+      "go_to":     "Go to image",
+      "no_photos": "No photos"
+    }
+  },
+  "organigrama": {
+    "title": "QC Organization Chart",
+    "subtitle": "Quality Control Organizational Structure",
+    "add": "Add Employee",
+    "edit": "Edit",
+    "edit_title": "Edit Employee",
+    "delete": "Delete",
+    "ver": "View Detail",
+    "detail_title": "Employee Detail",
+    "cambiar_estatus": "Change Status",
+    "actualizar": "Update",
+    "seleccionar": "Select...",
+    "activos_label": "active employees",
+    "sin_resultados": "No employees found with current filters",
+    "delete_confirm": "Do you want to delete employee",
+    "creado": "Employee created successfully",
+    "actualizado": "Employee updated successfully",
+    "eliminado": "Employee deleted successfully",
+    "estatus_actualizado": "Status updated successfully",
+    "registrado_el": "Registered on",
+    "filtro_buscar": "Search",
+    "filtro_buscar_placeholder": "Name or position...",
+    "filtro_todos": "All",
+    "filtro_todos_puestos": "All positions",
+    "foto_subir": "Click to upload photo",
+    "foto_cambiar": "Change Photo",
+    "foto_quitar": "Remove Photo",
+    "section_personal": "Personal Information",
+    "section_laboral": "Work Information",
+    "section_contacto": "Contact",
+    "section_foto": "Profile Photo",
+    "form": {
+      "nombre_completo": "Full Name",
+      "no_empleado": "Employee No.",
+      "sexo": "Gender",
+      "fecha_nacimiento": "Date of Birth",
+      "puesto": "Position",
+      "area": "Area",
+      "turno": "Shift",
+      "fecha_ingreso": "Start Date",
+      "estatus": "Status",
+      "telefono": "Phone",
+      "correo": "Email",
+      "foto": "Profile Photo"
+    },
+    "puestos": {
+      "jefe_qc": "QC Chief",
+      "supervisor_qc": "QC Supervisor",
+      "inspector": "Inspector",
+      "otro": "Other"
+    },
+    "areas": {
+      "recepcion": "Reception",
+      "almacen": "Warehouse",
+      "inspeccion": "Inspection",
+      "expedicion": "Shipping",
+      "otros": "Others"
+    },
+    "turnos": {
+      "matutino": "Morning",
+      "vespertino": "Afternoon",
+      "nocturno": "Night"
+    },
+    "estatus": {
+      "activo": "Active",
+      "inactivo": "Inactive"
+    },
+    "sexo": {
+      "m": "Male",
+      "f": "Female",
+      "otro": "Other"
+    },
+    "card": {
+      "puesto": "Position",
+      "turno": "Shift"
+    }
+  },
+  "liberacion_shipping": {
+    "title": "Shipping Release",
+    "add": "Add Shipment",
+    "form": {
+      "section_envio": "Shipment Information",
+      "section_producto": "Product Information",
+      "section_contenedor": "Container",
+      "section_documentacion": "Documentation",
+      "section_fotos": "Required Photos",
+      "section_adicional": "Additional Information",
+      "fecha": "Date",
+      "order_id": "Order ID",
+      "destino": "Destination",
+      "referencia": "Reference",
+      "sku": "SKU",
+      "marca": "Brand",
+      "modelo": "Model",
+      "pulgada": "Size (in)",
+      "descripcion": "Description",
+      "numero_contenedor": "Container Number",
+      "tipo_contenedor": "Container Type",
+      "peso_total": "Total Weight",
+      "volumen_cubico": "Cubic Volume",
+      "bill_of_lading": "Bill of Lading",
+      "pro_number": "Pro Number",
+      "purchase_order": "Purchase Order",
+      "observaciones": "Observations",
+      "estatus": "Status",
+      "registrado_por": "Registered By",
+      "foto_contenedor_vacio": "Empty Container Photo",
+      "foto_contenedor_cargado": "Loaded Container Photo",
+      "foto_caja_sellada": "Sealed Box Photo",
+      "foto_placas": "License Plates / ID Photo",
+      "foto_manifiesto": "Manifest Photo",
+      "fotos_requeridas": "Exactly 5 photos are required to save the record"
+    },
+    "table": {
+      "fecha": "Date",
+      "order_id": "Order",
+      "destino": "Destination",
+      "sku": "SKU",
+      "contenedor": "Container",
+      "peso": "Weight",
+      "status": "Status",
+      "fotos": "Photos"
+    },
+    "status_tabs": {
+      "todas": "All",
+      "programado": "Scheduled",
+      "en_transito": "In Transit",
+      "entregado": "Delivered",
+      "cancelado": "Cancelled"
+    },
+    "tipos_contenedor": {
+      "20ft": "20 feet",
+      "40ft": "40 feet",
+      "40ft_hc": "40 feet High Cube"
+    },
+    "estatus": {
+      "programado": "Scheduled",
+      "en_transito": "In Transit",
+      "entregado": "Delivered",
+      "cancelado": "Cancelled"
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "search_placeholder": "Search by Order ID or Destination…",
+    "delete_confirm": "Are you sure you want to delete this Shipping Release record?",
+    "deleted_ok": "Record deleted successfully",
+    "saved_ok": "Record saved successfully",
+    "updated_ok": "Record updated successfully"
+  },
+  "dashboard": {
+    "title": "Main Panel",
+    "error_loading": "Could not load dashboard data. Please try again.",
+    "no_data": "No data for this period",
+    "period": {
+      "mes": "Month",
+      "ytd": "Full Year"
+    },
+    "year": "Year",
+    "month": "Month",
+    "kpis": {
+      "tasa_rechazos": "Rejection Rate",
+      "copq_total": "Total COPQ",
+      "nc_abiertas": "Open NCs",
+      "colaboradores": "Active Staff",
+      "valor_rechazos": "Total Reject Value",
+      "tiempo_promedio": "Avg. Time"
+    },
+    "charts": {
+      "rechazos_marca": "Rejects by Brand",
+      "rechazos_clasif": "Rejects by Classification",
+      "nc_severidad": "NCs by Severity",
+      "nc_area": "NCs by Area"
+    }
   }
 }

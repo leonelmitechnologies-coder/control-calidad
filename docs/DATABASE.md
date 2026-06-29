@@ -504,8 +504,25 @@ organigrama_qc
 | `estatus` | VARCHAR(20) | NO | `'pendiente'` | `'pendiente'` \| `'aprobado'` \| `'rechazado'` |
 | `aprobado_por` | VARCHAR(100) | NO | `''` | Quien aprobó o rechazó |
 | `observaciones` | TEXT | NO | `''` | Notas adicionales |
+| `motivo_rechazo` | TEXT | NO | `''` | Motivo del rechazo (ALTER TABLE IF NOT EXISTS) |
 | `registrado_por` | VARCHAR(100) | NO | `''` | Nombre del usuario |
 | `created_at` | TIMESTAMP | SÍ | `NOW()` | Timestamp |
+
+**APIs:**
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/calendario` | Lista todas las solicitudes (JOIN organigrama_qc) |
+| POST | `/api/calendario` | Crea solicitud |
+| PUT | `/api/calendario/:id` | Edita solicitud |
+| PATCH | `/api/calendario/:id/estatus` | Aprueba/rechaza — body: `{ estatus, motivo_rechazo, observaciones }` |
+| DELETE | `/api/calendario/:id` | Elimina solicitud |
+| GET | `/api/calendario/:id` | Detalle de una solicitud |
+| GET | `/api/calendario/festivos` | Lista festivos |
+| POST | `/api/calendario/festivos` | Agrega festivo |
+| DELETE | `/api/calendario/festivos/:id` | Elimina festivo |
+| GET | `/api/calendario/saldo` | Lista saldos (JOIN organigrama_qc) |
+| POST | `/api/calendario/saldo` | Crea/actualiza saldo vacacional (UPSERT) |
 
 ---
 
