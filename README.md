@@ -14,6 +14,8 @@ Sistema web interno para el registro, seguimiento y análisis de operaciones de 
 | Rechazos Externos | `/rechazos-ext` | Return orders con fotos, descripción de problemas, acciones correctivas y PDF NCR |
 | Rechazos Internos | `/rechazos-int` | Defectos internos con mapeo automático COPQ (MXN), fotos y firma digital |
 | Acciones Correctivas (CAPA) | `/capas` | Análisis 5 Por Qués o Ishikawa, acciones de seguimiento, ligado a NC o RE |
+| AQL | `/aql` | Registro de inspecciones AQL con autocomplete de SKU |
+| Liberación Shipping | `/liberacion-shipping` | Registro de órdenes de envío liberadas |
 | Organigrama QC | `/organigrama-qc` | Directorio del equipo de calidad con foto, puesto, turno y datos de contacto |
 | Calendario | `/calendario` | Solicitudes de vacaciones/permisos, festivos oficiales y saldo vacacional |
 | Usuarios | `/usuarios` | Alta, edición y activación de usuarios (solo Administrador) |
@@ -111,7 +113,11 @@ Rol:        Administrador
 │       └── organigrama/            # Fotos del equipo QC (máx 5 MB)
 ├── docs/
 │   ├── DATABASE.md                 # Esquema completo y guía de la base de datos
-│   └── schema.sql                  # DDL de todas las tablas
+│   ├── schema.sql                  # DDL de todas las tablas
+│   ├── manual-usuario.md           # Manual de usuario final (módulos, FAQ, glosario)
+│   ├── operaciones.md              # Guía de operaciones (backup, logs, deployment)
+│   ├── roles-permisos.md           # Matriz de roles y permisos
+│   └── troubleshooting.md          # Resolución de problemas comunes
 ├── logs/
 │   ├── server.log                  # stdout del servidor (gitignoreado)
 │   └── server.err                  # stderr del servidor (gitignoreado)
@@ -145,6 +151,20 @@ apt-get install -y chromium-browser
 ```
 
 Puppeteer lo detecta automáticamente si está en el PATH.
+
+---
+
+## Documentación
+
+| Documento | Descripción |
+|---|---|
+| [DATABASE.md](docs/DATABASE.md) | Esquema de tablas, relaciones y referencia de todas las APIs |
+| [schema.sql](docs/schema.sql) | DDL completo de todas las tablas (idempotente) |
+| [manual-usuario.md](docs/manual-usuario.md) | Guía de uso para usuarios finales (módulos, FAQ, glosario) |
+| [operaciones.md](docs/operaciones.md) | Instalación, backup, deployment y gestión en producción |
+| [roles-permisos.md](docs/roles-permisos.md) | Matriz de permisos por rol y módulo |
+| [troubleshooting.md](docs/troubleshooting.md) | Resolución de problemas comunes |
+| [CHANGELOG.md](CHANGELOG.md) | Historial de cambios del proyecto |
 
 ---
 
