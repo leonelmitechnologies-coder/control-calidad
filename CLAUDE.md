@@ -63,7 +63,7 @@ Sistema web interno de Control de Calidad para MI Technologies (planta de logís
 
 ---
 
-## Módulos actuales (2026-06-25)
+## Módulos actuales (2026-06-29)
 
 | Módulo | Ruta | Tablas principales |
 |---|---|---|
@@ -73,6 +73,8 @@ Sistema web interno de Control de Calidad para MI Technologies (planta de logís
 | Rechazos Externos | `/rechazos-ext` | `rechazos_externos`, `re_*` |
 | Rechazos Internos | `/rechazos-int` | `rechazos_internos`, `ri_images` |
 | Acciones Correctivas (CAPA) | `/capas` | `capas`, `capa_*` |
+| AQL | `/aql` | `aql_registros` |
+| Liberación Shipping | `/liberacion-shipping` | `liberacion_shipping` |
 | Organigrama QC | `/organigrama-qc` | `organigrama_qc` |
 | Calendario | `/calendario` | `calendario_*` |
 | Usuarios | `/usuarios` | `usuarios` |
