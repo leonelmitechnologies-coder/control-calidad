@@ -20,6 +20,9 @@
 | `capa_5porques` | Respuestas del análisis 5 Por Qués (5 filas por CAPA) | ← `capas` |
 | `capa_ishikawa` | Causas del diagrama Ishikawa (6 categorías por CAPA) | ← `capas` |
 | `capa_acciones` | Acciones de seguimiento dentro de una CAPA (1..N) | ← `capas` |
+| `aql_registros` | Inspecciones AQL de productos | — |
+| `catalogo_sku` | Catálogo de SKUs para autocomplete | — |
+| `liberacion_shipping` | Liberaciones de órdenes de envío | — |
 | `organigrama_qc` | Equipo de calidad | → `calendario_solicitudes`, `calendario_saldo` |
 | `calendario_solicitudes` | Solicitudes de vacaciones/permisos | ← `organigrama_qc` |
 | `calendario_festivos` | Días festivos oficiales | — |
@@ -338,6 +341,117 @@ organigrama_qc
 
 ---
 
+## Tabla: `aql_registros`
+
+| Columna | Tipo | Nulo | Default | Descripción |
+|---|---|---|---|---|
+| `id` | SERIAL | NO | auto | PK |
+| `fecha_registro` | DATE | NO | — | Fecha de la inspección |
+| `license_plate` | VARCHAR(50) | NO | — | Placa del vehículo |
+| `clasificacion` | VARCHAR(10) | NO | `''` | Clasificación del producto |
+| `sku` | VARCHAR(100) | NO | `''` | SKU (autocomplete desde `catalogo_sku`) |
+| `marca` | VARCHAR(100) | NO | `''` | Marca |
+| `modelo` | VARCHAR(100) | NO | `''` | Modelo |
+| `pulgada` | VARCHAR(20) | NO | `''` | Pulgadas |
+| `descripcion` | TEXT | NO | `''` | Descripción del producto |
+| `accesorios_presentes` | VARCHAR(20) | NO | `''` | `'Sí'` \| `'No'` |
+| `estado_accesorios` | VARCHAR(20) | NO | `''` | `'OK'` \| `'Defecto'` |
+| `accesorios_defectos` | TEXT | NO | `''` | Descripción de defectos en accesorios |
+| `estado_bolsa` | VARCHAR(20) | NO | `''` | `'OK'` \| `'Defecto'` |
+| `bolsa_defectos` | TEXT | NO | `''` | Descripción de defectos en bolsa |
+| `estado_audio` | VARCHAR(20) | NO | `''` | `'OK'` \| `'Defecto'` |
+| `audio_defectos` | TEXT | NO | `''` | Descripción de defectos en audio |
+| `estado_video` | VARCHAR(20) | NO | `''` | `'OK'` \| `'Defecto'` |
+| `video_defectos` | TEXT | NO | `''` | Descripción de defectos en video |
+| `estado_fisico_pantalla` | VARCHAR(20) | NO | `''` | `'OK'` \| `'Defecto'` |
+| `fisico_pantalla_defectos` | TEXT | NO | `''` | Descripción de defectos físicos en pantalla |
+| `estado_limpieza` | VARCHAR(20) | NO | `''` | `'OK'` \| `'Defecto'` |
+| `limpieza_defectos` | TEXT | NO | `''` | Descripción de defectos de limpieza |
+| `estado_aql` | VARCHAR(20) | NO | `''` | Resultado final: `'Aprobado'` \| `'Rechazado'` |
+| `foto_lpn_filename` | VARCHAR(255) | NO | `''` | Foto LPN en `/uploads/aql/` |
+| `foto_pantalla_filename` | VARCHAR(255) | NO | `''` | Foto pantalla en `/uploads/aql/` |
+| `inspector` | VARCHAR(100) | NO | `''` | Nombre del inspector |
+| `registrado_por` | VARCHAR(100) | SÍ | — | Nombre del usuario |
+| `created_at` | TIMESTAMP | SÍ | `NOW()` | Timestamp |
+
+**APIs:**
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/aql` | Lista todos los registros AQL |
+| GET | `/api/aql/:id` | Detalle de un registro |
+| POST | `/api/aql` | Crea registro AQL |
+| PUT | `/api/aql/:id` | Edita registro AQL |
+| POST | `/api/aql/:id/foto-lpn` | Sube foto LPN (multer) |
+| POST | `/api/aql/:id/foto-pantalla` | Sube foto pantalla (multer) |
+| DELETE | `/api/aql/:id` | Elimina registro AQL |
+
+---
+
+## Tabla: `catalogo_sku`
+
+| Columna | Tipo | Nulo | Default | Descripción |
+|---|---|---|---|---|
+| `id` | SERIAL | NO | auto | PK |
+| `sku` | TEXT | NO | — | SKU único (UNIQUE) |
+| `marca` | TEXT | NO | `''` | Marca del producto |
+| `modelo` | TEXT | NO | `''` | Modelo |
+| `descripcion` | TEXT | NO | `''` | Descripción |
+| `pulgada` | TEXT | NO | `''` | Pulgadas |
+
+> Usado para el autocomplete de SKU en los módulos AQL y Rechazos Internos.
+
+---
+
+## Tabla: `liberacion_shipping`
+
+| Columna | Tipo | Nulo | Default | Descripción |
+|---|---|---|---|---|
+| `id` | SERIAL | NO | auto | PK |
+| `fecha` | DATE | NO | — | Fecha de la liberación |
+| `numero_orden` | VARCHAR(100) | NO | `''` | Número de orden |
+| `hora_inicio` | TIME | NO | `'00:00'` | Hora de inicio de inspección |
+| `hora_fin` | TIME | NO | `'00:00'` | Hora de fin de inspección |
+| `destino` | VARCHAR(50) | NO | `''` | Destino del envío |
+| `tipo_envio` | VARCHAR(20) | NO | `''` | Tipo de envío |
+| `tipo_orden` | VARCHAR(50) | NO | `''` | Tipo de orden |
+| `paqueteria` | VARCHAR(50) | NO | `''` | Paquetería / transportista |
+| `numero_contenedor` | VARCHAR(100) | NO | `''` | Número de contenedor |
+| `numero_sello` | VARCHAR(100) | NO | `''` | Número de sello |
+| `cantidad_pallets` | INTEGER | NO | `0` | Cantidad de pallets |
+| `cantidad_manifiesto` | INTEGER | NO | `0` | Cantidad según manifiesto |
+| `cantidad_fisica` | INTEGER | NO | `0` | Cantidad física verificada |
+| `estado` | VARCHAR(30) | NO | `''` | Estado del contenedor |
+| `cantidad_diferencia` | INTEGER | NO | `0` | Diferencia manifiesto vs física |
+| `resultado_inspeccion` | VARCHAR(20) | NO | `''` | `'Aprobado'` \| `'Rechazado'` |
+| `foto_contenedor_vacio` | VARCHAR(255) | NO | `''` | Foto contenedor vacío en `/uploads/shipping/` |
+| `foto_contenedor_cargado` | VARCHAR(255) | NO | `''` | Foto contenedor cargado |
+| `foto_caja_sellada` | VARCHAR(255) | NO | `''` | Foto caja sellada |
+| `foto_placas` | VARCHAR(255) | NO | `''` | Foto placas del vehículo |
+| `foto_manifiesto` | VARCHAR(255) | NO | `''` | Foto del manifiesto |
+| `inspector` | VARCHAR(100) | NO | `''` | Nombre del inspector |
+| `estatus_carga` | VARCHAR(30) | NO | `''` | Estatus de la carga |
+| `comentarios` | TEXT | NO | `''` | Comentarios adicionales |
+| `registrado_por` | VARCHAR(100) | SÍ | — | Nombre del usuario |
+| `created_at` | TIMESTAMP | SÍ | `NOW()` | Timestamp |
+
+**APIs:**
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/liberacion-shipping` | Lista todos los registros |
+| GET | `/api/liberacion-shipping/:id` | Detalle de un registro |
+| POST | `/api/liberacion-shipping` | Crea registro de liberación |
+| PUT | `/api/liberacion-shipping/:id` | Edita registro |
+| DELETE | `/api/liberacion-shipping/:id` | Elimina registro |
+| POST | `/api/liberacion-shipping/:id/foto-contenedor-vacio` | Sube foto contenedor vacío |
+| POST | `/api/liberacion-shipping/:id/foto-contenedor-cargado` | Sube foto contenedor cargado |
+| POST | `/api/liberacion-shipping/:id/foto-caja-sellada` | Sube foto caja sellada |
+| POST | `/api/liberacion-shipping/:id/foto-placas` | Sube foto placas |
+| POST | `/api/liberacion-shipping/:id/foto-manifiesto` | Sube foto manifiesto |
+
+---
+
 ## Tabla: `organigrama_qc`
 
 | Columna | Tipo | Nulo | Default | Descripción |
@@ -498,4 +612,4 @@ Sesión de 8 horas (`maxAge: 8 * 60 * 60 * 1000`). Se usa `express-session` con 
 
 ---
 
-*Última actualización: 2026-06-25*
+*Última actualización: 2026-06-29*

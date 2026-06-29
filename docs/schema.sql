@@ -1,7 +1,7 @@
 -- ============================================================
 -- Control de Calidad — Esquema completo de base de datos
 -- Base de datos: control_calidad (PostgreSQL 14+)
--- Última actualización: 2026-06-25
+-- Última actualización: 2026-06-29
 -- ============================================================
 -- Nota: todas las tablas usan CREATE TABLE IF NOT EXISTS
 -- y las columnas añadidas posteriormente usan ALTER TABLE … ADD COLUMN IF NOT EXISTS
@@ -223,6 +223,78 @@ CREATE TABLE IF NOT EXISTS calendario_saldo (
   dias_asignados INTEGER   NOT NULL DEFAULT 0,
   created_at     TIMESTAMP DEFAULT NOW(),
   UNIQUE(colaborador_id, anio)
+);
+
+-- ── AQL ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS aql_registros (
+  id                       SERIAL PRIMARY KEY,
+  fecha_registro           DATE          NOT NULL,
+  license_plate            VARCHAR(50)   NOT NULL,
+  clasificacion            VARCHAR(10)   NOT NULL DEFAULT '',
+  sku                      VARCHAR(100)  NOT NULL DEFAULT '',
+  marca                    VARCHAR(100)  NOT NULL DEFAULT '',
+  modelo                   VARCHAR(100)  NOT NULL DEFAULT '',
+  pulgada                  VARCHAR(20)   NOT NULL DEFAULT '',
+  descripcion              TEXT          NOT NULL DEFAULT '',
+  accesorios_presentes     VARCHAR(20)   NOT NULL DEFAULT '',
+  estado_accesorios        VARCHAR(20)   NOT NULL DEFAULT '',
+  accesorios_defectos      TEXT          NOT NULL DEFAULT '',
+  estado_bolsa             VARCHAR(20)   NOT NULL DEFAULT '',
+  bolsa_defectos           TEXT          NOT NULL DEFAULT '',
+  estado_audio             VARCHAR(20)   NOT NULL DEFAULT '',
+  audio_defectos           TEXT          NOT NULL DEFAULT '',
+  estado_video             VARCHAR(20)   NOT NULL DEFAULT '',
+  video_defectos           TEXT          NOT NULL DEFAULT '',
+  estado_fisico_pantalla   VARCHAR(20)   NOT NULL DEFAULT '',
+  fisico_pantalla_defectos TEXT          NOT NULL DEFAULT '',
+  estado_limpieza          VARCHAR(20)   NOT NULL DEFAULT '',
+  limpieza_defectos        TEXT          NOT NULL DEFAULT '',
+  estado_aql               VARCHAR(20)   NOT NULL DEFAULT '',
+  foto_lpn_filename        VARCHAR(255)  NOT NULL DEFAULT '',
+  foto_pantalla_filename   VARCHAR(255)  NOT NULL DEFAULT '',
+  inspector                VARCHAR(100)  NOT NULL DEFAULT '',
+  registrado_por           VARCHAR(100),
+  created_at               TIMESTAMP     DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS catalogo_sku (
+  id          SERIAL PRIMARY KEY,
+  sku         TEXT NOT NULL UNIQUE,
+  marca       TEXT NOT NULL DEFAULT '',
+  modelo      TEXT NOT NULL DEFAULT '',
+  descripcion TEXT NOT NULL DEFAULT '',
+  pulgada     TEXT NOT NULL DEFAULT ''
+);
+
+-- ── LIBERACIÓN SHIPPING ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS liberacion_shipping (
+  id                      SERIAL PRIMARY KEY,
+  fecha                   DATE          NOT NULL,
+  numero_orden            VARCHAR(100)  NOT NULL DEFAULT '',
+  hora_inicio             TIME          NOT NULL DEFAULT '00:00',
+  hora_fin                TIME          NOT NULL DEFAULT '00:00',
+  destino                 VARCHAR(50)   NOT NULL DEFAULT '',
+  tipo_envio              VARCHAR(20)   NOT NULL DEFAULT '',
+  tipo_orden              VARCHAR(50)   NOT NULL DEFAULT '',
+  paqueteria              VARCHAR(50)   NOT NULL DEFAULT '',
+  numero_contenedor       VARCHAR(100)  NOT NULL DEFAULT '',
+  numero_sello            VARCHAR(100)  NOT NULL DEFAULT '',
+  cantidad_pallets        INTEGER       NOT NULL DEFAULT 0,
+  cantidad_manifiesto     INTEGER       NOT NULL DEFAULT 0,
+  cantidad_fisica         INTEGER       NOT NULL DEFAULT 0,
+  estado                  VARCHAR(30)   NOT NULL DEFAULT '',
+  cantidad_diferencia     INTEGER       NOT NULL DEFAULT 0,
+  resultado_inspeccion    VARCHAR(20)   NOT NULL DEFAULT '',
+  foto_contenedor_vacio   VARCHAR(255)  NOT NULL DEFAULT '',
+  foto_contenedor_cargado VARCHAR(255)  NOT NULL DEFAULT '',
+  foto_caja_sellada       VARCHAR(255)  NOT NULL DEFAULT '',
+  foto_placas             VARCHAR(255)  NOT NULL DEFAULT '',
+  foto_manifiesto         VARCHAR(255)  NOT NULL DEFAULT '',
+  inspector               VARCHAR(100)  NOT NULL DEFAULT '',
+  estatus_carga           VARCHAR(30)   NOT NULL DEFAULT '',
+  comentarios             TEXT          NOT NULL DEFAULT '',
+  registrado_por          VARCHAR(100),
+  created_at              TIMESTAMP     DEFAULT NOW()
 );
 
 -- ── DATOS INICIALES ───────────────────────────────────────────
