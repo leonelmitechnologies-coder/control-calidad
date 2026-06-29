@@ -1,1 +1,1 @@
-web: pm2-runtime ecosystem.config.cjs
+web: node dist/server/index.js
