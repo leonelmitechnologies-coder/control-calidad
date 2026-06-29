@@ -3,14 +3,13 @@
 module.exports = {
   apps: [
     {
-      name: "stack-template",
+      name: "control-calidad-qc",
       script: "dist/server/index.js",
       instances: 1,
       autorestart: true,
       max_memory_restart: "512M",
       env: {
         NODE_ENV: "production",
-        PORT: 7000,
       },
     },
   ],
