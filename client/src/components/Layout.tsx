@@ -33,6 +33,7 @@ export default function Layout({ children }: LayoutProps) {
     { label: t('nav.liberacion_shipping'), href: '/liberacion-shipping', icon: '🚚' },
     { label: t('nav.organigrama'), href: '/organigrama-qc', icon: '🏢' },
     { label: t('nav.calendario'), href: '/calendario', icon: '📅' },
+    { label: t('nav.manual'), href: '/manual', icon: '📖' },
   ];
 
   const languages = [

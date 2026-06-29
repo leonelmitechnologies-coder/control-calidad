@@ -13,7 +13,8 @@
     "aql": "AQL",
     "liberacion_shipping": "Liberación Shipping",
     "organigrama": "Organigrama",
-    "calendario": "Calendario"
+    "calendario": "Calendario",
+    "manual": "Manual de Usuario"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -463,6 +464,27 @@
     "deleted_ok": "Registro eliminado correctamente",
     "saved_ok": "Registro guardado correctamente",
     "updated_ok": "Registro actualizado correctamente"
+  },
+  "manual": {
+    "title": "Manual de Usuario",
+    "subtitle": "Sistema de Control de Calidad — MI Technologies",
+    "search": "Buscar...",
+    "noResults": "Sin resultados",
+    "sections": {
+      "intro": "Introducción",
+      "login": "Inicio de Sesión",
+      "dashboard": "Panel Principal",
+      "nc": "No Conformidades",
+      "recepciones": "Recepciones",
+      "re": "Rechazos Externos",
+      "ri": "Rechazos Internos",
+      "capa": "Acciones Correctivas (CAPA)",
+      "aql": "Inspecciones AQL",
+      "shipping": "Liberación Shipping",
+      "organigrama": "Organigrama QC",
+      "calendario": "Calendario",
+      "glosario": "Glosario"
+    }
   },
   "dashboard": {
     "title": "Panel Principal",

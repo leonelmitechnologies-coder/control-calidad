@@ -23,6 +23,7 @@ import Aql from './pages/Aql';
 import LiberacionShipping from './pages/LiberacionShipping';
 import OrganigramaQc from './pages/OrganigramaQc';
 import Calendario from './pages/Calendario';
+import Manual from './pages/Manual';
 
 // Create TanStack Query client
 const queryClient = new QueryClient({
@@ -138,6 +139,14 @@ export default function App() {
                 {() => (
                   <Layout>
                     <Calendario />
+                  </Layout>
+                )}
+              </Route>
+
+              <Route path="/manual">
+                {() => (
+                  <Layout>
+                    <Manual />
                   </Layout>
                 )}
               </Route>

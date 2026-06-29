@@ -13,7 +13,8 @@
     "aql": "AQL",
     "liberacion_shipping": "发货放行",
     "organigrama": "组织结构",
-    "calendario": "日历"
+    "calendario": "日历",
+    "manual": "用户手册"
   },
   "auth": {
     "login": "登录",
@@ -458,6 +459,27 @@
     "deleted_ok": "记录删除成功",
     "saved_ok": "记录保存成功",
     "updated_ok": "记录更新成功"
+  },
+  "manual": {
+    "title": "用户手册",
+    "subtitle": "质量控制系统 — MI Technologies",
+    "search": "搜索...",
+    "noResults": "无结果",
+    "sections": {
+      "intro": "简介",
+      "login": "登录",
+      "dashboard": "仪表板",
+      "nc": "不合格品",
+      "recepciones": "货物接收",
+      "re": "外部拒收",
+      "ri": "内部拒收",
+      "capa": "纠正措施(CAPA)",
+      "aql": "AQL检验",
+      "shipping": "发货放行",
+      "organigrama": "组织架构",
+      "calendario": "日历",
+      "glosario": "术语表"
+    }
   },
   "dashboard": {
     "title": "主面板",
