@@ -4,13 +4,16 @@ import { sql } from "drizzle-orm";
 import * as schema from "../shared/schema.js";
 
 // Initialize the database connection pool
-export const pool = new Pool({
-  host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT || "5432"),
-  database: process.env.DB_NAME || "control_calidad",
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "",
-});
+// DATABASE_URL takes priority (Coolify/cloud); individual vars as fallback (local dev)
+export const pool = process.env.DATABASE_URL
+  ? new Pool({ connectionString: process.env.DATABASE_URL })
+  : new Pool({
+      host: process.env.DB_HOST || "localhost",
+      port: parseInt(process.env.DB_PORT || "5432"),
+      database: process.env.DB_NAME || "control_calidad",
+      user: process.env.DB_USER || "postgres",
+      password: process.env.DB_PASSWORD || "",
+    });
 
 // Initialize Drizzle ORM
 export const db = drizzle(pool, { schema });
