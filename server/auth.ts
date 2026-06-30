@@ -58,7 +58,8 @@ export async function initializePassport(app: any) {
 
   // Discover Nextcloud OIDC provider
   const issuer = await Issuer.discover(
-    "https://cloud.miglobal.com.mx/index.php/apps/oidc/openid-configuration"
+    process.env.OIDC_ISSUER_URL ||
+      "https://cloud.miglobal.com.mx/index.php/.well-known/openid-configuration"
   );
 
   const client = new issuer.Client({
