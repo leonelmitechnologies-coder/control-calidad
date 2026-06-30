@@ -43,16 +43,20 @@ async function initApp() {
     await initDB();
     console.log("[App] Database initialized");
 
-    // Initialize Passport OIDC
-    passportClient = await initializePassport(app);
-    console.log("[App] Passport OIDC initialized");
+    // Initialize Passport OIDC (optional — skip if SSO vars not yet configured)
+    try {
+      passportClient = await initializePassport(app);
+      console.log("[App] Passport OIDC initialized");
+    } catch (err: any) {
+      console.warn("[App] OIDC not configured, SSO disabled:", err.message);
+    }
 
     // Register additional routes
     registerRoutes(app);
     console.log("[App] Routes registered");
 
     // Serve static files (Vite build output)
-    const publicDir = path.resolve(__dirname, "../dist/public");
+    const publicDir = path.join(process.cwd(), "dist/client");
     app.use(express.static(publicDir));
 
     // Catch-all SPA route (for client-side routing)

@@ -103,8 +103,12 @@ export async function initializePassport(app: any) {
 
 /**
  * Middleware: Require authentication
+ * Bypasses auth when OIDC is not yet configured (SSO pending).
  */
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!process.env.OIDC_CLIENT_ID) {
+    return next();
+  }
   if (!req.user) {
     return res.status(401).json({ error: "No autorizado" });
   }
