@@ -28,6 +28,16 @@ const PORT = parseInt(process.env.PORT || "3001", 10);
 // Trust Traefik/Coolify reverse proxy so req.secure and cookies work correctly
 app.set("trust proxy", 1);
 
+// Force HTTPS in production (redirect before any other middleware)
+if (process.env.NODE_ENV === "production") {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.headers["x-forwarded-proto"] !== "https") {
+      return res.redirect(301, "https://" + req.headers.host + req.url);
+    }
+    next();
+  });
+}
+
 // Middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
