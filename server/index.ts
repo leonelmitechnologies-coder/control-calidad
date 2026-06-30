@@ -1734,7 +1734,4 @@ app.delete("/api/capas/:id", requireAuth, async (req: Request, res: Response) =>
   }
 });
 
-// Initialize app and start server
-initApp();
-
 export default app;
