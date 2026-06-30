@@ -34,6 +34,14 @@ const CLASSIFICATION_OPTIONS = ['A', 'B', 'C', 'D', 'E'];
 const SALES_CHANNEL_OPTIONS  = ['Walmart', 'Amazon', 'Liverpool', 'Soriana', 'Coppel', 'Otros'];
 const ESTATUS_OPTIONS        = ['Pendiente', 'Aceptado', 'Rechazado'] as const;
 
+const DEPARTAMENTOS_RE = ['INCOMING', 'SORTING', 'FFT', 'PALETIZADO', 'OPEN CELL', 'ALMACEN', 'SHIPPING B2C', 'SHIPPING B2B'] as const;
+
+interface CorrectiveAction {
+  departamento: string;
+  orden:        number;
+  accion:       string;
+}
+
 // ── Form data shape ───────────────────────────────────────────────────────────
 
 export interface ReFormData {
@@ -56,6 +64,7 @@ export interface ReFormData {
   sale_price: string;
   estatus: string;
   problems: RechazosExternoProblem[];
+  corrective_actions: CorrectiveAction[];
 }
 
 // ── Blank form ────────────────────────────────────────────────────────────────
@@ -82,6 +91,7 @@ function makeBlank(): ReFormData {
     sale_price:         '',
     estatus:            'Pendiente',
     problems:           [{ descripcion: '', accion: '' }],
+    corrective_actions: [],
   };
 }
 
@@ -113,8 +123,8 @@ function calcMinutes(entry: string, exit: string): number | null {
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
-type FormErrors = Partial<Record<keyof Omit<ReFormData, 'problems'>, string>> & {
-  problems?: Array<{ descripcion?: string; accion?: string }>;
+type FormErrors = Partial<Record<keyof Omit<ReFormData, 'problems' | 'corrective_actions'>, string>> & {
+  problems?: string[];
 };
 
 function validateForm(form: ReFormData): FormErrors {
@@ -126,51 +136,12 @@ function validateForm(form: ReFormData): FormErrors {
   if (!form.plant_entry)          errors.plant_entry    = 'Requerido';
   if (!form.processed_by.trim())  errors.processed_by   = 'Requerido';
 
-  // Problems validation
-  const probErrors = form.problems.map((p) => ({
-    descripcion: p.descripcion.trim() ? undefined : 'Requerido',
-    accion:      p.accion.trim()      ? undefined : 'Requerido',
-  }));
-  const hasProbErrors = probErrors.some((e) => e.descripcion || e.accion);
-  if (hasProbErrors) errors.problems = probErrors;
+  const probErrors = form.problems.map((p) =>
+    p.descripcion.trim() ? undefined : 'Requerido',
+  );
+  if (probErrors.some(Boolean)) errors.problems = probErrors as string[];
 
   return errors;
-}
-
-// ── Field wrapper ─────────────────────────────────────────────────────────────
-
-function Field({
-  label,
-  required,
-  error,
-  children,
-  fullWidth = false,
-}: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  children: React.ReactNode;
-  fullWidth?: boolean;
-}) {
-  return (
-    <div className={fullWidth ? 'sm:col-span-2' : ''}>
-      <label className="mb-1 block text-xs font-medium text-gray-700">
-        {label}
-        {required && <span className="ml-0.5 text-red-500">*</span>}
-      </label>
-      {children}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-    </div>
-  );
-}
-
-function inputClass(hasError: boolean, readOnly = false) {
-  return [
-    'block w-full rounded-md border px-3 py-2 text-sm shadow-sm',
-    'focus:outline-none focus:ring-2 focus:ring-blue-500',
-    hasError  ? 'border-red-400 focus:ring-red-400' : 'border-gray-300',
-    readOnly  ? 'cursor-not-allowed bg-gray-50 text-gray-500' : '',
-  ].join(' ');
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -231,6 +202,11 @@ export default function ReForm({
         sale_price:         data.sale_price != null ? String(data.sale_price) : '',
         estatus:            data.estatus || 'Pendiente',
         problems:           deriveProblems(data),
+        corrective_actions: (data.corrective_actions ?? []).map((ca) => ({
+          departamento: ca.departamento,
+          orden:        ca.orden,
+          accion:       ca.accion,
+        })),
       });
       setSkuLocked(true);
     } else {
@@ -289,10 +265,10 @@ export default function ReForm({
   // ── Problem management ─────────────────────────────────────────────────────
 
   const handleProblemChange = useCallback(
-    (index: number, field: 'descripcion' | 'accion', value: string) => {
+    (index: number, value: string) => {
       setForm((f) => {
         const updated = f.problems.map((p, i) =>
-          i === index ? { ...p, [field]: value } : p,
+          i === index ? { ...p, descripcion: value } : p,
         );
         const next = { ...f, problems: updated };
         if (touched) setErrors(validateForm(next));
@@ -319,6 +295,27 @@ export default function ReForm({
     });
   }, [touched]);
 
+  // ── Corrective actions by department ──────────────────────────────────────
+
+  const handleToggleDept = useCallback((dept: string) => {
+    setForm((f) => {
+      const isActive = f.corrective_actions.some((ca) => ca.departamento === dept);
+      const updated = isActive
+        ? f.corrective_actions.filter((ca) => ca.departamento !== dept)
+        : [...f.corrective_actions, { departamento: dept, orden: f.corrective_actions.length + 1, accion: '' }];
+      return { ...f, corrective_actions: updated };
+    });
+  }, []);
+
+  const handleDeptActionChange = useCallback((dept: string, value: string) => {
+    setForm((f) => ({
+      ...f,
+      corrective_actions: f.corrective_actions.map((ca) =>
+        ca.departamento === dept ? { ...ca, accion: value } : ca,
+      ),
+    }));
+  }, []);
+
   // ── Form submit ────────────────────────────────────────────────────────────
 
   function handleSubmit(e: React.FormEvent) {
@@ -328,7 +325,7 @@ export default function ReForm({
     setErrors(errs);
     const hasErrors =
       Object.keys(errs).filter((k) => k !== 'problems').length > 0 ||
-      (errs.problems?.some((p) => p.descripcion || p.accion) ?? false);
+      (errs.problems?.some(Boolean) ?? false);
     if (hasErrors) return;
     onSubmit(form, files);
   }
@@ -354,23 +351,25 @@ export default function ReForm({
       role="dialog"
       aria-modal="true"
       aria-labelledby="re-form-title"
-      className="fixed inset-0 z-[800] flex items-start justify-center overflow-y-auto p-4 sm:items-start"
+      className="fixed inset-0 z-[800] flex items-start justify-center overflow-y-auto p-4"
+      style={{ paddingTop: 24 }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
 
       {/* Dialog panel */}
-      <div className="relative z-10 my-4 w-full max-w-3xl rounded-xl bg-white shadow-2xl">
+      <div className="relative z-10 my-4 w-full" style={{ maxWidth: 780, background: '#fff', border: '1px solid #e2e2e2' }}>
+
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 id="re-form-title" className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between" style={{ padding: '16px 24px', borderBottom: '2px solid #0d2b4e' }}>
+          <h2 id="re-form-title" className="modal-titulo" style={{ margin: 0, border: 'none', paddingBottom: 0 }}>
             {title}
           </h2>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            style={{ background: 'none', border: 'none', fontSize: 18, color: '#777', cursor: 'pointer', padding: '2px 6px' }}
             aria-label={t('common.close')}
           >
             &#10005;
@@ -379,153 +378,177 @@ export default function ReForm({
 
         {/* Form body */}
         <form onSubmit={handleSubmit} noValidate>
-          <div className="space-y-4 px-6 py-5">
+          <div style={{ padding: '20px 24px' }}>
 
             {/* ── Section 1: Información Base ── */}
             <FieldGroup title={t('rechazos_externos.form.section_base')}>
-              <Field label={t('rechazos_externos.form.return_order')} required error={errors.return_order}>
+              <div>
+                <label>
+                  {t('rechazos_externos.form.return_order')}
+                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
+                </label>
                 <input
                   type="text"
                   value={form.return_order}
                   onChange={(e) => set('return_order', e.target.value)}
-                  className={inputClass(!!errors.return_order)}
                   placeholder="Ej. RO-2024-001"
+                  style={errors.return_order ? { borderColor: '#c0392b' } : undefined}
                 />
-              </Field>
+                {errors.return_order && <span className="form-error">{errors.return_order}</span>}
+              </div>
 
-              <Field label={t('rechazos_externos.form.license_plate')} required error={errors.license_plate}>
+              <div>
+                <label>
+                  {t('rechazos_externos.form.license_plate')}
+                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
+                </label>
                 <input
                   type="text"
                   value={form.license_plate}
                   onChange={(e) => set('license_plate', e.target.value)}
-                  className={inputClass(!!errors.license_plate)}
                   placeholder="Ej. ABC-1234"
+                  style={errors.license_plate ? { borderColor: '#c0392b' } : undefined}
                 />
-              </Field>
+                {errors.license_plate && <span className="form-error">{errors.license_plate}</span>}
+              </div>
 
-              <Field label={t('rechazos_externos.form.classification')} required error={errors.classification}>
+              <div>
+                <label>
+                  {t('rechazos_externos.form.classification')}
+                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
+                </label>
                 <select
                   value={form.classification}
                   onChange={(e) => set('classification', e.target.value)}
-                  className={inputClass(!!errors.classification)}
+                  style={errors.classification ? { borderColor: '#c0392b' } : undefined}
                 >
                   {CLASSIFICATION_OPTIONS.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
-              </Field>
+                {errors.classification && <span className="form-error">{errors.classification}</span>}
+              </div>
 
-              <Field label={t('rechazos_externos.form.inches')} error={errors.inches}>
+              <div>
+                <label>{t('rechazos_externos.form.inches')}</label>
                 <input
                   type="text"
                   value={form.inches}
                   onChange={(e) => set('inches', e.target.value)}
-                  className={inputClass(!!errors.inches)}
                   placeholder='Ej. 55"'
                 />
-              </Field>
+              </div>
 
-              <Field label={t('rechazos_externos.form.sales_channel')} error={errors.sales_channel} fullWidth>
+              <div className="full">
+                <label>{t('rechazos_externos.form.sales_channel')}</label>
                 <select
                   value={form.sales_channel}
                   onChange={(e) => set('sales_channel', e.target.value)}
-                  className={inputClass(!!errors.sales_channel)}
                 >
                   {SALES_CHANNEL_OPTIONS.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
-              </Field>
+              </div>
             </FieldGroup>
 
             {/* ── Section 2: Producto / SKU ── */}
             <FieldGroup title={t('rechazos_externos.form.section_product')}>
               <FieldGroupRow>
-                <Field label={t('rechazos_externos.form.sku')} required error={errors.sku}>
-                  <SkuAutocomplete
-                    value={form.sku}
-                    onChange={(text) => set('sku', text)}
-                    onSelect={handleSkuSelect}
-                    placeholder={t('sku.search')}
-                  />
-                </Field>
+                <label>{t('rechazos_externos.form.sku')}</label>
+                <SkuAutocomplete
+                  value={form.sku}
+                  onChange={(text) => set('sku', text)}
+                  onSelect={handleSkuSelect}
+                  placeholder={t('sku.search')}
+                />
               </FieldGroupRow>
 
               {/* Override checkbox */}
               <FieldGroupRow>
-                <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textTransform: 'none', fontSize: 12 }}>
                   <input
                     type="checkbox"
                     checked={!skuLocked}
                     onChange={(e) => setSkuLocked(!e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    style={{ width: 'auto' }}
                   />
                   {t('rechazos_externos.form.override_sku_fields')}
                 </label>
               </FieldGroupRow>
 
-              <Field label={t('rechazos_externos.form.brand')} error={errors.brand}>
+              <div>
+                <label>{t('rechazos_externos.form.brand')}</label>
                 <input
                   type="text"
                   value={form.brand}
                   onChange={(e) => set('brand', e.target.value)}
                   readOnly={skuLocked}
-                  className={inputClass(!!errors.brand, skuLocked)}
+                  style={skuLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : undefined}
                 />
-              </Field>
+              </div>
 
-              <Field label={t('rechazos_externos.form.modelo')} error={errors.modelo}>
+              <div>
+                <label>{t('rechazos_externos.form.modelo')}</label>
                 <input
                   type="text"
                   value={form.modelo}
                   onChange={(e) => set('modelo', e.target.value)}
                   readOnly={skuLocked}
-                  className={inputClass(!!errors.modelo, skuLocked)}
+                  style={skuLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : undefined}
                 />
-              </Field>
+              </div>
 
-              <Field label={t('rechazos_externos.form.pulgada')} error={errors.pulgada}>
+              <div>
+                <label>{t('rechazos_externos.form.pulgada')}</label>
                 <input
                   type="text"
                   value={form.pulgada}
                   onChange={(e) => set('pulgada', e.target.value)}
                   readOnly={skuLocked}
-                  className={inputClass(!!errors.pulgada, skuLocked)}
+                  style={skuLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : undefined}
                 />
-              </Field>
+              </div>
 
-              <Field label={t('rechazos_externos.form.descripcion')} error={errors.descripcion} fullWidth>
+              <div className="full">
+                <label>{t('rechazos_externos.form.descripcion')}</label>
                 <input
                   type="text"
                   value={form.descripcion}
                   onChange={(e) => set('descripcion', e.target.value)}
                   readOnly={skuLocked}
-                  className={inputClass(!!errors.descripcion, skuLocked)}
+                  style={skuLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : undefined}
                 />
-              </Field>
+              </div>
             </FieldGroup>
 
             {/* ── Section 3: Tiempos en Planta ── */}
             <FieldGroup title={t('rechazos_externos.form.section_plant')}>
-              <Field label={t('rechazos_externos.form.plant_entry')} required error={errors.plant_entry}>
+              <div>
+                <label>
+                  {t('rechazos_externos.form.plant_entry')}
+                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
+                </label>
                 <input
                   type="datetime-local"
                   value={form.plant_entry}
                   onChange={(e) => set('plant_entry', e.target.value)}
-                  className={inputClass(!!errors.plant_entry)}
+                  style={errors.plant_entry ? { borderColor: '#c0392b' } : undefined}
                 />
-              </Field>
+                {errors.plant_entry && <span className="form-error">{errors.plant_entry}</span>}
+              </div>
 
-              <Field label={t('rechazos_externos.form.plant_exit')} error={errors.plant_exit}>
+              <div>
+                <label>{t('rechazos_externos.form.plant_exit')}</label>
                 <input
                   type="datetime-local"
                   value={form.plant_exit}
                   onChange={(e) => set('plant_exit', e.target.value)}
-                  className={inputClass(!!errors.plant_exit)}
                 />
-              </Field>
+              </div>
 
-              <Field label={t('rechazos_externos.form.total_time')}>
+              <div>
+                <label>{t('rechazos_externos.form.total_time')}</label>
                 <input
                   type="text"
                   value={
@@ -534,48 +557,54 @@ export default function ReForm({
                       : '—'
                   }
                   readOnly
-                  className={inputClass(false, true)}
+                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
                 />
-              </Field>
+              </div>
 
-              <Field label={t('rechazos_externos.form.registration_date')} error={errors.registration_date}>
+              <div>
+                <label>{t('rechazos_externos.form.registration_date')}</label>
                 <input
                   type="date"
                   value={form.registration_date}
                   onChange={(e) => set('registration_date', e.target.value)}
-                  className={inputClass(!!errors.registration_date)}
                 />
-              </Field>
+              </div>
             </FieldGroup>
 
             {/* ── Section 4: Información de Orden ── */}
             <FieldGroup title={t('rechazos_externos.form.section_order')}>
-              <Field label={t('rechazos_externos.form.outbound_order')} error={errors.outbound_order}>
+              <div>
+                <label>{t('rechazos_externos.form.outbound_order')}</label>
                 <input
                   type="text"
                   value={form.outbound_order}
                   onChange={(e) => set('outbound_order', e.target.value)}
-                  className={inputClass(!!errors.outbound_order)}
                   placeholder="Ej. OO-2024-001"
                 />
-              </Field>
+              </div>
 
-              <Field label={t('rechazos_externos.form.processed_by')} required error={errors.processed_by}>
+              <div>
+                <label>
+                  {t('rechazos_externos.form.processed_by')}
+                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
+                </label>
                 <input
                   type="text"
                   value={form.processed_by}
                   onChange={(e) => set('processed_by', e.target.value)}
-                  className={inputClass(!!errors.processed_by)}
                   placeholder={t('rechazos_externos.form.processed_by_placeholder')}
+                  style={errors.processed_by ? { borderColor: '#c0392b' } : undefined}
                 />
-              </Field>
+                {errors.processed_by && <span className="form-error">{errors.processed_by}</span>}
+              </div>
             </FieldGroup>
 
             {/* ── Section 5: Precios y Estatus ── */}
             <FieldGroup title={t('rechazos_externos.form.section_pricing')}>
-              <Field label={t('rechazos_externos.form.sale_price')} error={errors.sale_price}>
-                <div className="relative">
-                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-400">
+              <div>
+                <label>{t('rechazos_externos.form.sale_price')}</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: 13 }}>
                     $
                   </span>
                   <input
@@ -584,51 +613,52 @@ export default function ReForm({
                     step={0.01}
                     value={form.sale_price}
                     onChange={(e) => set('sale_price', e.target.value)}
-                    className={inputClass(!!errors.sale_price) + ' pl-7'}
                     placeholder="0.00"
+                    style={{ paddingLeft: 22 }}
                   />
                 </div>
-              </Field>
+              </div>
 
-              <Field label={t('rechazos_externos.form.estatus')} required error={errors.estatus}>
+              <div>
+                <label>
+                  {t('rechazos_externos.form.estatus')}
+                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
+                </label>
                 <select
                   value={form.estatus}
                   onChange={(e) => set('estatus', e.target.value)}
-                  className={inputClass(!!errors.estatus)}
                 >
                   {ESTATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
-              </Field>
+              </div>
 
-              <Field label={t('rechazos_externos.form.registrado_por')}>
+              <div>
+                <label>{t('rechazos_externos.form.registrado_por')}</label>
                 <input
                   type="text"
                   value={registradoPor}
                   readOnly
-                  className={inputClass(false, true)}
+                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
                 />
-              </Field>
+              </div>
             </FieldGroup>
 
             {/* ── Section 6: Problemas y Acciones Correctivas ── */}
-            <fieldset className="rounded-lg border border-gray-200 bg-gray-50 px-4 pb-4 pt-3">
-              <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {t('rechazos_externos.form.section_problems')}
-              </legend>
+            <div style={{ marginBottom: 20 }}>
+              <div className="seccion-titulo">{t('rechazos_externos.form.section_problems')}</div>
 
-              <div className="mt-3 space-y-3">
+              <div>
                 {form.problems.map((problem, idx) => (
                   <ProblemActionRow
                     key={idx}
                     index={idx}
                     descripcion={problem.descripcion}
-                    accion={problem.accion}
                     onChange={handleProblemChange}
                     onRemove={handleRemoveProblem}
                     canRemove={form.problems.length > MIN_PROBLEMS}
-                    errors={errors.problems?.[idx]}
+                    error={errors.problems?.[idx]}
                     disabled={isSaving}
                   />
                 ))}
@@ -637,25 +667,77 @@ export default function ReForm({
                   type="button"
                   onClick={handleAddProblem}
                   disabled={!canAddProblem || isSaving}
-                  className={[
-                    'inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                    canAddProblem
-                      ? 'border-blue-300 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400'
-                      : 'cursor-not-allowed border-gray-200 text-gray-400',
-                  ].join(' ')}
+                  className="btn btn-secundario"
+                  style={!canAddProblem ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
                 >
                   + {t('rechazos_externos.form.add_problem')}
-                  <span className="text-xs text-gray-400">
+                  <span style={{ fontSize: 11, color: '#777', marginLeft: 6 }}>
                     ({form.problems.length}/{MAX_PROBLEMS})
                   </span>
                 </button>
               </div>
-            </fieldset>
+            </div>
 
-            {/* ── Section 7: Fotos ── */}
+            {/* ── Section 7: Acciones Correctivas por Departamento ── */}
+            <div style={{ marginBottom: 20 }}>
+              <div className="seccion-titulo">Acciones Correctivas por Departamento</div>
+
+              {/* Department chip buttons */}
+              <div className="flex flex-wrap" style={{ gap: 8, marginBottom: 16 }}>
+                {DEPARTAMENTOS_RE.map((dept) => {
+                  const isActive = form.corrective_actions.some((ca) => ca.departamento === dept);
+                  return (
+                    <button
+                      key={dept}
+                      type="button"
+                      onClick={() => handleToggleDept(dept)}
+                      disabled={isSaving}
+                      style={{
+                        background: isActive ? '#0d2b4e' : '#f4f6f9',
+                        color: isActive ? '#ffffff' : '#111111',
+                        border: '1px solid #e2e2e2',
+                        padding: '4px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      {dept}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active department action cards */}
+              <div>
+                {form.corrective_actions.map((ca) => (
+                  <div key={ca.departamento} style={{ border: '1px solid #0d2b4e', padding: '10px 14px', marginBottom: 8, background: '#fff' }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#0d2b4e', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                      {ca.departamento}
+                    </p>
+                    <textarea
+                      value={ca.accion}
+                      onChange={(e) => handleDeptActionChange(ca.departamento, e.target.value)}
+                      placeholder="Describir la acción correctiva..."
+                      rows={2}
+                      disabled={isSaving}
+                    />
+                  </div>
+                ))}
+
+                {form.corrective_actions.length === 0 && (
+                  <p style={{ fontSize: 12, color: '#999', fontStyle: 'italic' }}>
+                    Selecciona los departamentos involucrados para agregar acciones correctivas.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* ── Section 8: Fotos ── */}
             <FieldGroup title={t('rechazos_externos.form.section_photos')}>
               <FieldGroupRow>
-                <p className="mb-2 text-xs text-gray-500">
+                <p style={{ fontSize: 12, color: '#777', marginBottom: 8 }}>
                   {t('rechazos_externos.form.max_photos')}
                 </p>
                 <ImageUpload
@@ -669,7 +751,7 @@ export default function ReForm({
 
             {/* Existing photos note when editing */}
             {isEditing && data?.images && data.images.length > 0 && (
-              <p className="text-xs text-gray-500 italic">
+              <p style={{ fontSize: 12, color: '#777', fontStyle: 'italic' }}>
                 {t('rechazos_externos.form.existing_photos_note', { count: data.images.length })}
               </p>
             )}
@@ -677,25 +759,29 @@ export default function ReForm({
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSaving}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSaving && (
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              )}
-              {isEditing ? t('rechazos_externos.form.update') : t('common.save')}
-            </button>
+          <div className="flex justify-end" style={{ gap: 10, padding: '14px 24px', borderTop: '1px solid #e2e2e2' }}>
+            <div className="btn-grupo">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isSaving}
+                className="btn btn-secundario"
+                style={isSaving ? { opacity: 0.5 } : undefined}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="btn btn-primario"
+                style={isSaving ? { opacity: 0.5 } : undefined}
+              >
+                {isSaving && (
+                  <span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 6 }} />
+                )}
+                {isEditing ? t('rechazos_externos.form.update') : t('common.save')}
+              </button>
+            </div>
           </div>
         </form>
       </div>

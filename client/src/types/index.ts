@@ -85,7 +85,7 @@ export interface Recepcion {
   unit_qty: number;
   pallet_qty: number;
   tipo: 'Import' | 'Export';
-  estatus: 'Confirmado' | 'Pendiente' | 'Rechazado' | 'En Descarga' | 'Descargado';
+  estatus: 'Confirmado' | 'En descarga' | 'Descargado' | 'Rechazado';
   registrado_por: string;
   fecha_actualizado: string;
   created_at?: string;
@@ -214,6 +214,8 @@ export interface OrganigramaQc {
   estatus: string;          // lowercase: 'activo' | 'inactivo'
   telefono?: string;
   correo?: string;
+  contactoEmergencia?: string;
+  telEmergencia?: string;
   foto_filename?: string;   // server stores filename, URL derived client-side
   created_at: string;
 }

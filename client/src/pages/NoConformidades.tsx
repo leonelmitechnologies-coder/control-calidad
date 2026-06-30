@@ -27,7 +27,7 @@ import NcDetailModal from '../components/nc/NcDetailModal';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 20;
-const ALL_STATUSES = ['Todas', 'Abierta', 'En Progreso', 'Cerrada', 'Rechazada'] as const;
+const ALL_STATUSES = ['Todas', 'Abierta', 'En proceso', 'Cerrada'] as const;
 type StatusFilter = (typeof ALL_STATUSES)[number];
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -123,7 +123,7 @@ export default function NoConformidades() {
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {
       Todas: allRes?.total ?? 0,
-      Abierta: 0, 'En Progreso': 0, Cerrada: 0, Rechazada: 0,
+      Abierta: 0, 'En proceso': 0, Cerrada: 0,
     };
     (allRes?.data ?? []).forEach((nc) => {
       if (nc.estatus in counts) counts[nc.estatus]++;
@@ -132,7 +132,7 @@ export default function NoConformidades() {
   }, [allRes]);
 
   const tabs = ALL_STATUSES.map((s) => ({
-    label: t(`nc.status_tabs.${s === 'Todas' ? 'todas' : s === 'En Progreso' ? 'en_progreso' : s.toLowerCase()}`),
+    label: s === 'Todas' ? 'Todas' : s === 'En proceso' ? 'En proceso' : s,
     value: s,
     count: statusCounts[s] ?? 0,
   }));
@@ -265,23 +265,16 @@ export default function NoConformidades() {
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('nc.title')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111111', marginBottom: 2 }}>{t('nc.title')}</h1>
+          <p style={{ fontSize: 13, color: '#666' }}>
             Gestión de No Conformidades — ISO 9001:2015 §8.7
           </p>
         </div>
         <button
           onClick={handleOpenCreate}
-          className="
-            inline-flex items-center gap-2
-            px-4 py-2 text-sm font-medium
-            bg-blue-600 text-white rounded-lg
-            hover:bg-blue-700 transition-colors shadow-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-500
-          "
+          className="btn btn-primario"
         >
-          <span aria-hidden="true">+</span>
-          {t('nc.add')}
+          + {t('nc.add')}
         </button>
       </div>
 
@@ -293,9 +286,9 @@ export default function NoConformidades() {
       />
 
       {/* Search + date filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+      <div className="filtros">
+        <div style={{ position: 'relative', flex: 1 }}>
+          <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none' }}>
             ⌕
           </span>
           <input
@@ -303,35 +296,30 @@ export default function NoConformidades() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Buscar por área, tipo o descripción…"
-            className="
-              w-full pl-8 pr-3 py-2 text-sm
-              border border-gray-300 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-400
-            "
+            style={{ paddingLeft: 28, width: '100%' }}
           />
         </div>
 
         {/* Date range */}
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 whitespace-nowrap">Desde</label>
+          <label style={{ whiteSpace: 'nowrap' }}>Desde</label>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
-          <label className="text-xs text-gray-500 whitespace-nowrap">Hasta</label>
+          <label style={{ whiteSpace: 'nowrap' }}>Hasta</label>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
           {(startDate || endDate) && (
             <button
               onClick={() => { setStartDate(''); setEndDate(''); }}
-              className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+              className="btn btn-secundario"
               title="Limpiar fechas"
+              style={{ padding: '4px 8px', fontSize: 12 }}
             >
               ✕
             </button>

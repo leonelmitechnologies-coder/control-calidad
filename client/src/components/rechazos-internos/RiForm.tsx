@@ -32,7 +32,7 @@ import SignatureCaptureSection from './SignatureCaptureSection';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ORIGENES = ['Línea', 'Recepción', 'Almacén', 'Expedición', 'Otros'] as const;
+const ORIGENES = ['FFT Lineas', 'FFT Paletizado', 'Almacen', 'Shipping B2B', 'Shipping B2C'] as const;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -100,6 +100,32 @@ const EMPTY_FORM: RiFormValues = {
   firma_digital:     '',
   newFiles:          [],
 };
+
+// ── Section label ─────────────────────────────────────────────────────────────
+
+function SectionTitle({ num, label, danger }: { num: number; label: string; danger?: boolean }) {
+  return (
+    <div className="flex items-center" style={{ gap: 8, marginBottom: 14 }}>
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 20,
+        height: 20,
+        background: danger ? '#c0392b' : '#0d2b4e',
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: 700,
+        flexShrink: 0,
+      }}>
+        {num}
+      </span>
+      <div className="seccion-titulo" style={{ margin: 0, borderBottom: 'none', paddingBottom: 0, flex: 1 }}>
+        {label}
+      </div>
+    </div>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -284,45 +310,47 @@ export default function RiForm({
       onClick={handleOverlayClick}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
 
       {/* Dialog panel */}
-      <div className="relative z-10 w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-xl bg-white shadow-2xl">
+      <div
+        className="relative z-10 w-full overflow-y-auto"
+        style={{ maxWidth: 680, maxHeight: '92vh', background: '#fff', border: '1px solid #e2e2e2' }}
+      >
 
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
-          <h2 id="ri-form-title" className="text-lg font-semibold text-gray-900">
+        <div
+          className="sticky top-0 z-10 flex items-center justify-between"
+          style={{ padding: '16px 24px', borderBottom: '2px solid #0d2b4e', background: '#fff' }}
+        >
+          <h2 id="ri-form-title" className="modal-titulo" style={{ margin: 0, border: 'none', paddingBottom: 0 }}>
             {isEditing
               ? `${t('rechazos_internos.title')} #${data?.id ?? ''} — Editar`
               : t('rechazos_internos.add')}
           </h2>
           <button
             onClick={onCancel}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            style={{ background: 'none', border: 'none', fontSize: 18, color: '#777', cursor: 'pointer', padding: '2px 6px' }}
             aria-label={t('common.cancel')}
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            &#10005;
           </button>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate>
-          <div className="px-6 py-5 space-y-6">
+          <div style={{ padding: '20px 24px' }}>
 
             {/* ── Section 1: Información Básica ── */}
-            <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">1</span>
-                Información Básica
-              </h3>
+            <div style={{ marginBottom: 24 }}>
+              <SectionTitle num={1} label="Información Básica" />
 
               {/* Fecha + License Plate */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="form-grid" style={{ marginBottom: 12 }}>
                 <div>
-                  <label htmlFor="ri-fecha" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('rechazos_internos.form.fecha_registro')} <span className="text-red-500">*</span>
+                  <label htmlFor="ri-fecha">
+                    {t('rechazos_internos.form.fecha_registro')}
+                    <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
                   </label>
                   <input
                     ref={firstInputRef}
@@ -331,18 +359,15 @@ export default function RiForm({
                     value={values.fecha_registro}
                     onChange={(e) => set('fecha_registro', e.target.value)}
                     required
-                    className={[
-                      'w-full rounded-md border px-3 py-2 text-sm shadow-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-blue-400',
-                      errors.fecha_registro ? 'border-red-400 bg-red-50' : 'border-gray-300',
-                    ].join(' ')}
+                    style={errors.fecha_registro ? { borderColor: '#c0392b' } : undefined}
                   />
-                  {errors.fecha_registro && <p className="mt-1 text-xs text-red-600">{errors.fecha_registro}</p>}
+                  {errors.fecha_registro && <span className="form-error">{errors.fecha_registro}</span>}
                 </div>
 
                 <div>
-                  <label htmlFor="ri-lp" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('rechazos_internos.form.license_plate')} <span className="text-red-500">*</span>
+                  <label htmlFor="ri-lp">
+                    {t('rechazos_internos.form.license_plate')}
+                    <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
                   </label>
                   <input
                     id="ri-lp"
@@ -350,46 +375,40 @@ export default function RiForm({
                     value={values.license_plate}
                     onChange={(e) => set('license_plate', e.target.value.toUpperCase())}
                     placeholder="Ej. MT123456"
-                    className={[
-                      'w-full rounded-md border px-3 py-2 text-sm shadow-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-blue-400',
-                      errors.license_plate ? 'border-red-400 bg-red-50' : 'border-gray-300',
-                    ].join(' ')}
+                    style={errors.license_plate ? { borderColor: '#c0392b' } : undefined}
                   />
-                  {errors.license_plate && <p className="mt-1 text-xs text-red-600">{errors.license_plate}</p>}
+                  {errors.license_plate && <span className="form-error">{errors.license_plate}</span>}
                 </div>
               </div>
 
               {/* SKU Autocomplete */}
-              <div>
-                <label htmlFor="ri-sku" className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('rechazos_internos.form.sku')}
-                </label>
+              <div style={{ marginBottom: 12 }}>
+                <label htmlFor="ri-sku">{t('rechazos_internos.form.sku')}</label>
                 <SkuAutocomplete
                   value={values.sku}
                   onChange={(text) => set('sku', text)}
                   onSelect={handleSkuSelect}
                   placeholder={t('sku.search')}
                 />
-                <p className="mt-1 text-xs text-gray-400">Seleccione para auto-llenar Marca, Modelo, Pulgada y Descripción</p>
+                <p style={{ marginTop: 4, fontSize: 12, color: '#aaa' }}>
+                  Seleccione para auto-llenar Marca, Modelo, Pulgada y Descripción
+                </p>
               </div>
 
               {/* Cascaded SKU fields (read-only) */}
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="form-grid" style={{ marginBottom: 12 }}>
                 {[
-                  { field: 'marca' as const,  label: t('rechazos_internos.form.marca') },
-                  { field: 'modelo' as const, label: t('rechazos_internos.form.modelo') },
-                  { field: 'pulgada' as const, label: t('rechazos_internos.form.pulgada') },
+                  { field: 'marca' as const,   label: t('rechazos_internos.form.marca') },
+                  { field: 'modelo' as const,   label: t('rechazos_internos.form.modelo') },
+                  { field: 'pulgada' as const,  label: t('rechazos_internos.form.pulgada') },
                 ].map(({ field, label }) => (
                   <div key={field}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {label}
-                    </label>
+                    <label>{label}</label>
                     <input
                       type="text"
                       value={values[field]}
                       readOnly
-                      className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 cursor-not-allowed"
+                      style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
                     />
                   </div>
                 ))}
@@ -398,26 +417,20 @@ export default function RiForm({
               {/* Descripcion (full width) */}
               {values.descripcion && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('rechazos_internos.form.descripcion')}
-                  </label>
+                  <label>{t('rechazos_internos.form.descripcion')}</label>
                   <input
                     type="text"
                     value={values.descripcion}
                     readOnly
-                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 cursor-not-allowed"
+                    style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
                   />
                 </div>
               )}
-            </section>
+            </div>
 
             {/* ── Section 2: Defecto & COPQ ── */}
-            <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">2</span>
-                Defecto & COPQ
-              </h3>
-
+            <div style={{ marginBottom: 24 }}>
+              <SectionTitle num={2} label="Defecto & COPQ" />
               <CopqSection
                 values={copqValues}
                 onChange={handleCopqChange}
@@ -427,53 +440,44 @@ export default function RiForm({
                   costo_no_calidad:   errors.costo_no_calidad,
                 }}
               />
-            </section>
+            </div>
 
             {/* ── Section 3: Información Adicional ── */}
-            <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">3</span>
-                Información Adicional
-              </h3>
+            <div style={{ marginBottom: 24 }}>
+              <SectionTitle num={3} label="Información Adicional" />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="form-grid" style={{ marginBottom: 12 }}>
                 {/* Origen Hallazgo */}
                 <div>
-                  <label htmlFor="ri-origen" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('rechazos_internos.form.origen_hallazgo')} <span className="text-red-500">*</span>
+                  <label htmlFor="ri-origen">
+                    {t('rechazos_internos.form.origen_hallazgo')}
+                    <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
                   </label>
                   <select
                     id="ri-origen"
                     value={values.origen_hallazgo}
                     onChange={(e) => set('origen_hallazgo', e.target.value)}
-                    className={[
-                      'w-full rounded-md border px-3 py-2 text-sm shadow-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-blue-400',
-                      errors.origen_hallazgo ? 'border-red-400 bg-red-50' : 'border-gray-300',
-                    ].join(' ')}
+                    style={errors.origen_hallazgo ? { borderColor: '#c0392b' } : undefined}
                   >
                     <option value="">— Seleccionar —</option>
                     {ORIGENES.map((o) => (
                       <option key={o} value={o}>{o}</option>
                     ))}
                   </select>
-                  {errors.origen_hallazgo && <p className="mt-1 text-xs text-red-600">{errors.origen_hallazgo}</p>}
+                  {errors.origen_hallazgo && <span className="form-error">{errors.origen_hallazgo}</span>}
                 </div>
 
                 {/* Inspector */}
                 <div>
-                  <label htmlFor="ri-inspector" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('rechazos_internos.form.inspector')} <span className="text-red-500">*</span>
+                  <label htmlFor="ri-inspector">
+                    {t('rechazos_internos.form.inspector')}
+                    <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
                   </label>
                   <select
                     id="ri-inspector"
                     value={values.inspector}
                     onChange={(e) => set('inspector', e.target.value)}
-                    className={[
-                      'w-full rounded-md border px-3 py-2 text-sm shadow-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-blue-400',
-                      errors.inspector ? 'border-red-400 bg-red-50' : 'border-gray-300',
-                    ].join(' ')}
+                    style={errors.inspector ? { borderColor: '#c0392b' } : undefined}
                   >
                     <option value="">— Seleccionar Inspector —</option>
                     {inspectors.map((p) => (
@@ -486,41 +490,40 @@ export default function RiForm({
                       <option value={values.inspector}>{values.inspector}</option>
                     )}
                   </select>
-                  {errors.inspector && <p className="mt-1 text-xs text-red-600">{errors.inspector}</p>}
+                  {errors.inspector && <span className="form-error">{errors.inspector}</span>}
                 </div>
               </div>
 
               {/* Observaciones */}
               <div>
-                <label htmlFor="ri-obs" className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('rechazos_internos.form.observaciones')}
-                </label>
+                <label htmlFor="ri-obs">{t('rechazos_internos.form.observaciones')}</label>
                 <textarea
                   id="ri-obs"
                   rows={3}
                   value={values.observaciones}
                   onChange={(e) => set('observaciones', e.target.value)}
                   placeholder="Notas adicionales sobre el rechazo…"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
-            </section>
+            </div>
 
             {/* ── Section 4: Fotos ── */}
-            <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">4</span>
-                {t('rechazos_internos.form.fotos')}
-              </h3>
+            <div style={{ marginBottom: 24 }}>
+              <SectionTitle num={4} label={t('rechazos_internos.form.fotos')} />
 
               {/* Existing photos in edit mode */}
               {isEditing && data?.images && data.images.length > 0 && (
-                <div>
-                  <p className="mb-2 text-xs font-medium text-gray-500">Fotos existentes ({data.images.length})</p>
-                  <div className="grid grid-cols-4 gap-2">
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ fontSize: 12, color: '#777', marginBottom: 8 }}>
+                    Fotos existentes ({data.images.length})
+                  </p>
+                  <div className="grid grid-cols-4" style={{ gap: 8 }}>
                     {data.images.map((img) => (
-                      <div key={img.id} className="relative aspect-square overflow-hidden rounded-md border border-gray-200 bg-gray-100">
-                        <img src={img.url} alt={img.filename} className="h-full w-full object-cover" />
+                      <div
+                        key={img.id}
+                        style={{ aspectRatio: '1', overflow: 'hidden', border: '1px solid #e2e2e2', background: '#f4f6f9' }}
+                      >
+                        <img src={img.url} alt={img.filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     ))}
                   </div>
@@ -533,15 +536,11 @@ export default function RiForm({
                 maxFiles={5}
                 label={`Agregar fotos nuevas (máx 5${isEditing && data?.images?.length ? `, ya tiene ${data.images.length}` : ''})`}
               />
-            </section>
+            </div>
 
             {/* ── Section 5: Firma Digital ── */}
-            <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">5</span>
-                {t('rechazos_internos.form.firma_digital')}
-                <span className="text-xs font-normal text-red-500">(obligatorio)</span>
-              </h3>
+            <div style={{ marginBottom: 8 }}>
+              <SectionTitle num={5} label={t('rechazos_internos.form.firma_digital')} danger />
 
               <SignatureCaptureSection
                 signature={values.firma_digital}
@@ -550,45 +549,42 @@ export default function RiForm({
               />
 
               {errors.firma && (
-                <p className="text-xs text-red-600">{errors.firma}</p>
+                <span className="form-error" style={{ marginTop: 6 }}>{errors.firma}</span>
               )}
-            </section>
+            </div>
 
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-6 py-4">
+          <div
+            className="sticky bottom-0 z-10 flex items-center justify-between"
+            style={{ gap: 12, padding: '14px 24px', borderTop: '1px solid #e2e2e2', background: '#fff' }}
+          >
             {/* Signature status */}
-            <div className="text-xs text-gray-500">
+            <div style={{ fontSize: 12, color: '#777' }}>
               {values.firma_digital
-                ? <span className="text-green-600 font-medium">Firma capturada</span>
-                : <span className="text-red-500">Firma requerida para guardar</span>
+                ? <span style={{ color: '#2e7d32', fontWeight: 700 }}>Firma capturada</span>
+                : <span style={{ color: '#c0392b' }}>Firma requerida para guardar</span>
               }
             </div>
-            <div className="flex gap-3">
+            <div className="btn-grupo">
               <button
                 type="button"
                 onClick={onCancel}
                 disabled={submitting}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn btn-secundario"
+                style={submitting ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
               >
                 {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className={[
-                  'inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold shadow-sm transition-colors',
-                  canSubmit
-                    ? 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    : 'cursor-not-allowed bg-gray-300 text-gray-500',
-                ].join(' ')}
+                className="btn btn-primario"
+                style={!canSubmit ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
               >
                 {submitting && (
-                  <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
+                  <span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 6 }} />
                 )}
                 {isEditing ? 'Actualizar' : t('common.save')}
               </button>

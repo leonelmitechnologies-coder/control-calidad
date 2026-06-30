@@ -46,10 +46,22 @@ async function fetchDetail(id: number): Promise<RechazosInterno> {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</dt>
-      <dd className="mt-0.5 text-sm text-gray-800 break-words">
-        {value || <span className="italic text-gray-400">—</span>}
+      <dt style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#777', marginBottom: 4 }}>
+        {label}
+      </dt>
+      <dd style={{ fontSize: 13, color: '#111', margin: 0, wordBreak: 'break-word' }}>
+        {value || <span style={{ color: '#aaa', fontStyle: 'italic' }}>—</span>}
       </dd>
+    </div>
+  );
+}
+
+// ── Section title ─────────────────────────────────────────────────────────────
+
+function SectionTitle({ label }: { label: string }) {
+  return (
+    <div className="seccion-titulo" style={{ marginBottom: 14 }}>
+      {label}
     </div>
   );
 }
@@ -87,51 +99,52 @@ export default function RiDetailModal({ id, isOpen, onClose }: RiDetailModalProp
         className="fixed inset-0 z-[800] flex items-center justify-center p-4"
         onClick={handleOverlayClick}
       >
-        <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
 
-        <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-2xl">
+        <div
+          className="relative z-10 w-full overflow-y-auto"
+          style={{ maxWidth: 680, maxHeight: '90vh', background: '#fff', border: '1px solid #e2e2e2' }}
+        >
 
           {/* Header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
+          <div
+            className="sticky top-0 z-10 flex items-center justify-between"
+            style={{ padding: '16px 24px', borderBottom: '2px solid #0d2b4e', background: '#fff' }}
+          >
             <div>
-              <h2 id="ri-detail-title" className="text-lg font-semibold text-gray-900">
+              <h2 id="ri-detail-title" className="modal-titulo" style={{ margin: 0, border: 'none', paddingBottom: 0 }}>
                 {ri
                   ? `${t('rechazos_internos.title')} #${ri.id}`
                   : t('rechazos_internos.title')}
               </h2>
               {ri && (
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p style={{ fontSize: 12, color: '#777', marginTop: 2 }}>
                   {formatDate(ri.fecha_registro, 'dd/MM/yyyy')} — {ri.license_plate}
                 </p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              style={{ background: 'none', border: 'none', fontSize: 18, color: '#777', cursor: 'pointer', padding: '2px 6px' }}
               aria-label={t('common.close')}
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              &#10005;
             </button>
           </div>
 
           {/* Body */}
-          <div className="px-6 py-5 space-y-6">
+          <div style={{ padding: '20px 24px' }}>
 
             {/* Loading */}
             {isLoading && (
-              <div className="flex items-center justify-center py-12">
-                <svg className="h-8 w-8 animate-spin text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+              <div className="flex items-center justify-center" style={{ padding: '48px 0' }}>
+                <span style={{ fontSize: 13, color: '#777' }}>Cargando…</span>
               </div>
             )}
 
             {/* Error */}
             {isError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div style={{ border: '1px solid #f5c6cb', background: '#fdecea', padding: '12px 16px', fontSize: 13, color: '#c0392b' }}>
                 Error al cargar el detalle del registro.
               </div>
             )}
@@ -139,12 +152,9 @@ export default function RiDetailModal({ id, isOpen, onClose }: RiDetailModalProp
             {ri && (
               <>
                 {/* Section 1: Información Básica */}
-                <section>
-                  <h3 className="mb-3 text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true" />
-                    Información Básica
-                  </h3>
-                  <dl className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3">
+                <div style={{ marginBottom: 24 }}>
+                  <SectionTitle label="Información Básica" />
+                  <dl className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 24px' }}>
                     <Field label={t('rechazos_internos.form.fecha_registro')} value={formatDate(ri.fecha_registro, 'dd/MM/yyyy')} />
                     <Field label={t('rechazos_internos.form.license_plate')} value={ri.license_plate} />
                     <Field label={t('rechazos_internos.form.sku')} value={ri.sku} />
@@ -152,144 +162,143 @@ export default function RiDetailModal({ id, isOpen, onClose }: RiDetailModalProp
                     <Field label={t('rechazos_internos.form.modelo')} value={ri.modelo} />
                     <Field label={t('rechazos_internos.form.pulgada')} value={ri.pulgada} />
                     {ri.descripcion && (
-                      <div className="col-span-2 md:col-span-3">
+                      <div style={{ gridColumn: '1 / -1' }}>
                         <Field label={t('rechazos_internos.form.descripcion')} value={ri.descripcion} />
                       </div>
                     )}
                   </dl>
-                </section>
+                </div>
 
                 {/* Section 2: COPQ Mapping */}
-                <section>
-                  <h3 className="mb-3 text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true" />
-                    Defecto & COPQ
-                  </h3>
+                <div style={{ marginBottom: 24 }}>
+                  <SectionTitle label="Defecto & COPQ" />
 
                   {/* Visual mapping */}
                   {mappingEntry && (
-                    <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
-                      <p className="font-medium text-blue-800 mb-1">Mapeo COPQ</p>
-                      <p className="text-blue-700 leading-relaxed">
-                        <span className="font-semibold">Defecto:</span> {ri.defecto}
+                    <div style={{ background: '#f4f6f9', border: '1px solid #0d2b4e', padding: '10px 14px', marginBottom: 14, fontSize: 13 }}>
+                      <p style={{ fontWeight: 700, color: '#0d2b4e', marginBottom: 4, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Mapeo COPQ
+                      </p>
+                      <p style={{ color: '#111', margin: 0 }}>
+                        <strong>Defecto:</strong> {ri.defecto}
                         {' → '}
-                        <span className="font-semibold">Actividad:</span> {mappingEntry.actividad}
+                        <strong>Actividad:</strong> {mappingEntry.actividad}
                         {' → '}
-                        <span className="font-bold text-blue-900">{formatCurrency(mappingEntry.costo)}</span>
+                        <strong style={{ color: '#0d2b4e' }}>{formatCurrency(mappingEntry.costo)}</strong>
                       </p>
                       {Number(ri.costo_no_calidad) !== mappingEntry.costo && (
-                        <p className="mt-1 text-xs text-amber-600">
+                        <p style={{ marginTop: 6, fontSize: 12, color: '#856404' }}>
                           Costo registrado ({formatCurrency(Number(ri.costo_no_calidad))}) difiere del mapeo estándar (modificación manual).
                         </p>
                       )}
                     </div>
                   )}
 
-                  <dl className="grid grid-cols-1 gap-y-3 md:grid-cols-2 gap-x-6">
+                  <dl className="grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px 24px' }}>
                     <Field label={t('rechazos_internos.form.defecto')} value={ri.defecto} />
                     <Field
                       label={t('rechazos_internos.form.costo_no_calidad')}
                       value={
-                        <span className="font-bold text-blue-700 text-base">
+                        <span style={{ fontWeight: 700, color: '#0d2b4e', fontSize: 15 }}>
                           {formatCurrency(Number(ri.costo_no_calidad))}
                         </span>
                       }
                     />
-                    <div className="md:col-span-2">
+                    <div style={{ gridColumn: '1 / -1' }}>
                       <Field label={t('rechazos_internos.form.actividad_realizar')} value={ri.actividad_realizar} />
                     </div>
                   </dl>
-                </section>
+                </div>
 
                 {/* Section 3: Información Adicional */}
-                <section>
-                  <h3 className="mb-3 text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true" />
-                    Información Adicional
-                  </h3>
-                  <dl className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3">
+                <div style={{ marginBottom: 24 }}>
+                  <SectionTitle label="Información Adicional" />
+                  <dl className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 24px' }}>
                     <Field label={t('rechazos_internos.form.origen_hallazgo')} value={ri.origen_hallazgo} />
                     <Field label={t('rechazos_internos.form.inspector')} value={ri.inspector} />
-                    <Field label={t('rechazos_internos.table.status')} value={
-                      <span className={[
-                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-                        ri.estatus === 'Abierto' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600',
-                      ].join(' ')}>
-                        {ri.estatus ?? 'Abierto'}
-                      </span>
-                    } />
+                    <Field
+                      label={t('rechazos_internos.table.status')}
+                      value={
+                        <span className={`badge badge-${ri.estatus === 'Abierto' ? 'abierta' : 'cerrada'}`}>
+                          {ri.estatus ?? 'Abierto'}
+                        </span>
+                      }
+                    />
                     {ri.observaciones && (
-                      <div className="col-span-2 md:col-span-3">
+                      <div style={{ gridColumn: '1 / -1' }}>
                         <Field label={t('rechazos_internos.form.observaciones')} value={ri.observaciones} />
                       </div>
                     )}
                   </dl>
-                </section>
+                </div>
 
                 {/* Section 4: Fotos */}
                 {images.length > 0 && (
-                  <section>
-                    <h3 className="mb-3 text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" aria-hidden="true" />
-                      {t('rechazos_internos.form.fotos')} ({images.length})
-                    </h3>
-                    <div className="grid grid-cols-4 gap-2">
+                  <div style={{ marginBottom: 24 }}>
+                    <SectionTitle label={`${t('rechazos_internos.form.fotos')} (${images.length})`} />
+                    <div className="grid grid-cols-4" style={{ gap: 8 }}>
                       {images.map((img) => (
                         <button
                           key={img.id}
                           type="button"
                           onClick={() => setLightboxSrc(img.url)}
-                          className="group relative aspect-square overflow-hidden rounded-md border border-gray-200 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          style={{
+                            aspectRatio: '1',
+                            overflow: 'hidden',
+                            border: '1px solid #e2e2e2',
+                            background: '#f4f6f9',
+                            cursor: 'pointer',
+                            padding: 0,
+                          }}
                           aria-label={`Ver foto ${img.filename}`}
                         >
                           <img
                             src={img.url}
                             alt={img.filename}
-                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-                            <svg className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                            </svg>
-                          </div>
                         </button>
                       ))}
                     </div>
-                  </section>
+                  </div>
                 )}
 
                 {/* Section 5: Firma Digital */}
-                <section>
+                <div style={{ marginBottom: 24 }}>
+                  <SectionTitle label={t('rechazos_internos.form.firma_digital')} />
                   <SignatureCaptureSection
                     signature={signature}
                     onSignature={() => undefined}
                     disabled
                   />
-                </section>
+                </div>
 
                 {/* Section 6: Auditoría */}
-                <section className="border-t border-gray-100 pt-4">
-                  <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-gray-500">
+                <div style={{ borderTop: '1px solid #e2e2e2', paddingTop: 14 }}>
+                  <dl className="grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px 24px' }}>
                     <div>
-                      <dt className="font-medium">Registrado por</dt>
-                      <dd>{ri.registrado_por}</dd>
+                      <dt style={{ fontSize: 11, fontWeight: 700, color: '#777', textTransform: 'uppercase' }}>Registrado por</dt>
+                      <dd style={{ fontSize: 12, color: '#555', margin: 0 }}>{ri.registrado_por}</dd>
                     </div>
                     <div>
-                      <dt className="font-medium">Fecha de creación</dt>
-                      <dd>{formatDate(ri.created_at, 'dd/MM/yyyy HH:mm')}</dd>
+                      <dt style={{ fontSize: 11, fontWeight: 700, color: '#777', textTransform: 'uppercase' }}>Fecha de creación</dt>
+                      <dd style={{ fontSize: 12, color: '#555', margin: 0 }}>{formatDate(ri.created_at, 'dd/MM/yyyy HH:mm')}</dd>
                     </div>
                   </dl>
-                </section>
+                </div>
               </>
             )}
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 flex justify-end">
+          <div
+            className="sticky bottom-0 flex justify-end"
+            style={{ borderTop: '1px solid #e2e2e2', padding: '14px 24px', background: '#fff' }}
+          >
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+              className="btn btn-secundario"
             >
               {t('common.close')}
             </button>
@@ -300,23 +309,32 @@ export default function RiDetailModal({ id, isOpen, onClose }: RiDetailModalProp
       {/* Lightbox */}
       {lightboxSrc && createPortal(
         <div
-          className="fixed inset-0 z-[900] flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-[900] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.85)' }}
           onClick={() => setLightboxSrc(null)}
         >
           <button
             type="button"
             onClick={() => setLightboxSrc(null)}
-            className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30 transition-colors"
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: '#fff',
+              fontSize: 22,
+              cursor: 'pointer',
+              padding: '4px 10px',
+            }}
             aria-label="Cerrar imagen"
           >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            &#10005;
           </button>
           <img
             src={lightboxSrc}
             alt="Foto ampliada"
-            className="max-h-[85vh] max-w-full rounded-lg object-contain shadow-2xl"
+            style={{ maxHeight: '85vh', maxWidth: '100%', objectFit: 'contain', display: 'block' }}
             onClick={(e) => e.stopPropagation()}
           />
         </div>,

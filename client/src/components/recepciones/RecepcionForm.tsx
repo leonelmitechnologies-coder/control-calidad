@@ -1,7 +1,7 @@
 /**
  * RecepcionForm — Create / Edit modal form for Recepciones.
  *
- * Grouped into 4 FieldGroup sections:
+ * Grouped into 4 sections:
  *   1. Información General  (fecha, hora, company, origen)
  *   2. Carga               (cargo, unit_qty, pallet_qty)
  *   3. Logística           (tipo, estatus)
@@ -15,7 +15,6 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
-import FieldGroup, { FieldGroupRow } from './FieldGroup';
 import TipoSelector from './TipoSelector';
 import type { Recepcion } from '../../types';
 
@@ -51,25 +50,38 @@ const BLANK: RecepcionFormData = {
   hora:       '08:00',
   company:    '',
   origen:     '',
-  cargo:      'Electrónica',
+  cargo:      '',
   unit_qty:   0,
   pallet_qty: 0,
   tipo:       'Import',
   estatus:    'Confirmado',
 };
 
-// ── Cargo options ─────────────────────────────────────────────────────────────
-
-const CARGOS = ['Electrónica', 'Accesorios', 'Embalaje', 'Otros'] as const;
-
 // ── Estatus options ───────────────────────────────────────────────────────────
 
 const ESTATUS_OPTS: Recepcion['estatus'][] = [
   'Confirmado',
-  'Pendiente',
-  'Rechazado',
-  'En Descarga',
+  'En descarga',
   'Descargado',
+  'Rechazado',
+];
+
+// ── Autocomplete lists ────────────────────────────────────────────────────────
+
+const COMPANIES: string[] = [
+  'JB HUNT', 'OMEGA', 'ARIITRANS', 'TRANE', 'SOLBE', 'MAFER',
+  'Jasso Logístics', 'Trucka USA LLC', 'Mi Logístics', 'Absolute', 'TMH',
+  'Transportes Dinámicos del Bajio', 'Tres Guerra',
+  'Ornex Group S de RL de CV', 'DIMAS', 'ZURDOS EXPRESS',
+  'José Gustavo Espinoza Rueda', 'Contreras Nuñes', 'Blue Fox', 'FEMA',
+  'Transportes San Miguel', 'PAM Transport', 'ZARO Trucking',
+  "NAVA'S TRUCKING", 'ALM', 'OLYMPIC TRANSPORT', 'THERCA',
+];
+
+const ORIGENES: string[] = [
+  'GB', 'JHONY', 'TJ', 'Groesbeck TX', 'Tijuana BC', 'Manzanillo CO',
+  'Johstown NY', 'Spartanburg NY', 'SPASC', 'Bentonville AR', 'Waco TX',
+  'Greenfield IN', 'Spartanburg SC', 'Las Vegas NV',
 ];
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -90,43 +102,39 @@ function validate(form: RecepcionFormData): FormErrors {
   return errors;
 }
 
+// ── Section wrapper ───────────────────────────────────────────────────────────
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div className="seccion-titulo">{title}</div>
+      <div className="form-grid">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // ── Field label + error wrapper ───────────────────────────────────────────────
 
 function Field({
   label,
-  required,
   error,
   children,
   fullWidth = false,
 }: {
   label: string;
-  required?: boolean;
   error?: string;
   children: React.ReactNode;
   fullWidth?: boolean;
 }) {
   return (
-    <div className={fullWidth ? 'sm:col-span-2' : ''}>
-      <label className="mb-1 block text-xs font-medium text-gray-700">
-        {label}
-        {required && <span className="ml-0.5 text-red-500">*</span>}
-      </label>
+    <div className={['form-group', fullWidth ? 'full' : ''].filter(Boolean).join(' ')}>
+      <label>{label}</label>
       {children}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <span className="form-error">{error}</span>}
     </div>
   );
-}
-
-// ── Input classes helper ──────────────────────────────────────────────────────
-
-function inputClass(hasError: boolean) {
-  return [
-    'block w-full rounded-md border px-3 py-2 text-sm shadow-sm',
-    'focus:outline-none focus:ring-2 focus:ring-blue-500',
-    hasError
-      ? 'border-red-400 focus:ring-red-400'
-      : 'border-gray-300',
-  ].join(' ');
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -218,16 +226,19 @@ export default function RecepcionForm({
       <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
 
       {/* Dialog panel */}
-      <div className="relative z-10 w-full max-w-2xl rounded-xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-2xl bg-white" style={{ border: '1px solid #e2e2e2' }}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 id="recepcion-form-title" className="text-lg font-semibold text-gray-900">
+        <div
+          className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: '1px solid #e2e2e2' }}
+        >
+          <div id="recepcion-form-title" className="modal-titulo" style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>
             {title}
-          </h2>
+          </div>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#777', lineHeight: 1 }}
             aria-label={t('common.close')}
           >
             ✕
@@ -236,127 +247,121 @@ export default function RecepcionForm({
 
         {/* Form body */}
         <form onSubmit={handleSubmit} noValidate>
-          <div className="space-y-4 px-6 py-5">
+          <div className="px-6 py-5">
 
             {/* ── Section 1: Información General ── */}
-            <FieldGroup title={t('recepciones.form.section_general')}>
-              <Field label={t('recepciones.form.fecha')} required error={errors.fecha}>
+            <Section title={t('recepciones.form.section_general')}>
+              <Field label={t('recepciones.form.fecha')} error={errors.fecha}>
                 <input
                   type="date"
                   value={form.fecha}
                   onChange={(e) => set('fecha', e.target.value)}
-                  className={inputClass(!!errors.fecha)}
                   required
                 />
               </Field>
 
-              <Field label={t('recepciones.form.hora')} required error={errors.hora}>
+              <Field label={t('recepciones.form.hora')} error={errors.hora}>
                 <input
                   type="time"
                   value={form.hora}
                   onChange={(e) => set('hora', e.target.value)}
-                  className={inputClass(!!errors.hora)}
                   required
                 />
               </Field>
 
-              <Field label={t('recepciones.form.company')} required error={errors.company}>
+              <Field label={t('recepciones.form.company')} error={errors.company}>
                 <input
+                  list="companies-list"
                   type="text"
                   value={form.company}
                   onChange={(e) => set('company', e.target.value)}
-                  className={inputClass(!!errors.company)}
-                  placeholder="Ej. FedEx MX"
+                  placeholder="Ej. JB HUNT"
                   required
                 />
+                <datalist id="companies-list">
+                  {COMPANIES.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
               </Field>
 
-              <Field label={t('recepciones.form.origen')} required error={errors.origen}>
+              <Field label={t('recepciones.form.origen')} error={errors.origen}>
                 <input
+                  list="origenes-list"
                   type="text"
                   value={form.origen}
                   onChange={(e) => set('origen', e.target.value)}
-                  className={inputClass(!!errors.origen)}
-                  placeholder="Ej. Monterrey, N.L."
+                  placeholder="Ej. Groesbeck TX"
+                  required
+                />
+                <datalist id="origenes-list">
+                  {ORIGENES.map((o) => (
+                    <option key={o} value={o} />
+                  ))}
+                </datalist>
+              </Field>
+            </Section>
+
+            {/* ── Section 2: Carga ── */}
+            <Section title={t('recepciones.form.section_carga')}>
+              <Field label={t('recepciones.form.cargo')} error={errors.cargo} fullWidth>
+                <input
+                  type="text"
+                  value={form.cargo}
+                  onChange={(e) => set('cargo', e.target.value)}
+                  placeholder="Tipo de mercancía"
                   required
                 />
               </Field>
-            </FieldGroup>
 
-            {/* ── Section 2: Carga ── */}
-            <FieldGroup title={t('recepciones.form.section_carga')}>
-              <Field label={t('recepciones.form.cargo')} required error={errors.cargo} fullWidth>
-                <select
-                  value={form.cargo}
-                  onChange={(e) => set('cargo', e.target.value)}
-                  className={inputClass(!!errors.cargo)}
-                  required
-                >
-                  {CARGOS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label={t('recepciones.form.unit_qty')} required error={errors.unit_qty}>
+              <Field label={t('recepciones.form.unit_qty')} error={errors.unit_qty}>
                 <input
                   type="number"
                   min={0}
                   value={form.unit_qty}
                   onChange={(e) => set('unit_qty', parseInt(e.target.value, 10) || 0)}
-                  className={inputClass(!!errors.unit_qty)}
                   required
                 />
               </Field>
 
-              <Field label={t('recepciones.form.pallet_qty')} required error={errors.pallet_qty}>
+              <Field label={t('recepciones.form.pallet_qty')} error={errors.pallet_qty}>
                 <input
                   type="number"
                   min={0}
                   value={form.pallet_qty}
                   onChange={(e) => set('pallet_qty', parseInt(e.target.value, 10) || 0)}
-                  className={inputClass(!!errors.pallet_qty)}
                   required
                 />
               </Field>
-            </FieldGroup>
+            </Section>
 
             {/* ── Section 3: Logística ── */}
-            <FieldGroup title={t('recepciones.form.section_logistica')}>
-              <FieldGroupRow>
-                <Field label={t('recepciones.form.tipo')} required error={errors.tipo}>
-                  <TipoSelector value={form.tipo} onChange={(v) => set('tipo', v)} />
-                </Field>
-              </FieldGroupRow>
+            <Section title={t('recepciones.form.section_logistica')}>
+              <Field label={t('recepciones.form.tipo')} error={errors.tipo} fullWidth>
+                <TipoSelector value={form.tipo} onChange={(v) => set('tipo', v)} />
+              </Field>
 
-              <FieldGroupRow>
-                <Field label={t('recepciones.form.estatus')} required error={errors.estatus}>
-                  <select
-                    value={form.estatus}
-                    onChange={(e) => set('estatus', e.target.value as Recepcion['estatus'])}
-                    className={inputClass(!!errors.estatus)}
-                    required
-                  >
-                    {ESTATUS_OPTS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </FieldGroupRow>
-            </FieldGroup>
+              <Field label={t('recepciones.form.estatus')} error={errors.estatus} fullWidth>
+                <select
+                  value={form.estatus}
+                  onChange={(e) => set('estatus', e.target.value as Recepcion['estatus'])}
+                  required
+                >
+                  {ESTATUS_OPTS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </Field>
+            </Section>
 
             {/* ── Section 4: Auditoría (read-only) ── */}
-            <FieldGroup title={t('recepciones.form.section_auditoria')}>
+            <Section title={t('recepciones.form.section_auditoria')}>
               <Field label={t('recepciones.form.registrado_por')}>
                 <input
                   type="text"
                   value={registradoPor}
                   readOnly
-                  className="block w-full cursor-not-allowed rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500"
+                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
                 />
               </Field>
 
@@ -365,33 +370,35 @@ export default function RecepcionForm({
                   type="text"
                   value={now}
                   readOnly
-                  className="block w-full cursor-not-allowed rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500"
+                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
                 />
               </Field>
-            </FieldGroup>
+            </Section>
 
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSaving}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSaving && (
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              )}
-              {isEditing ? t('recepciones.form.update') : t('common.save')}
-            </button>
+          <div
+            className="flex justify-end px-6 py-4"
+            style={{ borderTop: '1px solid #e2e2e2' }}
+          >
+            <div className="btn-grupo" style={{ marginTop: 0 }}>
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isSaving}
+                className="btn btn-secundario"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="btn btn-primario"
+              >
+                {isEditing ? t('recepciones.form.update') : t('common.save')}
+              </button>
+            </div>
           </div>
         </form>
       </div>

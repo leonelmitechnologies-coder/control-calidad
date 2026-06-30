@@ -492,12 +492,13 @@
     "year": "年份",
     "month": "月份",
     "kpis": {
-      "tasa_rechazos": "拒收率",
-      "copq_total": "质量成本合计",
+      "rejects_cost_summary": "拒收成本汇总",
+      "external_rejects_prices": "外部拒收价格",
+      "internal_rejects_prices": "内部拒收价格",
+      "total_rejects_cost": "拒收总成本",
+      "registros": "条记录",
       "nc_abiertas": "未关闭不符合项",
-      "colaboradores": "在职员工",
-      "valor_rechazos": "拒收总价值",
-      "tiempo_promedio": "平均处理时间"
+      "colaboradores": "在职员工"
     },
     "charts": {
       "rechazos_marca": "按品牌拒收",

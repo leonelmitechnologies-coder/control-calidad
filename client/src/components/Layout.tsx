@@ -1,164 +1,228 @@
-/**
- * Main Layout Component
- * Provides sidebar navigation, header, and main content area
- */
-
 import { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '../hooks/useAuth';
-import { logout, redirectToLogin } from '../api/auth';
+import { logout } from '../api/auth';
+import { useNotify } from '../context/NotifyContext';
 
 interface NavItem {
   label: string;
   href: string;
-  icon?: string;
 }
 
 interface LayoutProps {
   children: ReactNode;
 }
 
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Dashboard',            href: '/' },
+  { label: 'No Conformidades',     href: '/nc' },
+  { label: 'Recepciones',          href: '/recepciones' },
+  { label: 'Rechazos Externos',    href: '/rechazos-ext' },
+  { label: 'Rechazos Internos',    href: '/rechazos-int' },
+  { label: 'CAPA',                 href: '/capas' },
+  { label: 'AQL',                  href: '/aql' },
+  { label: 'Liberación Shipping',  href: '/liberacion-shipping' },
+  { label: 'Organigrama QC',       href: '/organigrama-qc' },
+  { label: 'Calendario',           href: '/calendario' },
+  { label: 'Usuarios',             href: '/usuarios' },
+  { label: 'Manual',               href: '/manual' },
+];
+
+const ROUTE_TITLES: Record<string, string> = {
+  '/':                    'Dashboard',
+  '/nc':                  'No Conformidades',
+  '/recepciones':         'Recepciones',
+  '/rechazos-ext':        'Rechazos Externos',
+  '/rechazos-int':        'Rechazos Internos',
+  '/capas':               'Acciones Correctivas (CAPA)',
+  '/aql':                 'Registro de AQL',
+  '/liberacion-shipping': 'Liberación Shipping',
+  '/organigrama-qc':      'Organigrama QC',
+  '/calendario':          'Calendario',
+  '/usuarios':            'Usuarios',
+  '/manual':              'Manual de Usuario',
+};
+
+// ── Sidebar colour tokens (fiel al monolito) ─────────────────────────────────
+const S = {
+  bg:          '#0d2b4e',
+  border:      'rgba(255,255,255,0.1)',
+  navText:     'rgba(255,255,255,0.7)',
+  navHover:    'rgba(255,255,255,0.07)',
+  navActive:   'rgba(255,255,255,0.12)',
+  navActiveBorder: '#ffffff',
+  userMuted:   'rgba(255,255,255,0.55)',
+  logoutBorder:'rgba(255,255,255,0.25)',
+  logoutText:  'rgba(255,255,255,0.65)',
+};
+
 export default function Layout({ children }: LayoutProps) {
-  const { t, i18n } = useTranslation();
   const [location] = useLocation();
   const { user, isAuthenticated, loading } = useAuth();
-
-  const navItems: NavItem[] = [
-    { label: t('nav.dashboard'), href: '/', icon: '📊' },
-    { label: t('nav.nc'), href: '/nc', icon: '⚠️' },
-    { label: t('nav.recepciones'), href: '/recepciones', icon: '📦' },
-    { label: t('nav.rechazos_ext'), href: '/rechazos-ext', icon: '❌' },
-    { label: t('nav.rechazos_int'), href: '/rechazos-int', icon: '🔍' },
-    { label: t('nav.capas'), href: '/capas', icon: '📋' },
-    { label: t('nav.aql'), href: '/aql', icon: '📈' },
-    { label: t('nav.liberacion_shipping'), href: '/liberacion-shipping', icon: '🚚' },
-    { label: t('nav.organigrama'), href: '/organigrama-qc', icon: '🏢' },
-    { label: t('nav.calendario'), href: '/calendario', icon: '📅' },
-    { label: t('nav.manual'), href: '/manual', icon: '📖' },
-  ];
-
-  const languages = [
-    { code: 'es-MX', label: 'Español (MX)' },
-    { code: 'en', label: 'English' },
-    { code: 'zh-CN', label: '中文' },
-  ];
-
-  const handleLanguageChange = (code: string) => {
-    i18n.changeLanguage(code);
-    localStorage.setItem('language', code);
-  };
+  const notify = useNotify();
 
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-      redirectToLogin();
+    } catch {
+      window.location.href = '/login';
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">{t('common.loading')}</p>
-        </div>
+      <div style={{ minHeight: '100vh', background: S.bg }}
+           className="flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-white" />
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    redirectToLogin();
+    window.location.href = '/login';
     return null;
   }
 
+  const initials = user?.name
+    ? user.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+    : '?';
+
+  const moduleTitle = ROUTE_TITLES[location] ?? 'Control de Calidad';
+  const todayDate = new Date().toLocaleDateString('es-MX', {
+    weekday: 'long',
+    year:    'numeric',
+    month:   'long',
+    day:     'numeric',
+  });
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 shadow-sm">
-        {/* Header */}
-        <div className="border-b border-gray-200 p-6">
-          <h1 className="text-xl font-bold text-gray-900">{t('app.title')}</h1>
-          <p className="text-xs text-gray-500 mt-1">{t('app.subtitle')}</p>
+    <div className="flex min-h-screen" style={{ background: '#f4f6f9' }}>
+
+      {/* ── Sidebar ───────────────────────────────────────────────────────── */}
+      <aside
+        className="fixed inset-y-0 left-0 flex flex-col"
+        style={{ width: 220, background: S.bg }}
+      >
+        {/* Logo */}
+        <div className="px-5 py-5" style={{ borderBottom: `1px solid ${S.border}` }}>
+          <p className="text-white font-bold uppercase tracking-wide text-xs leading-relaxed">
+            Control de Calidad
+          </p>
+          <p style={{ color: S.userMuted, fontSize: 11 }}>MI Technologies</p>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4">
-          <ul className="space-y-1">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors ${
-                    location === item.href
-                      ? 'bg-blue-50 text-blue-700 font-semibold'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {item.icon && <span className="text-lg">{item.icon}</span>}
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-2">
+          {NAV_ITEMS.filter((item) =>
+            item.href !== '/usuarios' || user?.rol === 'Administrador'
+          ).map((item) => {
+            const active = location === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  display: 'block',
+                  padding: '9px 20px',
+                  fontSize: 13,
+                  color: active ? '#ffffff' : S.navText,
+                  background: active ? S.navActive : 'transparent',
+                  borderLeft: `3px solid ${active ? S.navActiveBorder : 'transparent'}`,
+                  fontWeight: active ? 600 : 400,
+                  textDecoration: 'none',
+                  transition: 'background 0.15s, color 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = S.navHover;
+                    (e.currentTarget as HTMLElement).style.color = '#ffffff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLElement).style.color = S.navText;
+                  }
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Language Selector */}
-        <div className="border-t border-gray-200 p-4">
-          <div className="text-xs font-semibold text-gray-500 mb-2">{t('layout.language')}</div>
-          <div className="flex flex-col gap-2">
-            {languages.map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => handleLanguageChange(lang.code)}
-                className={`text-left px-3 py-1.5 text-xs rounded ${
-                  i18n.language === lang.code
-                    ? 'bg-blue-100 text-blue-700 font-semibold'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {lang.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* User Section */}
-        <div className="border-t border-gray-200 p-4">
-          <div className="flex items-center gap-3 mb-3">
-            {user?.picture && (
-              <img
-                src={user.picture}
-                alt={user.name}
-                className="h-10 w-10 rounded-full bg-gray-200"
-              />
-            )}
-            {!user?.picture && (
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
-                {user?.name?.[0]?.toUpperCase() || '?'}
-              </div>
-            )}
+        {/* User / logout */}
+        <div className="px-5 py-4" style={{ borderTop: `1px solid ${S.border}` }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div
+              className="flex items-center justify-center rounded-full text-xs font-bold flex-shrink-0"
+              style={{ width: 30, height: 30, background: S.navActive, color: '#fff' }}
+            >
+              {initials}
+            </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">
-                {user?.name || 'User'}
+              <p className="text-white text-xs font-semibold truncate leading-tight">
+                {user?.name ?? 'Usuario'}
               </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email || 'N/A'}</p>
+              <p className="text-xs truncate" style={{ color: S.userMuted, fontSize: 10 }}>
+                {(user as any)?.rol ?? ''}
+              </p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full px-3 py-2 text-xs bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors"
+            className="w-full py-1.5 text-xs font-bold uppercase tracking-wide transition-colors"
+            style={{
+              background: 'transparent',
+              border: `1px solid ${S.logoutBorder}`,
+              color: S.logoutText,
+              letterSpacing: '0.5px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = S.navHover;
+              (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+              (e.currentTarget as HTMLButtonElement).style.color = S.logoutText;
+            }}
           >
-            {t('auth.logout')}
+            Cerrar sesión
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="ml-64 p-6">
-        <div className="bg-white rounded-lg shadow p-6">{children}</div>
+      {/* ── Main content ──────────────────────────────────────────────────── */}
+      <main className="flex-1 min-w-0 flex flex-col" style={{ marginLeft: 220 }}>
+
+        {/* Topbar */}
+        <div
+          style={{
+            background:    '#ffffff',
+            borderBottom:  '1px solid #e2e2e2',
+            padding:       '14px 28px',
+            position:      'sticky',
+            top:           0,
+            zIndex:        10,
+            display:       'flex',
+            alignItems:    'center',
+            justifyContent:'space-between',
+          }}
+        >
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#0d2b4e' }}>
+            {moduleTitle}
+          </span>
+          <span style={{ fontSize: 12, color: '#777777' }}>
+            {todayDate}
+          </span>
+        </div>
+
+        {/* Page content */}
+        <div style={{ padding: '24px 28px' }}>
+          {children}
+        </div>
       </main>
     </div>
   );

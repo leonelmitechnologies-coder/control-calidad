@@ -115,33 +115,20 @@ export default function CopqSection({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-4">
-
-      {/* Section header */}
-      <div className="flex items-center gap-2">
-        <div className="h-px flex-1 bg-gray-200" />
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          {t('rechazos_internos.form.defecto')} & COPQ
-        </span>
-        <div className="h-px flex-1 bg-gray-200" />
-      </div>
+    <div>
 
       {/* Defecto select */}
-      <div>
-        <label htmlFor="ri-defecto" className="block text-sm font-medium text-gray-700 mb-1">
-          {t('rechazos_internos.form.defecto')} <span className="text-red-500">*</span>
+      <div style={{ marginBottom: 12 }}>
+        <label>
+          {t('rechazos_internos.form.defecto')}
+          <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
         </label>
         <select
           id="ri-defecto"
           value={values.defecto}
           onChange={(e) => handleDefectoChange(e.target.value)}
           disabled={disabled}
-          className={[
-            'w-full rounded-md border px-3 py-2 text-sm shadow-sm',
-            'focus:outline-none focus:ring-2 focus:ring-blue-400',
-            'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
-            errors.defecto ? 'border-red-400 bg-red-50' : 'border-gray-300',
-          ].join(' ')}
+          style={errors.defecto ? { borderColor: '#c0392b' } : undefined}
         >
           <option value="">— Seleccionar defecto —</option>
           {DEFECTO_NAMES.map((name) => (
@@ -150,30 +137,26 @@ export default function CopqSection({
             </option>
           ))}
         </select>
-        {errors.defecto && (
-          <p className="mt-1 text-xs text-red-600">{errors.defecto}</p>
-        )}
+        {errors.defecto && <span className="form-error">{errors.defecto}</span>}
       </div>
 
-      {/* COPQ Mapping badge — only shown when a defecto is selected */}
+      {/* COPQ Mapping info — only shown when a defecto is selected */}
       {mappingEntry && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
-          <p className="font-medium text-blue-800 mb-1">
+        <div style={{ background: '#f4f6f9', border: '1px solid #0d2b4e', padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>
+          <p style={{ fontWeight: 700, color: '#0d2b4e', marginBottom: 4, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {t('rechazos_internos.copq.auto_filled')}
           </p>
-          <p className="text-blue-700 leading-relaxed">
-            <span className="font-semibold">{t('rechazos_internos.form.defecto')}:</span>{' '}
+          <p style={{ color: '#111', margin: 0 }}>
+            <strong>{t('rechazos_internos.form.defecto')}:</strong>{' '}
             {values.defecto}
             {' → '}
-            <span className="font-semibold">{t('rechazos_internos.form.actividad_realizar')}:</span>{' '}
+            <strong>{t('rechazos_internos.form.actividad_realizar')}:</strong>{' '}
             {mappingEntry.actividad}
             {' → '}
-            <span className="font-semibold text-blue-900">
-              {formatCurrency(mappingEntry.costo)}
-            </span>
+            <strong style={{ color: '#0d2b4e' }}>{formatCurrency(mappingEntry.costo)}</strong>
           </p>
           {values.manual_override && (
-            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+            <span style={{ display: 'inline-block', marginTop: 6, background: '#fff3cd', border: '1px solid #ffc107', padding: '2px 8px', fontSize: 11, fontWeight: 700, color: '#856404' }}>
               {t('rechazos_internos.copq.manual_mode')}
             </span>
           )}
@@ -181,11 +164,12 @@ export default function CopqSection({
       )}
 
       {/* Actividad Realizar */}
-      <div>
-        <label htmlFor="ri-actividad" className="block text-sm font-medium text-gray-700 mb-1">
-          {t('rechazos_internos.form.actividad_realizar')} <span className="text-red-500">*</span>
+      <div style={{ marginBottom: 12 }}>
+        <label>
+          {t('rechazos_internos.form.actividad_realizar')}
+          <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
           {isLocked && mappingEntry && (
-            <span className="ml-2 text-xs font-normal text-gray-400 italic">
+            <span style={{ fontStyle: 'italic', fontWeight: 400, color: '#aaa', marginLeft: 6 }}>
               ({t('rechazos_internos.copq.auto_filled')})
             </span>
           )}
@@ -197,33 +181,27 @@ export default function CopqSection({
           onChange={(e) => handleActividadChange(e.target.value)}
           readOnly={isLocked}
           disabled={disabled}
-          className={[
-            'w-full rounded-md border px-3 py-2 text-sm shadow-sm resize-none',
-            'focus:outline-none focus:ring-2 focus:ring-blue-400',
-            'disabled:cursor-not-allowed',
-            isLocked
-              ? 'bg-gray-50 text-gray-600 border-gray-200 cursor-not-allowed'
-              : 'border-gray-300 bg-white',
-            errors.actividad_realizar ? 'border-red-400 bg-red-50' : '',
-          ].join(' ')}
+          style={{
+            ...(isLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : {}),
+            ...(errors.actividad_realizar ? { borderColor: '#c0392b' } : {}),
+          }}
         />
-        {errors.actividad_realizar && (
-          <p className="mt-1 text-xs text-red-600">{errors.actividad_realizar}</p>
-        )}
+        {errors.actividad_realizar && <span className="form-error">{errors.actividad_realizar}</span>}
       </div>
 
       {/* Costo No Calidad */}
-      <div>
-        <label htmlFor="ri-costo" className="block text-sm font-medium text-gray-700 mb-1">
-          {t('rechazos_internos.form.costo_no_calidad')} <span className="text-red-500">*</span>
+      <div style={{ marginBottom: 12 }}>
+        <label>
+          {t('rechazos_internos.form.costo_no_calidad')}
+          <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
           {isLocked && mappingEntry && (
-            <span className="ml-2 text-xs font-normal text-gray-400 italic">
+            <span style={{ fontStyle: 'italic', fontWeight: 400, color: '#aaa', marginLeft: 6 }}>
               ({t('rechazos_internos.copq.auto_filled')})
             </span>
           )}
         </label>
-        <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: 13 }}>
             $
           </span>
           <input
@@ -235,46 +213,39 @@ export default function CopqSection({
             onChange={(e) => handleCostoChange(e.target.value)}
             readOnly={isLocked}
             disabled={disabled}
-            className={[
-              'w-full rounded-md border pl-7 pr-12 py-2 text-sm shadow-sm',
-              'focus:outline-none focus:ring-2 focus:ring-blue-400',
-              'disabled:cursor-not-allowed',
-              isLocked
-                ? 'bg-gray-50 text-gray-600 border-gray-200 cursor-not-allowed'
-                : 'border-gray-300 bg-white',
-              errors.costo_no_calidad ? 'border-red-400 bg-red-50' : '',
-            ].join(' ')}
+            style={{
+              paddingLeft: 22,
+              paddingRight: 48,
+              ...(isLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : {}),
+              ...(errors.costo_no_calidad ? { borderColor: '#c0392b' } : {}),
+            }}
           />
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500">
+          <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, fontWeight: 600, color: '#777', pointerEvents: 'none' }}>
             MXN
           </span>
         </div>
         {/* Formatted display */}
         {values.costo_no_calidad > 0 && (
-          <p className="mt-1 text-xs text-blue-600 font-medium">
+          <p style={{ marginTop: 4, fontSize: 12, color: '#0d2b4e', fontWeight: 700 }}>
             {formatCurrency(values.costo_no_calidad)}
           </p>
         )}
-        {errors.costo_no_calidad && (
-          <p className="mt-1 text-xs text-red-600">{errors.costo_no_calidad}</p>
-        )}
+        {errors.costo_no_calidad && <span className="form-error">{errors.costo_no_calidad}</span>}
       </div>
 
       {/* Manual Override checkbox */}
-      <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+      <div style={{ background: '#fffbf0', border: '1px solid #e2e2e2', padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <input
           id="ri-manual-override"
           type="checkbox"
           checked={values.manual_override}
           onChange={(e) => handleOverrideChange(e.target.checked)}
           disabled={disabled || !values.defecto}
-          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 cursor-pointer disabled:cursor-not-allowed"
+          style={{ width: 'auto', marginTop: 2, cursor: disabled || !values.defecto ? 'not-allowed' : 'pointer' }}
         />
-        <label htmlFor="ri-manual-override" className="flex-1 cursor-pointer">
-          <span className="block text-sm font-medium text-amber-800">
-            {t('rechazos_internos.form.manual_override')}
-          </span>
-          <span className="block text-xs text-amber-600 mt-0.5">
+        <label htmlFor="ri-manual-override" style={{ cursor: 'pointer', margin: 0, textTransform: 'none', fontSize: 13, fontWeight: 600, color: '#856404', letterSpacing: 0 }}>
+          {t('rechazos_internos.form.manual_override')}
+          <span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: '#777', marginTop: 2 }}>
             Desbloquea los campos de actividad y costo para edición manual.
             Al desmarcar, los valores originales del COPQ se restauran.
           </span>

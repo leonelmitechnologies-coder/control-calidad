@@ -39,14 +39,30 @@ export default function PositionGroup({
   const positionLabel = getPosLabel(position, t);
 
   return (
-    <section className="space-y-3">
+    <section style={{ marginBottom: 28 }}>
       {/* Group header */}
-      <div className="flex items-center gap-3">
-        <h2 className="text-base font-semibold text-gray-800">{positionLabel}</h2>
-        <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-blue-100 px-1.5 text-xs font-medium text-blue-700">
+      <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
+        <div className="seccion-titulo" style={{ marginBottom: 0, flex: 'none' }}>
+          {positionLabel}
+        </div>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 20,
+            height: 20,
+            padding: '0 6px',
+            fontSize: 11,
+            fontWeight: 700,
+            background: '#e8f0fd',
+            color: '#0d2b4e',
+            border: '1px solid #0d2b4e',
+          }}
+        >
           {employees.length}
         </span>
-        <div className="flex-1 border-t border-gray-200" />
+        <div style={{ flex: 1, borderTop: '1px solid #e2e2e2' }} />
       </div>
 
       {/* Cards grid */}

@@ -65,15 +65,23 @@ export default function PhotoUploadArea({
   };
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-gray-700">
-        {t('organigrama.form.foto')}
-      </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <p style={{ margin: 0 }}>{t('organigrama.form.foto')}</p>
 
       {hasImage ? (
         <div className="flex items-start gap-4">
-          {/* Preview */}
-          <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-full border-2 border-gray-200 bg-gray-100">
+          {/* Preview — circular portrait */}
+          <div
+            style={{
+              height: 96,
+              width: 96,
+              flexShrink: 0,
+              overflow: 'hidden',
+              borderRadius: '50%',
+              border: '2px solid #e2e2e2',
+              background: '#f4f6f9',
+            }}
+          >
             <img
               src={displayUrl!}
               alt="Foto de perfil"
@@ -87,7 +95,8 @@ export default function PhotoUploadArea({
               type="button"
               disabled={disabled}
               onClick={() => inputRef.current?.click()}
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn btn-secundario"
+              style={disabled ? { cursor: 'not-allowed', opacity: 0.5 } : undefined}
             >
               {t('organigrama.foto_cambiar')}
             </button>
@@ -95,7 +104,8 @@ export default function PhotoUploadArea({
               type="button"
               disabled={disabled}
               onClick={handleRemove}
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn btn-peligro"
+              style={disabled ? { cursor: 'not-allowed', opacity: 0.5 } : undefined}
             >
               {t('organigrama.foto_quitar')}
             </button>
@@ -104,10 +114,17 @@ export default function PhotoUploadArea({
       ) : (
         /* Upload zone */
         <div
-          className={[
-            'flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-8',
-            disabled ? 'cursor-not-allowed opacity-50 border-gray-200' : 'border-gray-300 bg-gray-50 hover:border-blue-400 cursor-pointer',
-          ].join(' ')}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '2px dashed #e2e2e2',
+            background: '#f4f6f9',
+            padding: '32px 16px',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.5 : 1,
+          }}
           onClick={() => !disabled && inputRef.current?.click()}
           role="button"
           tabIndex={disabled ? -1 : 0}
@@ -116,7 +133,7 @@ export default function PhotoUploadArea({
         >
           {/* Camera icon */}
           <svg
-            className="mb-2 h-8 w-8 text-gray-400"
+            style={{ marginBottom: 8, height: 32, width: 32, color: '#aaa' }}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -135,8 +152,8 @@ export default function PhotoUploadArea({
               d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <p className="text-sm text-gray-500">{t('organigrama.foto_subir')}</p>
-          <p className="text-xs text-gray-400 mt-1">JPG, PNG, WEBP</p>
+          <p style={{ fontSize: 13, color: '#555', margin: 0 }}>{t('organigrama.foto_subir')}</p>
+          <p style={{ fontSize: 11, color: '#aaa', marginTop: 4, marginBottom: 0 }}>JPG, PNG, WEBP</p>
         </div>
       )}
 

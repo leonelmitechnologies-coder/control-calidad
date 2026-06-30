@@ -46,9 +46,25 @@ function formatDate(iso?: string): string {
 
 function Row({ label, value }: { label: string; value: string | undefined | null }) {
   return (
-    <div className="grid grid-cols-2 gap-2 py-1.5 border-b border-gray-100 last:border-0">
-      <dt className="text-xs font-medium text-gray-500">{label}</dt>
-      <dd className="text-sm text-gray-900 text-right">{value || '—'}</dd>
+    <div
+      className="flex justify-between items-baseline"
+      style={{ padding: '7px 0', borderBottom: '1px solid #e2e2e2' }}
+    >
+      <span style={{ fontSize: 11, fontWeight: 700, color: '#777', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 13, color: '#111' }}>{value || '—'}</span>
+    </div>
+  );
+}
+
+// ── Section wrapper ───────────────────────────────────────────────────────────
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div className="seccion-titulo">{title}</div>
+      {children}
     </div>
   );
 }
@@ -82,51 +98,58 @@ export default function OrgDetailModal({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg rounded-xl bg-white shadow-2xl flex flex-col max-h-[90vh]">
+      <div
+        className="relative w-full max-w-lg flex flex-col max-h-[90vh] bg-white"
+        style={{ border: '1px solid #e2e2e2' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
-          <h2 className="text-base font-semibold text-gray-900 truncate pr-4">
+        <div
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid #e2e2e2' }}
+        >
+          <div className="modal-titulo truncate pr-4" style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>
             {t('organigrama.detail_title')}: {employee.nombre_completo}
-          </h2>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#777', lineHeight: 1 }}
             aria-label={t('common.close')}
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ✕
           </button>
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto px-6 py-4 space-y-5 flex-1">
+        <div className="overflow-y-auto px-6 py-5 flex-1">
+
           {/* Photo + basic info */}
-          <div className="flex items-center gap-4">
-            <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center">
+          <div className="flex items-center gap-4" style={{ marginBottom: 20 }}>
+            <div
+              className="flex-shrink-0 flex items-center justify-center overflow-hidden"
+              style={{
+                width: 80,
+                height: 80,
+                border: '2px solid #e2e2e2',
+                background: '#f4f6f9',
+              }}
+            >
               {photo ? (
                 <img
                   src={photo}
                   alt={employee.nombre_completo}
-                  className="h-full w-full object-cover"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
-                <span className="text-2xl font-bold text-gray-500">
+                <span style={{ fontSize: 24, fontWeight: 700, color: '#777' }}>
                   {initials(employee.nombre_completo)}
                 </span>
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-lg font-semibold text-gray-900 truncate">{employee.nombre_completo}</p>
-              <p className="text-sm text-gray-500">{employee.puesto}</p>
-              <span
-                className={`mt-1 inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
-                  employee.estatus === 'activo'
-                    ? 'bg-green-100 text-green-800 border-green-300'
-                    : 'bg-red-100 text-red-800 border-red-300'
-                }`}
-              >
+              <p style={{ fontSize: 16, fontWeight: 700, color: '#111', marginBottom: 2 }}>{employee.nombre_completo}</p>
+              <p style={{ fontSize: 13, color: '#777', marginBottom: 6 }}>{employee.puesto}</p>
+              <span className={`badge badge-${employee.estatus === 'activo' ? 'activo' : 'inactivo'}`}>
                 {employee.estatus === 'activo'
                   ? t('organigrama.estatus.activo')
                   : t('organigrama.estatus.inactivo')}
@@ -135,82 +158,70 @@ export default function OrgDetailModal({
           </div>
 
           {/* Section: Información Personal */}
-          <section>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {t('organigrama.section_personal')}
-            </h3>
-            <dl className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-1">
-              <Row label={t('organigrama.form.no_empleado')} value={employee.no_empleado} />
-              <Row label={t('organigrama.form.sexo')} value={sexoLabel[employee.sexo] ?? employee.sexo} />
-              <Row label={t('organigrama.form.fecha_nacimiento')} value={formatDate(employee.fecha_nacimiento)} />
-            </dl>
-          </section>
+          <Section title={t('organigrama.section_personal')}>
+            <Row label={t('organigrama.form.no_empleado')} value={employee.no_empleado} />
+            <Row label={t('organigrama.form.sexo')} value={sexoLabel[employee.sexo] ?? employee.sexo} />
+            <Row label={t('organigrama.form.fecha_nacimiento')} value={formatDate(employee.fecha_nacimiento)} />
+          </Section>
 
           {/* Section: Información Laboral */}
-          <section>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {t('organigrama.section_laboral')}
-            </h3>
-            <dl className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-1">
-              <Row label={t('organigrama.form.puesto')} value={employee.puesto} />
-              <Row label={t('organigrama.form.area')} value={employee.area} />
-              <Row label={t('organigrama.form.turno')} value={employee.turno} />
-              <Row label={t('organigrama.form.fecha_ingreso')} value={formatDate(employee.fecha_ingreso)} />
-              <Row label={t('organigrama.form.estatus')} value={
-                employee.estatus === 'activo'
-                  ? t('organigrama.estatus.activo')
-                  : t('organigrama.estatus.inactivo')
-              } />
-            </dl>
-          </section>
+          <Section title={t('organigrama.section_laboral')}>
+            <Row label={t('organigrama.form.puesto')} value={employee.puesto} />
+            <Row label={t('organigrama.form.area')} value={employee.area} />
+            <Row label={t('organigrama.form.turno')} value={employee.turno} />
+            <Row label={t('organigrama.form.fecha_ingreso')} value={formatDate(employee.fecha_ingreso)} />
+            <Row label={t('organigrama.form.estatus')} value={
+              employee.estatus === 'activo'
+                ? t('organigrama.estatus.activo')
+                : t('organigrama.estatus.inactivo')
+            } />
+          </Section>
 
           {/* Section: Contacto */}
-          <section>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {t('organigrama.section_contacto')}
-            </h3>
-            <dl className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-1">
-              <Row label={t('organigrama.form.telefono')} value={employee.telefono} />
-              <Row label={t('organigrama.form.correo')} value={employee.correo} />
-            </dl>
-          </section>
+          <Section title={t('organigrama.section_contacto')}>
+            <Row label={t('organigrama.form.telefono')} value={employee.telefono} />
+            <Row label={t('organigrama.form.correo')} value={employee.correo} />
+          </Section>
 
           {/* Metadata */}
-          <p className="text-xs text-gray-400">
+          <p style={{ fontSize: 11, color: '#aaa' }}>
             {t('organigrama.registrado_el')} {formatDate(employee.created_at)}
           </p>
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4 flex-shrink-0 gap-2 flex-wrap">
-          <div className="flex gap-2">
+        <div
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0 flex-wrap gap-2"
+          style={{ borderTop: '1px solid #e2e2e2' }}
+        >
+          <div className="btn-grupo" style={{ marginTop: 0 }}>
             <button
               type="button"
               onClick={onEdit}
-              className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="btn btn-primario"
             >
               {t('organigrama.edit')}
             </button>
             <button
               type="button"
               onClick={onStatusChange}
-              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="btn btn-secundario"
             >
               {t('organigrama.cambiar_estatus')}
             </button>
           </div>
-          <div className="flex gap-2">
+          <div className="btn-grupo" style={{ marginTop: 0 }}>
             <button
               type="button"
               onClick={onDelete}
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 shadow-sm hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-400"
+              className="btn btn-peligro"
             >
               {t('organigrama.delete')}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="btn btn-secundario"
             >
               {t('common.close')}
             </button>

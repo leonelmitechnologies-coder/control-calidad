@@ -6,10 +6,12 @@
 import { API_ENDPOINTS } from '../config/api';
 
 export interface User {
-  id: string;
-  email: string;
-  name: string;
+  id:       string;
+  name:     string;
+  email:    string;
   picture?: string;
+  rol?:     string;
+  usuario?: string;
 }
 
 export interface AuthState {
@@ -28,14 +30,24 @@ export async function fetchCurrentUser(): Promise<User | null> {
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        return null;
-      }
+      if (response.status === 401) return null;
       throw new Error(`Failed to fetch user: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data.user ?? data ?? null;
+    const raw = await response.json();
+    const data = raw.user ?? raw;
+    if (!data?.id) return null;
+
+    // El servidor devuelve { id, nombre, usuario, rol } — mapeamos a User
+    return {
+      id:      String(data.id),
+      name:    data.nombre ?? data.name ?? data.usuario ?? '',
+      email:   data.email  ?? data.usuario ?? '',
+      picture: data.picture,
+      // campos extra del servidor
+      ...(data.rol      && { rol:     data.rol }),
+      ...(data.usuario  && { usuario: data.usuario }),
+    } as User;
   } catch (error) {
     console.error('Error fetching current user:', error);
     return null;
@@ -103,5 +115,5 @@ export async function handleOIDCCallback(): Promise<User | null> {
  * Redirect to OIDC login provider
  */
 export function redirectToLogin(): void {
-  window.location.href = API_ENDPOINTS.auth.login;
+  window.location.href = '/login';
 }

@@ -39,30 +39,39 @@ export default function SignatureCaptureSection({
   const isSigned = signature.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div>
 
-      {/* Section header */}
-      <div className="flex items-center gap-2">
-        <div className="h-px flex-1 bg-gray-200" />
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          {t('rechazos_internos.form.firma_digital')}
-        </span>
-        <div className="h-px flex-1 bg-gray-200" />
-      </div>
-
-      {/* Mandatory label */}
-      <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
-          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 102 0V6zm-1 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-          </svg>
+      {/* Status indicators */}
+      <div className="flex items-center" style={{ gap: 10, marginBottom: 10 }}>
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          background: '#fdecea',
+          border: '1px solid #f5c6cb',
+          padding: '3px 10px',
+          fontSize: 11,
+          fontWeight: 700,
+          color: '#c0392b',
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+        }}>
           {t('rechazos_internos.form.firma_requerida')}
         </span>
         {isSigned && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            background: '#e8f5e9',
+            border: '1px solid #a5d6a7',
+            padding: '3px 10px',
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#2e7d32',
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+          }}>
             Firma capturada
           </span>
         )}
@@ -72,44 +81,49 @@ export default function SignatureCaptureSection({
       {showError && !isSigned && (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+          style={{
+            background: '#fdecea',
+            border: '1px solid #f5c6cb',
+            padding: '10px 14px',
+            fontSize: 13,
+            color: '#c0392b',
+            marginBottom: 10,
+          }}
         >
-          <svg className="h-4 w-4 shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 102 0V6zm-1 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-          </svg>
           {t('rechazos_internos.form.firma_requerida')} — Dibuje su firma para continuar.
         </div>
       )}
 
       {/* Canvas */}
       {!disabled && (
-        <SignatureCanvas
-          onSignatureChange={onSignature}
-          width={400}
-          height={200}
-          disabled={disabled}
-        />
+        <div style={{ border: '1px solid #e2e2e2' }}>
+          <SignatureCanvas
+            onSignatureChange={onSignature}
+            width={400}
+            height={200}
+            disabled={disabled}
+          />
+        </div>
       )}
 
       {/* Preview — shown when signed (in both form and disabled/detail mode) */}
       {isSigned && (
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-gray-500">Vista previa:</p>
-          <div className="inline-block overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
+        <div style={{ marginTop: 10 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#777', textTransform: 'uppercase', marginBottom: 6 }}>Vista previa:</p>
+          <div style={{ display: 'inline-block', border: '1px solid #e2e2e2', background: '#fff' }}>
             <img
               src={signature}
               alt="Vista previa de firma"
-              className="block max-w-full"
-              style={{ maxHeight: '120px' }}
+              style={{ display: 'block', maxWidth: '100%', maxHeight: 120 }}
             />
           </div>
         </div>
       )}
 
-      {/* Disabled read-only state: only show preview */}
+      {/* Disabled read-only state: only show placeholder */}
       {disabled && !isSigned && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-6 text-center">
-          <p className="text-sm text-gray-400 italic">Sin firma digital registrada</p>
+        <div style={{ border: '1px solid #e2e2e2', background: '#f4f6f9', padding: '24px 14px', textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: '#aaa', fontStyle: 'italic', margin: 0 }}>Sin firma digital registrada</p>
         </div>
       )}
 

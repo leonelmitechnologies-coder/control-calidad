@@ -276,52 +276,53 @@ export default function RechazosInternos() {
       {/* Page header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111111', marginBottom: 2 }}>
             {t('rechazos_internos.title')}
           </h1>
-          <p className="mt-0.5 text-sm text-gray-500">
+          <p style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
             Gestión de Rechazos Internos y COPQ — ISO 9001:2015 §8.7
           </p>
         </div>
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="
-            inline-flex items-center gap-2
-            rounded-lg bg-blue-600 px-4 py-2
-            text-sm font-medium text-white shadow-sm
-            hover:bg-blue-700 transition-colors
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-          "
+          className="btn btn-primario"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          {t('rechazos_internos.add')}
+          + {t('rechazos_internos.add')}
         </button>
       </div>
 
       {/* Status filter tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div style={{ borderBottom: '2px solid #e2e2e2', display: 'flex', gap: 0 }}>
         {STATUS_TABS.map((status) => (
           <button
             key={status}
             type="button"
             onClick={() => { setActiveStatus(status); setPage(1); }}
-            className={[
-              'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
-              activeStatus === status
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-            ].join(' ')}
+            style={{
+              padding: '8px 16px',
+              fontSize: 13,
+              fontWeight: 500,
+              background: 'none',
+              border: 'none',
+              borderBottom: activeStatus === status ? '2px solid #0d2b4e' : '2px solid transparent',
+              marginBottom: -2,
+              color: activeStatus === status ? '#0d2b4e' : '#666',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
           >
             {status}
-            <span className={[
-              'inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold',
-              activeStatus === status
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600',
-            ].join(' ')}>
+            <span style={{
+              background: activeStatus === status ? '#0d2b4e' : '#e2e2e2',
+              color: activeStatus === status ? '#fff' : '#555',
+              borderRadius: 10,
+              padding: '1px 7px',
+              fontSize: 11,
+              fontWeight: 600,
+            }}>
               {statusCounts[status]}
             </span>
           </button>
@@ -329,37 +330,35 @@ export default function RechazosInternos() {
       </div>
 
       {/* Search bar */}
-      <div className="relative max-w-md">
-        <svg
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-          fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          type="search"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Buscar por Placa, SKU o Defecto…"
-          className="
-            w-full rounded-lg border border-gray-300 bg-white
-            py-2 pl-10 pr-4 text-sm shadow-sm
-            focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500
-          "
-        />
-        {searchInput && (
-          <button
-            type="button"
-            onClick={() => { setSearchInput(''); setDebouncedSearch(''); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            aria-label="Limpiar búsqueda"
+      <div className="filtros">
+        <div style={{ position: 'relative' }}>
+          <svg
+            style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#999', pointerEvents: 'none' }}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Buscar por Placa, SKU o Defecto…"
+            style={{ paddingLeft: 28 }}
+          />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => { setSearchInput(''); setDebouncedSearch(''); }}
+              aria-label="Limpiar búsqueda"
+              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#999', display: 'flex', padding: 0 }}
+            >
+              <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}

@@ -40,14 +40,6 @@ function initials(name: string | undefined): string {
     .join('');
 }
 
-// ── Status badge colors ───────────────────────────────────────────────────────
-
-function estatusBadgeClass(estatus: string): string {
-  return estatus === 'activo'
-    ? 'bg-green-100 text-green-800 border-green-300'
-    : 'bg-red-100 text-red-800 border-red-300';
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function EmployeeCard({
@@ -71,8 +63,12 @@ export default function EmployeeCard({
 
   return (
     <div
-      className="relative rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow cursor-pointer select-none overflow-hidden"
-      style={{ minWidth: '160px' }}
+      className="relative cursor-pointer select-none overflow-hidden"
+      style={{
+        minWidth: 160,
+        border: '1px solid #e2e2e2',
+        background: '#fff',
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={handleCardClick}
@@ -84,14 +80,26 @@ export default function EmployeeCard({
       {/* Hover action overlay */}
       {hovered && (
         <div
-          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/40 px-3 transition-opacity"
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 px-3"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
             type="button"
             data-action="edit"
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="w-full rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-800 shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{
+              width: '100%',
+              background: '#fff',
+              border: 'none',
+              padding: '6px 10px',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#111',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.4px',
+            }}
           >
             {t('organigrama.edit')}
           </button>
@@ -99,7 +107,18 @@ export default function EmployeeCard({
             type="button"
             data-action="status"
             onClick={(e) => { e.stopPropagation(); onStatusChange(); }}
-            className="w-full rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-800 shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            style={{
+              width: '100%',
+              background: '#fff',
+              border: 'none',
+              padding: '6px 10px',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#111',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.4px',
+            }}
           >
             {t('organigrama.cambiar_estatus')}
           </button>
@@ -107,7 +126,18 @@ export default function EmployeeCard({
             type="button"
             data-action="delete"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="w-full rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+            style={{
+              width: '100%',
+              background: '#c0392b',
+              border: 'none',
+              padding: '6px 10px',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#fff',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.4px',
+            }}
           >
             {t('organigrama.delete')}
           </button>
@@ -117,42 +147,51 @@ export default function EmployeeCard({
       {/* Card content */}
       <div className="flex flex-col items-center p-4 text-center">
         {/* Avatar */}
-        <div className="mb-3 h-20 w-20 overflow-hidden rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center flex-shrink-0">
+        <div
+          className="flex items-center justify-center flex-shrink-0 overflow-hidden"
+          style={{
+            width: 72,
+            height: 72,
+            marginBottom: 10,
+            border: '2px solid #e2e2e2',
+            background: '#f4f6f9',
+            borderRadius: '50%',
+          }}
+        >
           {photo ? (
             <img
               src={photo}
               alt={employee.nombre_completo}
-              className="h-full w-full object-cover"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = 'none';
               }}
             />
           ) : (
-            <span className="text-xl font-bold text-gray-500">
+            <span style={{ fontSize: 20, fontWeight: 700, color: '#777' }}>
               {initials(employee.nombre_completo)}
             </span>
           )}
         </div>
 
         {/* Name */}
-        <p className="mb-1 text-sm font-semibold text-gray-900 leading-tight line-clamp-2">
+        <p style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 4, lineHeight: 1.3 }}
+           className="line-clamp-2">
           {employee.nombre_completo}
         </p>
 
         {/* Puesto */}
-        <p className="mb-1 text-xs text-gray-500 line-clamp-1">
+        <p style={{ fontSize: 11, color: '#777', marginBottom: 3 }} className="line-clamp-1">
           {employee.puesto}
         </p>
 
         {/* Turno */}
-        <p className="mb-3 text-xs text-gray-400">
+        <p style={{ fontSize: 11, color: '#aaa', marginBottom: 10 }}>
           {employee.turno}
         </p>
 
         {/* Estatus badge */}
-        <span
-          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${estatusBadgeClass(employee.estatus)}`}
-        >
+        <span className={`badge badge-${employee.estatus === 'activo' ? 'activo' : 'inactivo'}`}>
           {employee.estatus === 'activo'
             ? t('organigrama.estatus.activo')
             : t('organigrama.estatus.inactivo')}

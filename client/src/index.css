@@ -15,20 +15,283 @@
     --border: 240 6% 90%;
     --input: 240 6% 90%;
   }
-  .dark {
-    --background: 240 10% 4%;
-    --foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --secondary: 240 4% 16%;
-    --muted: 240 5% 65%;
-    --accent: 240 4% 16%;
-    --destructive: 0 63% 31%;
-    --card: 240 10% 4%;
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
-  }
   body {
-    background: hsl(var(--background));
-    color: hsl(var(--foreground));
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    color: #111111;
+    background: #f4f6f9;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MONOLITH DESIGN SYSTEM — estas clases reemplazan Tailwind
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Labels ──────────────────────────────────────────────────────── */
+label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #777777;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+/* ── Inputs / Selects / Textareas ────────────────────────────────── */
+input[type=text],
+input[type=password],
+input[type=number],
+input[type=time],
+input[type=email],
+input[type=date],
+input[type=datetime-local],
+select,
+textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #e2e2e2;
+  border-radius: 0 !important;
+  font-size: 13px;
+  color: #111111;
+  background: #ffffff;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #0d2b4e;
+}
+textarea {
+  resize: vertical;
+  min-height: 75px;
+}
+
+/* ── Panel / Card ────────────────────────────────────────────────── */
+.card {
+  background: #ffffff;
+  border: 1px solid #e2e2e2;
+  padding: 22px;
+}
+
+/* ── Section title ───────────────────────────────────────────────── */
+.seccion-titulo {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #0d2b4e;
+  border-bottom: 2px solid #0d2b4e;
+  padding-bottom: 6px;
+  margin-bottom: 18px;
+}
+
+/* ── Table ───────────────────────────────────────────────────────── */
+.tabla-wrap {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabla thead tr {
+  background: #0d2b4e;
+  color: #ffffff;
+}
+
+.tabla thead th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tabla thead th.centrado {
+  text-align: center;
+}
+
+.tabla tbody tr {
+  border-bottom: 1px solid #e2e2e2;
+  cursor: pointer;
+}
+
+.tabla tbody tr:hover {
+  background: #f0f4f9;
+}
+
+.tabla tbody td {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+.tabla tbody td.centrado {
+  text-align: center;
+}
+
+.tabla tfoot td {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #777;
+  border-top: 1px solid #e2e2e2;
+}
+
+/* ── Badges ──────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-radius: 0 !important;
+}
+
+.badge-alta      { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
+.badge-media     { background: #fdf6e8; color: #8a6a00; border: 1px solid #8a6a00; }
+.badge-baja      { background: #e8f5ee; color: #27ae60; border: 1px solid #27ae60; }
+.badge-critica   { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
+.badge-mayor     { background: #fdf2e8; color: #c0711a; border: 1px solid #c0711a; }
+.badge-menor     { background: #fdf6e8; color: #8a6a00; border: 1px solid #8a6a00; }
+.badge-abierta   { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
+.badge-proceso   { background: #e8f0fd; color: #2563a8; border: 1px solid #2563a8; }
+.badge-cerrada   { background: #e8f5ee; color: #27ae60; border: 1px solid #27ae60; }
+.badge-rechazada { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
+.badge-aprobado  { background: #e8f5ee; color: #27ae60; border: 1px solid #27ae60; }
+.badge-rechazado { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
+.badge-pendiente { background: #fdf6e8; color: #8a6a00; border: 1px solid #8a6a00; }
+.badge-admin     { background: #e8f0fd; color: #0d2b4e; border: 1px solid #0d2b4e; }
+.badge-usuario   { background: #f4f4f4; color: #444444; border: 1px solid #e2e2e2; }
+.badge-activo    { background: #e8f5ee; color: #27ae60; border: 1px solid #27ae60; }
+.badge-inactivo  { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
+
+/* ── Action buttons (inside table rows) ──────────────────────────── */
+.btn-accion {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 3px 6px;
+  color: #0d2b4e;
+  text-decoration: underline;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+.btn-accion:hover { opacity: 0.7; }
+.btn-accion.rojo  { color: #c0392b; }
+
+/* ── Primary / Secondary / Danger buttons ────────────────────────── */
+.btn {
+  padding: 9px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  border-radius: 0 !important;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+.btn:hover    { opacity: 0.85; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+.btn-primario   { background: #0d2b4e; color: #ffffff; }
+.btn-secundario { background: transparent; color: #0d2b4e; border: 1px solid #0d2b4e; }
+.btn-peligro    { background: #c0392b; color: #ffffff; }
+
+/* ── Button group ─────────────────────────────────────────────────── */
+.btn-grupo {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  align-items: center;
+}
+
+/* ── Filters bar ─────────────────────────────────────────────────── */
+.filtros {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filtros select,
+.filtros input {
+  width: auto;
+  min-width: 155px;
+}
+
+/* ── Form grid (2-col responsive) ────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.form-grid .full {
+  grid-column: 1 / -1;
+}
+
+/* ── Form group ───────────────────────────────────────────────────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.vacio {
+  text-align: center;
+  padding: 40px;
+  color: #777777;
+  font-size: 13px;
+}
+
+/* ── Form error ───────────────────────────────────────────────────── */
+.form-error {
+  color: #c0392b;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ── Modal title ─────────────────────────────────────────────────── */
+.modal-titulo {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0d2b4e;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 2px solid #0d2b4e;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+}
+
+/* ── Pagination ───────────────────────────────────────────────────── */
+.paginador {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-top: 1px solid #e2e2e2;
+  font-size: 12px;
+  color: #777777;
+}
+.paginador button {
+  padding: 3px 9px;
+  border: 1px solid #e2e2e2;
+  border-radius: 0;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  color: #111111;
+}
+.paginador button:hover:not(:disabled) { background: #f0f4f9; }
+.paginador button:disabled { opacity: 0.4; cursor: default; }

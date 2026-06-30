@@ -497,12 +497,13 @@
     "year": "Año",
     "month": "Mes",
     "kpis": {
-      "tasa_rechazos": "Tasa de Rechazos",
-      "copq_total": "COPQ Total",
+      "rejects_cost_summary": "Resumen de Costos de Rechazo",
+      "external_rejects_prices": "Precio Rechazos Externos",
+      "internal_rejects_prices": "Precio Rechazos Internos",
+      "total_rejects_cost": "Total Costos de Rechazo",
+      "registros": "registros",
       "nc_abiertas": "NC Abiertas",
-      "colaboradores": "Colaboradores Activos",
-      "valor_rechazos": "Valor Total Rechazos",
-      "tiempo_promedio": "Tiempo Promedio"
+      "colaboradores": "Colaboradores Activos"
     },
     "charts": {
       "rechazos_marca": "Rechazos por Marca",

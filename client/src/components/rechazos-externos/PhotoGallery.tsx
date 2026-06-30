@@ -85,7 +85,17 @@ function Lightbox({ images, startIndex, onClose }: LightboxProps) {
       role="dialog"
       aria-modal="true"
       aria-label={t('rechazos_externos.gallery.lightbox')}
-      className="fixed inset-0 z-[900] flex flex-col items-center justify-center bg-black/90 p-4"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.85)',
+        padding: 16,
+      }}
       onClick={onClose}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -94,16 +104,38 @@ function Lightbox({ images, startIndex, onClose }: LightboxProps) {
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
+        style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          background: 'rgba(255,255,255,0.1)',
+          border: 'none',
+          color: '#fff',
+          cursor: 'pointer',
+          padding: 8,
+          display: 'flex',
+          alignItems: 'center',
+        }}
         aria-label={t('common.close')}
       >
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <svg style={{ height: 20, width: 20 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
       {/* Counter */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
+      <div
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.5)',
+          color: '#fff',
+          padding: '2px 12px',
+          fontSize: 12,
+        }}
+      >
         {current + 1} / {images.length}
       </div>
 
@@ -112,10 +144,22 @@ function Lightbox({ images, startIndex, onClose }: LightboxProps) {
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); prev(); }}
-          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-white"
+          style={{
+            position: 'absolute',
+            left: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'rgba(0,0,0,0.5)',
+            border: 'none',
+            color: '#fff',
+            cursor: 'pointer',
+            padding: 8,
+            display: 'flex',
+            alignItems: 'center',
+          }}
           aria-label={t('rechazos_externos.gallery.prev')}
         >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg style={{ height: 24, width: 24 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
@@ -123,13 +167,13 @@ function Lightbox({ images, startIndex, onClose }: LightboxProps) {
 
       {/* Image */}
       <div
-        className="relative max-h-[80vh] max-w-[90vw]"
+        style={{ position: 'relative', maxHeight: '80vh', maxWidth: '90vw' }}
         onClick={(e) => e.stopPropagation()}
       >
         <img
           src={imageUrl(img)}
           alt={img.filename}
-          className="max-h-[75vh] max-w-[85vw] rounded-lg object-contain shadow-2xl"
+          style={{ maxHeight: '75vh', maxWidth: '85vw', objectFit: 'contain' }}
         />
       </div>
 
@@ -138,32 +182,59 @@ function Lightbox({ images, startIndex, onClose }: LightboxProps) {
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); next(); }}
-          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-white"
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'rgba(0,0,0,0.5)',
+            border: 'none',
+            color: '#fff',
+            cursor: 'pointer',
+            padding: 8,
+            display: 'flex',
+            alignItems: 'center',
+          }}
           aria-label={t('rechazos_externos.gallery.next')}
         >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg style={{ height: 24, width: 24 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
       )}
 
       {/* Caption */}
-      <p className="mt-3 max-w-xs truncate text-center text-xs text-gray-300">
+      <p
+        style={{
+          marginTop: 12,
+          maxWidth: 320,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          textAlign: 'center',
+          fontSize: 11,
+          color: '#ccc',
+        }}
+      >
         {img.filename}
       </p>
 
       {/* Dot indicators */}
       {images.length > 1 && (
-        <div className="mt-2 flex gap-1.5">
+        <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
           {images.map((_, i) => (
             <button
               key={i}
               type="button"
               onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
-              className={[
-                'h-2 w-2 rounded-full transition-colors focus:outline-none',
-                i === current ? 'bg-white' : 'bg-white/40 hover:bg-white/60',
-              ].join(' ')}
+              style={{
+                height: 8,
+                width: 8,
+                background: i === current ? '#fff' : 'rgba(255,255,255,0.4)',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
               aria-label={`${t('rechazos_externos.gallery.go_to')} ${i + 1}`}
             />
           ))}
@@ -182,7 +253,7 @@ export default function PhotoGallery({ images, onDelete, isDeleting = false }: P
 
   if (images.length === 0) {
     return (
-      <p className="text-sm text-gray-400 italic">
+      <p style={{ fontSize: 13, color: '#aaa', fontStyle: 'italic' }}>
         {t('rechazos_externos.gallery.no_photos')}
       </p>
     );
@@ -195,7 +266,12 @@ export default function PhotoGallery({ images, onDelete, isDeleting = false }: P
         {images.map((img, idx) => (
           <div
             key={img.id}
-            className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
+            className="group relative overflow-hidden"
+            style={{
+              aspectRatio: '1 / 1',
+              border: '1px solid #e2e2e2',
+              background: '#f4f6f9',
+            }}
           >
             {/* Thumbnail */}
             <img
@@ -211,8 +287,16 @@ export default function PhotoGallery({ images, onDelete, isDeleting = false }: P
               onClick={() => setLightboxIdx(idx)}
             >
               {/* View icon */}
-              <div className="rounded-full bg-white/90 p-1.5 opacity-0 shadow transition-opacity group-hover:opacity-100">
-                <svg className="h-4 w-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <div
+                className="opacity-0 transition-opacity group-hover:opacity-100"
+                style={{
+                  background: 'rgba(255,255,255,0.9)',
+                  padding: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <svg style={{ height: 16, width: 16, color: '#333' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
@@ -226,9 +310,17 @@ export default function PhotoGallery({ images, onDelete, isDeleting = false }: P
                   disabled={isDeleting}
                   title={t('upload.delete')}
                   aria-label={t('upload.delete')}
-                  className="rounded-full bg-white/90 p-1.5 opacity-0 shadow transition-opacity group-hover:opacity-100 hover:bg-red-50 disabled:cursor-not-allowed"
+                  className="opacity-0 transition-opacity group-hover:opacity-100"
+                  style={{
+                    background: 'rgba(255,255,255,0.9)',
+                    border: 'none',
+                    cursor: isDeleting ? 'not-allowed' : 'pointer',
+                    padding: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
                 >
-                  <svg className="h-4 w-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <svg style={{ height: 16, width: 16, color: '#c0392b' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -236,7 +328,17 @@ export default function PhotoGallery({ images, onDelete, isDeleting = false }: P
             </div>
 
             {/* Index badge */}
-            <span className="absolute bottom-1 left-1 rounded bg-black/50 px-1 py-0.5 text-xs text-white">
+            <span
+              style={{
+                position: 'absolute',
+                bottom: 4,
+                left: 4,
+                background: 'rgba(0,0,0,0.5)',
+                color: '#fff',
+                fontSize: 10,
+                padding: '1px 5px',
+              }}
+            >
               {idx + 1}
             </span>
           </div>

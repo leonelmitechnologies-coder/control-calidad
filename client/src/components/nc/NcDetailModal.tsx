@@ -3,8 +3,8 @@
  *
  * Shows all fields in a two-column grid.
  * Provides status advancement buttons based on current estatus:
- *   Abierta     → "Marcar En Progreso"
- *   En Progreso → "Marcar Cerrada"
+ *   Abierta     → "Marcar En proceso"
+ *   En proceso  → "Marcar Cerrada"
  *
  * Props:
  *   isOpen          - controls visibility
@@ -33,11 +33,9 @@ function formatFecha(iso: string): string {
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">
-        {label}
-      </dt>
-      <dd className="text-sm text-gray-900">{children}</dd>
+    <div className="form-group" style={{ marginBottom: 10 }}>
+      <label style={{ marginBottom: 2 }}>{label}</label>
+      <div style={{ fontSize: 13, color: '#111' }}>{children}</div>
     </div>
   );
 }
@@ -90,12 +88,12 @@ export default function NcDetailModal({
 
   // Determine next status action
   const nextStatusMap: Record<string, string> = {
-    Abierta:      'En Progreso',
-    'En Progreso': 'Cerrada',
+    Abierta:      'En proceso',
+    'En proceso': 'Cerrada',
   };
   const nextStatusLabel: Record<string, string> = {
-    Abierta:      'Marcar En Progreso',
-    'En Progreso': 'Marcar Cerrada',
+    Abierta:      'Marcar En proceso',
+    'En proceso': 'Marcar Cerrada',
   };
   const nextStatus = nextStatusMap[data.estatus];
   const nextLabel  = nextStatusLabel[data.estatus];
@@ -114,23 +112,23 @@ export default function NcDetailModal({
       {/* Dialog panel */}
       <div
         ref={dialogRef}
-        className="
-          relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto
-          bg-white rounded-xl shadow-2xl
-          animate-in zoom-in-95 duration-200
-        "
+        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white"
+        style={{ border: '1px solid #e2e2e2' }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div
+          className="sticky top-0 bg-white flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: '1px solid #e2e2e2' }}
+        >
           <div className="flex items-center gap-3">
-            <h2 id="nc-detail-title" className="text-lg font-semibold text-gray-900">
+            <div id="nc-detail-title" className="modal-titulo" style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>
               {t('nc.detail.title')} #{data.id}
-            </h2>
-            <StatusBadge status={data.estatus} size="md" />
+            </div>
+            <StatusBadge status={data.estatus} />
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#777', lineHeight: 1 }}
             aria-label="Cerrar"
           >
             ✕
@@ -138,10 +136,10 @@ export default function NcDetailModal({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-6">
+        <div className="px-6 py-5">
 
           {/* Core fields — 2-column grid */}
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <div className="form-grid" style={{ marginBottom: 14 }}>
             <DetailRow label={t('nc.form.fecha')}>
               {formatFecha(data.fecha)}
             </DetailRow>
@@ -155,35 +153,37 @@ export default function NcDetailModal({
               {data.tipo}
             </DetailRow>
             <DetailRow label={t('nc.form.severidad')}>
-              <StatusBadge status={data.severidad} variant="severidad" size="sm" />
+              <StatusBadge status={data.severidad} variant="severidad" />
             </DetailRow>
             <DetailRow label={t('nc.form.responsable')}>
               {data.responsable}
             </DetailRow>
-          </dl>
+          </div>
 
           {/* Descripción — full width */}
-          <div>
-            <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              {t('nc.form.descripcion')}
-            </dt>
-            <dd className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3 border border-gray-200">
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label>{t('nc.form.descripcion')}</label>
+            <div
+              className="whitespace-pre-wrap"
+              style={{ fontSize: 13, color: '#111', background: '#f4f6f9', padding: '10px 12px', border: '1px solid #e2e2e2' }}
+            >
               {data.descripcion || '—'}
-            </dd>
+            </div>
           </div>
 
           {/* Acción correctiva — full width */}
-          <div>
-            <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              {t('nc.form.accion')}
-            </dt>
-            <dd className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-3 border border-gray-200">
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label>{t('nc.form.accion')}</label>
+            <div
+              className="whitespace-pre-wrap"
+              style={{ fontSize: 13, color: '#111', background: '#f4f6f9', padding: '10px 12px', border: '1px solid #e2e2e2' }}
+            >
               {data.accion || '—'}
-            </dd>
+            </div>
           </div>
 
           {/* Metadata */}
-          <p className="text-xs text-gray-400 border-t border-gray-100 pt-4">
+          <p style={{ fontSize: 11, color: '#aaa', borderTop: '1px solid #e2e2e2', paddingTop: 12, marginTop: 8 }}>
             {t('nc.detail.created_by', {
               name: data.registrado_por,
               date: formatFecha(data.fecha),
@@ -192,23 +192,17 @@ export default function NcDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between gap-3">
-          {/* Status change action (if applicable) */}
+        <div
+          className="sticky bottom-0 bg-white flex items-center justify-between px-6 py-4"
+          style={{ borderTop: '1px solid #e2e2e2' }}
+        >
           <div>
             {nextStatus && (
               <button
                 onClick={() => onStatusChange(nextStatus)}
                 disabled={statusChanging}
-                className="
-                  px-4 py-2 text-sm font-medium rounded-lg
-                  bg-blue-600 text-white hover:bg-blue-700
-                  transition-colors disabled:opacity-70
-                  flex items-center gap-2
-                "
+                className="btn btn-primario"
               >
-                {statusChanging && (
-                  <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
                 {nextLabel}
               </button>
             )}
@@ -216,7 +210,7 @@ export default function NcDetailModal({
 
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="btn btn-secundario"
           >
             {t('nc.detail.close')}
           </button>

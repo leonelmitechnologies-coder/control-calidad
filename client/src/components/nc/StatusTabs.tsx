@@ -25,7 +25,13 @@ interface StatusTabsProps {
 export default function StatusTabs({ tabs, active, onChange }: StatusTabsProps) {
   return (
     <div
-      className="flex flex-wrap gap-1.5"
+      style={{
+        borderBottom: '1px solid #e2e2e2',
+        display: 'flex',
+        gap: 0,
+        marginBottom: 16,
+        flexWrap: 'wrap',
+      }}
       role="tablist"
       aria-label="Filtrar por estatus"
     >
@@ -37,25 +43,35 @@ export default function StatusTabs({ tabs, active, onChange }: StatusTabsProps) 
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(tab.value)}
-            className={`
-              inline-flex items-center gap-1.5
-              px-3 py-1.5 rounded-full text-sm font-medium
-              transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400
-              ${
-                isActive
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }
-            `}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 16px',
+              background: 'none',
+              border: 'none',
+              borderBottom: isActive ? '2px solid #0d2b4e' : '2px solid transparent',
+              color: isActive ? '#0d2b4e' : '#777',
+              fontWeight: isActive ? 700 : 400,
+              fontSize: 13,
+              cursor: 'pointer',
+              marginBottom: -1,
+            }}
           >
             {tab.label}
             <span
-              className={`
-                inline-flex items-center justify-center
-                min-w-[1.25rem] h-5 px-1
-                rounded-full text-xs font-semibold
-                ${isActive ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'}
-              `}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 20,
+                height: 18,
+                padding: '0 4px',
+                background: isActive ? '#0d2b4e' : '#e2e2e2',
+                color: isActive ? '#fff' : '#555',
+                fontSize: 11,
+                fontWeight: 600,
+              }}
             >
               {tab.count}
             </span>

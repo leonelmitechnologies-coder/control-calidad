@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import FieldGroup from '../recepciones/FieldGroup';
 import PhotoGallery from './PhotoGallery';
 import { formatDate, formatDateTime, formatCurrency } from '../../utils/formatters';
+import { API_BASE_URL } from '../../config/api';
 import type { RechazosExterno } from '../../types';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -25,14 +26,14 @@ interface ReDetailModalProps {
 // ── Status badge ──────────────────────────────────────────────────────────────
 
 function EstatusBadge({ estatus }: { estatus: RechazosExterno['estatus'] }) {
-  const colorMap: Record<RechazosExterno['estatus'], string> = {
-    Pendiente:  'bg-yellow-100 text-yellow-800 border-yellow-200',
-    Aceptado:   'bg-green-100  text-green-800  border-green-200',
-    Rechazado:  'bg-red-100    text-red-800    border-red-200',
+  const badgeMap: Record<RechazosExterno['estatus'], string> = {
+    Pendiente: 'pendiente',
+    Aceptado:  'aprobado',
+    Rechazado: 'rechazado',
   };
-  const cls = colorMap[estatus] ?? 'bg-gray-100 text-gray-700 border-gray-200';
+  const cls = badgeMap[estatus] ?? 'pendiente';
   return (
-    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium ${cls}`}>
+    <span className={`badge badge-${cls}`}>
       {estatus}
     </span>
   );
@@ -43,8 +44,12 @@ function EstatusBadge({ estatus }: { estatus: RechazosExterno['estatus'] }) {
 function DetailField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="mb-0.5 text-xs font-medium uppercase tracking-wide text-gray-400">{label}</dt>
-      <dd className="text-sm font-medium text-gray-800">{value ?? '—'}</dd>
+      <dt style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#777', marginBottom: 4 }}>
+        {label}
+      </dt>
+      <dd style={{ fontSize: 13, color: '#111', margin: 0 }}>
+        {value ?? <span style={{ color: '#aaa', fontStyle: 'italic' }}>—</span>}
+      </dd>
     </div>
   );
 }
@@ -62,31 +67,28 @@ export default function ReDetailModal({
 
   if (!isOpen) return null;
 
-  // Derive combined problem + action pairs for display
   const probs   = data.problem_descriptions ?? [];
   const actions = data.corrective_actions   ?? [];
-  const problems = probs.map((p) => ({
-    descripcion: p.descripcion,
-    accion: (actions.find((a) => a.orden === p.orden) ?? actions[0])?.accion ?? '',
-  }));
 
   return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="re-detail-title"
-      className="fixed inset-0 z-[800] flex items-start justify-center overflow-y-auto p-4 sm:items-start"
+      className="fixed inset-0 z-[800] flex items-start justify-center overflow-y-auto p-4"
+      style={{ paddingTop: 24 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
 
       {/* Dialog panel */}
-      <div className="relative z-10 my-4 w-full max-w-3xl rounded-xl bg-white shadow-2xl">
+      <div className="relative z-10 my-4 w-full" style={{ maxWidth: 780, background: '#fff', border: '1px solid #e2e2e2' }}>
+
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 id="re-detail-title" className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between" style={{ padding: '16px 24px', borderBottom: '2px solid #0d2b4e' }}>
+          <div className="flex flex-wrap items-center" style={{ gap: 12 }}>
+            <h2 id="re-detail-title" className="modal-titulo" style={{ margin: 0, border: 'none', paddingBottom: 0 }}>
               {t('rechazos_externos.detail.title')} #{data.id}
             </h2>
             <EstatusBadge estatus={data.estatus} />
@@ -94,7 +96,7 @@ export default function ReDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            style={{ background: 'none', border: 'none', fontSize: 18, color: '#777', cursor: 'pointer', padding: '2px 6px' }}
             aria-label={t('common.close')}
           >
             &#10005;
@@ -102,7 +104,7 @@ export default function ReDetailModal({
         </div>
 
         {/* Body */}
-        <div className="space-y-4 px-6 py-5">
+        <div style={{ padding: '20px 24px' }}>
 
           {/* Section 1: Base */}
           <FieldGroup title={t('rechazos_externos.form.section_base')}>
@@ -161,57 +163,59 @@ export default function ReDetailModal({
             <DetailField label={t('rechazos_externos.form.registrado_por')} value={data.registrado_por || '—'} />
           </FieldGroup>
 
-          {/* Section 6: Problems */}
-          {problems.length > 0 && (
-            <fieldset className="rounded-lg border border-gray-200 bg-gray-50 px-4 pb-4 pt-3">
-              <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {t('rechazos_externos.form.section_problems')}
-              </legend>
-              <div className="mt-3 space-y-3">
-                {problems.map((p, idx) => (
-                  <div key={idx} className="rounded-lg border border-gray-200 bg-white p-3 space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          {/* Section 6: Problem descriptions */}
+          {probs.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div className="seccion-titulo">{t('rechazos_externos.form.section_problems')}</div>
+              <div>
+                {probs.map((p, idx) => (
+                  <div key={idx} style={{ border: '1px solid #e2e2e2', padding: '10px 14px', marginBottom: 8, background: '#fff' }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', marginBottom: 4 }}>
                       {t('rechazos_externos.form.problem_label', { num: idx + 1 })}
                     </p>
-                    <div>
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-0.5">
-                        {t('rechazos_externos.form.problem_description')}
-                      </p>
-                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{p.descripcion || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-0.5">
-                        {t('rechazos_externos.form.corrective_action')}
-                      </p>
-                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{p.accion || '—'}</p>
-                    </div>
+                    <p style={{ fontSize: 13, color: '#111', whiteSpace: 'pre-wrap', margin: 0 }}>{p.descripcion || '—'}</p>
                   </div>
                 ))}
               </div>
-            </fieldset>
+            </div>
+          )}
+
+          {/* Section 6b: Corrective actions by department */}
+          {actions.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div className="seccion-titulo">Acciones Correctivas por Departamento</div>
+              <div>
+                {actions.map((ca) => (
+                  <div key={ca.id ?? ca.departamento} style={{ border: '1px solid #0d2b4e', padding: '10px 14px', marginBottom: 8, background: '#fff' }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', marginBottom: 4 }}>
+                      {ca.departamento}
+                    </p>
+                    <p style={{ fontSize: 13, color: '#111', whiteSpace: 'pre-wrap', margin: 0 }}>{ca.accion || '—'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Section 7: Photos */}
-          <fieldset className="rounded-lg border border-gray-200 bg-gray-50 px-4 pb-4 pt-3">
-            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <div style={{ marginBottom: 20 }}>
+            <div className="seccion-titulo" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {t('rechazos_externos.form.section_photos')}
               {data.images && data.images.length > 0 && (
-                <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                <span style={{ fontSize: 11, background: '#0d2b4e', color: '#fff', padding: '1px 8px', fontWeight: 700 }}>
                   {data.images.length}
                 </span>
               )}
-            </legend>
-            <div className="mt-3">
-              <PhotoGallery
-                images={data.images ?? []}
-                onDelete={onDeletePhoto}
-                isDeleting={isDeletingPhoto}
-              />
             </div>
-          </fieldset>
+            <PhotoGallery
+              images={data.images ?? []}
+              onDelete={onDeletePhoto}
+              isDeleting={isDeletingPhoto}
+            />
+          </div>
 
           {/* Audit metadata */}
-          <p className="text-xs text-gray-400">
+          <p style={{ fontSize: 12, color: '#aaa', marginTop: 8 }}>
             {t('rechazos_externos.detail.registered_by', {
               name: data.registrado_por ?? '?',
               date: formatDate(data.created_at),
@@ -220,11 +224,19 @@ export default function ReDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end border-t border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between" style={{ padding: '14px 24px', borderTop: '1px solid #e2e2e2' }}>
+          <a
+            href={`${API_BASE_URL}/api/rechazos-externos/${data.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secundario"
+          >
+            &#128196; Descargar PDF
+          </a>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="btn btn-secundario"
           >
             {t('common.close')}
           </button>

@@ -148,22 +148,23 @@ export default function ImageUpload({
   const canAdd  = !disabled && !atMax;
 
   return (
-    <div className="w-full space-y-3">
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Label */}
-      {label && (
-        <p className="text-sm font-medium text-gray-700">{label}</p>
-      )}
+      {label && <p>{label}</p>}
 
       {/* Drop zone + button */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={[
-          'rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors',
-          dragging  ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-gray-50',
-          disabled  ? 'opacity-50 cursor-not-allowed' : 'cursor-default',
-        ].join(' ')}
+        style={{
+          border: `2px dashed ${dragging ? '#0d2b4e' : '#e2e2e2'}`,
+          background: dragging ? '#edf2f7' : '#f4f6f9',
+          padding: '20px 16px',
+          textAlign: 'center',
+          opacity: disabled ? 0.5 : 1,
+          cursor: disabled ? 'not-allowed' : 'default',
+        }}
       >
         <input
           ref={inputRef}
@@ -178,7 +179,7 @@ export default function ImageUpload({
 
         {/* Icon */}
         <svg
-          className="mx-auto mb-2 h-8 w-8 text-gray-400"
+          style={{ display: 'block', margin: '0 auto 8px', height: 32, width: 32, color: '#aaa' }}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -193,32 +194,27 @@ export default function ImageUpload({
         </svg>
 
         {/* File count */}
-        <p className="mb-2 text-sm text-gray-500">
+        <p style={{ marginBottom: 8, fontSize: 13, color: '#555' }}>
           {previews.length} / {maxFiles}
           {atMax && (
-            <span className="ml-2 text-amber-600 font-medium">
+            <span style={{ marginLeft: 8, color: '#b45309', fontWeight: 600 }}>
               {t('upload.max_files', { count: maxFiles })}
             </span>
           )}
         </p>
 
         {/* Drag hint */}
-        <p className="mb-3 text-xs text-gray-400">{t('upload.drag_drop')}</p>
+        <p style={{ marginBottom: 12, fontSize: 11, color: '#aaa' }}>{t('upload.drag_drop')}</p>
 
         {/* Select button */}
         <button
           type="button"
           disabled={!canAdd}
           onClick={() => inputRef.current?.click()}
-          className={[
-            'inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium',
-            'border border-gray-300 bg-white shadow-sm transition-colors',
-            canAdd
-              ? 'text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
-              : 'cursor-not-allowed text-gray-400',
-          ].join(' ')}
+          className="btn btn-secundario"
+          style={!canAdd ? { cursor: 'not-allowed', opacity: 0.5 } : undefined}
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg style={{ height: 14, width: 14, display: 'inline', marginRight: 6 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           {t('upload.select_photos')}
@@ -227,9 +223,9 @@ export default function ImageUpload({
 
       {/* Error messages */}
       {errors.length > 0 && (
-        <ul className="space-y-1">
+        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {errors.map((err, i) => (
-            <li key={i} className="text-xs text-red-600">
+            <li key={i} className="form-error">
               {err}
             </li>
           ))}
@@ -240,7 +236,15 @@ export default function ImageUpload({
       {preview && previews.length > 0 && (
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {previews.map((p, idx) => (
-            <div key={idx} className="group relative aspect-square overflow-hidden rounded-md border border-gray-200 bg-gray-100">
+            <div
+              key={idx}
+              className="group relative overflow-hidden"
+              style={{
+                aspectRatio: '1 / 1',
+                border: '1px solid #e2e2e2',
+                background: '#f4f6f9',
+              }}
+            >
               <img
                 src={p.objectUrl}
                 alt={p.file.name}
@@ -256,20 +260,32 @@ export default function ImageUpload({
                   disabled={disabled}
                   title={t('upload.delete')}
                   aria-label={t('upload.delete')}
-                  className={[
-                    'rounded-full bg-white/90 p-1 opacity-0 shadow transition-opacity',
-                    'group-hover:opacity-100',
-                    disabled ? 'cursor-not-allowed' : 'hover:bg-red-50',
-                  ].join(' ')}
+                  style={{
+                    background: 'rgba(255,255,255,0.9)',
+                    border: 'none',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    padding: 4,
+                  }}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <svg className="h-4 w-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <svg style={{ height: 14, width: 14, color: '#c0392b' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
               {/* File size badge */}
-              <span className="absolute bottom-1 right-1 rounded bg-black/50 px-1 py-0.5 text-xs text-white">
+              <span
+                style={{
+                  position: 'absolute',
+                  bottom: 4,
+                  right: 4,
+                  background: 'rgba(0,0,0,0.5)',
+                  color: '#fff',
+                  fontSize: 10,
+                  padding: '1px 4px',
+                }}
+              >
                 {formatFileSize(p.file.size)}
               </span>
             </div>

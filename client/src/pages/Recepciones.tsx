@@ -19,7 +19,7 @@
  *   DELETE /api/recepciones/:id
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotify } from '../context/NotifyContext';
@@ -35,19 +35,20 @@ import type { Recepcion, RecepcionesResponse } from '../types';
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 500;
 
-// Status tabs (value matches the server filter; empty string = Todas)
-type StatusTab = '' | 'Confirmado' | 'Pendiente' | 'Rechazado';
+// Status tabs (value matches the server filter; empty string = Todos)
+type StatusTab = '' | 'Confirmado' | 'En descarga' | 'Descargado' | 'Rechazado';
 
 interface TabDef {
   value: StatusTab;
-  labelKey: string;
+  label: string;
 }
 
 const STATUS_TABS: TabDef[] = [
-  { value: '',            labelKey: 'recepciones.status_tabs.todas' },
-  { value: 'Confirmado',  labelKey: 'recepciones.status_tabs.confirmado' },
-  { value: 'Pendiente',   labelKey: 'recepciones.status_tabs.pendiente' },
-  { value: 'Rechazado',   labelKey: 'recepciones.status_tabs.rechazado' },
+  { value: '',             label: 'Todos' },
+  { value: 'Confirmado',   label: 'Confirmado' },
+  { value: 'En descarga',  label: 'En descarga' },
+  { value: 'Descargado',   label: 'Descargado' },
+  { value: 'Rechazado',    label: 'Rechazado' },
 ];
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -116,10 +117,16 @@ function useTabCounts(allData: RecepcionesResponse | undefined) {
       apiFetch<RecepcionesResponse>('/api/recepciones?page=1&limit=1&estatus=Confirmado'),
     staleTime: 1000 * 30,
   });
-  const pendienteQ = useQuery<RecepcionesResponse>({
-    queryKey: ['recepciones', 'count', 'Pendiente'],
+  const enDescargaQ = useQuery<RecepcionesResponse>({
+    queryKey: ['recepciones', 'count', 'En descarga'],
     queryFn: () =>
-      apiFetch<RecepcionesResponse>('/api/recepciones?page=1&limit=1&estatus=Pendiente'),
+      apiFetch<RecepcionesResponse>('/api/recepciones?page=1&limit=1&estatus=En+descarga'),
+    staleTime: 1000 * 30,
+  });
+  const descargadoQ = useQuery<RecepcionesResponse>({
+    queryKey: ['recepciones', 'count', 'Descargado'],
+    queryFn: () =>
+      apiFetch<RecepcionesResponse>('/api/recepciones?page=1&limit=1&estatus=Descargado'),
     staleTime: 1000 * 30,
   });
   const rechazadoQ = useQuery<RecepcionesResponse>({
@@ -129,14 +136,15 @@ function useTabCounts(allData: RecepcionesResponse | undefined) {
     staleTime: 1000 * 30,
   });
 
-  // Prefer the live allData total for "Todas" so it stays in sync with search
-  const totalTodas = allData?.total ?? countQuery.data?.total ?? 0;
+  // Prefer the live allData total for "Todos" so it stays in sync with search
+  const totalTodos = allData?.total ?? countQuery.data?.total ?? 0;
 
   return {
-    '':           totalTodas,
-    Confirmado:   confirmadoQ.data?.total ?? 0,
-    Pendiente:    pendienteQ.data?.total  ?? 0,
-    Rechazado:    rechazadoQ.data?.total  ?? 0,
+    '':            totalTodos,
+    Confirmado:    confirmadoQ.data?.total  ?? 0,
+    'En descarga': enDescargaQ.data?.total  ?? 0,
+    Descargado:    descargadoQ.data?.total  ?? 0,
+    Rechazado:     rechazadoQ.data?.total   ?? 0,
   } as Record<StatusTab, number>;
 }
 
@@ -331,46 +339,54 @@ export default function Recepciones() {
       {/* ── Page header ── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('recepciones.title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111111', marginBottom: 2 }}>{t('recepciones.title')}</h1>
+          <p style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
             {t('nav.recepciones')}
           </p>
         </div>
         <button
           type="button"
           onClick={handleAddNew}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="btn btn-primario"
         >
           + {t('recepciones.add')}
         </button>
       </div>
 
       {/* ── Status filter tabs ── */}
-      <div className="flex flex-wrap gap-2">
+      <div style={{ borderBottom: '2px solid #e2e2e2', display: 'flex', gap: 0 }}>
         {STATUS_TABS.map((tab) => {
           const isActive = activeTab === tab.value;
           const count    = tabCounts[tab.value];
           return (
             <button
-              key={tab.value}
+              key={tab.value || 'todos'}
               type="button"
               onClick={() => handleTabChange(tab.value)}
-              className={[
-                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400',
-                isActive
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-              ].join(' ')}
+              style={{
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 500,
+                background: 'none',
+                border: 'none',
+                borderBottom: isActive ? '2px solid #0d2b4e' : '2px solid transparent',
+                marginBottom: -2,
+                color: isActive ? '#0d2b4e' : '#666',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
             >
-              {t(tab.labelKey)}
-              <span
-                className={[
-                  'rounded-full px-1.5 py-0.5 text-xs font-semibold',
-                  isActive
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-600',
-                ].join(' ')}
-              >
+              {tab.label}
+              <span style={{
+                background: isActive ? '#0d2b4e' : '#e2e2e2',
+                color: isActive ? '#fff' : '#555',
+                borderRadius: 10,
+                padding: '1px 7px',
+                fontSize: 11,
+                fontWeight: 600,
+              }}>
                 {count}
               </span>
             </button>
@@ -379,23 +395,25 @@ export default function Recepciones() {
       </div>
 
       {/* ── Search bar ── */}
-      <div className="relative max-w-sm">
-        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400 text-sm">
-          &#128269;
-        </span>
-        <input
-          type="search"
-          value={searchInput}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          placeholder={t('recepciones.search_placeholder')}
-          className="block w-full rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          aria-label={t('recepciones.search_placeholder')}
-        />
+      <div className="filtros">
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none', fontSize: 14 }}>
+            &#128269;
+          </span>
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder={t('recepciones.search_placeholder')}
+            aria-label={t('recepciones.search_placeholder')}
+            style={{ paddingLeft: 30 }}
+          />
+        </div>
       </div>
 
       {/* ── Error banner ── */}
       {listQuery.isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div style={{ background: '#fff0f0', border: '1px solid #ffcccc', borderRadius: 4, padding: '10px 14px', fontSize: 13, color: '#c0392b' }}>
           {t('common.error')}: {listQuery.error instanceof Error ? listQuery.error.message : ''}
         </div>
       )}

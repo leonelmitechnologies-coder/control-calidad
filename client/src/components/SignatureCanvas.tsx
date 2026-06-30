@@ -214,12 +214,12 @@ export default function SignatureCanvas({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="w-full space-y-2">
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
       {/* Label */}
-      <p className="text-sm font-medium text-gray-700">
+      <p style={{ margin: 0 }}>
         {t('signature.draw')}
         {!disabled && isEmpty && (
-          <span className="ml-2 text-xs font-normal text-gray-400 italic">
+          <span style={{ marginLeft: 8, fontSize: 11, fontStyle: 'italic', color: '#aaa' }}>
             {t('signature.required')}
           </span>
         )}
@@ -227,14 +227,17 @@ export default function SignatureCanvas({
 
       {/* Canvas wrapper */}
       <div
-        className={[
-          'relative inline-block overflow-hidden rounded-md border',
-          'w-full max-w-full',
-          disabled
-            ? 'border-gray-200 bg-gray-50 opacity-60'
-            : 'border-gray-400 bg-white shadow-sm',
-        ].join(' ')}
-        style={{ touchAction: 'none' }}
+        style={{
+          position: 'relative',
+          display: 'inline-block',
+          overflow: 'hidden',
+          width: '100%',
+          maxWidth: '100%',
+          border: '1px solid #e2e2e2',
+          background: disabled ? '#f4f6f9' : '#fff',
+          opacity: disabled ? 0.6 : 1,
+          touchAction: 'none',
+        }}
       >
         <canvas
           ref={canvasRef}
@@ -251,7 +254,17 @@ export default function SignatureCanvas({
         {/* Placeholder text while empty */}
         {isEmpty && !disabled && (
           <span
-            className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-gray-300 select-none"
+            style={{
+              pointerEvents: 'none',
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 13,
+              color: '#ccc',
+              userSelect: 'none',
+            }}
             aria-hidden="true"
           >
             {t('signature.draw')}
@@ -264,15 +277,10 @@ export default function SignatureCanvas({
         type="button"
         onClick={handleClear}
         disabled={disabled || isEmpty}
-        className={[
-          'inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium',
-          'transition-colors',
-          disabled || isEmpty
-            ? 'cursor-not-allowed border-gray-200 text-gray-400'
-            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-red-600',
-        ].join(' ')}
+        className="btn btn-peligro"
+        style={disabled || isEmpty ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
       >
-        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <svg style={{ height: 13, width: 13, display: 'inline', marginRight: 5 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
           />

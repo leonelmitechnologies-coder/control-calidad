@@ -23,6 +23,7 @@ import Aql from './pages/Aql';
 import LiberacionShipping from './pages/LiberacionShipping';
 import OrganigramaQc from './pages/OrganigramaQc';
 import Calendario from './pages/Calendario';
+import Usuarios from './pages/Usuarios';
 import Manual from './pages/Manual';
 
 // Create TanStack Query client
@@ -140,6 +141,14 @@ export default function App() {
                 {() => (
                   <Layout>
                     <Calendario />
+                  </Layout>
+                )}
+              </Route>
+
+              <Route path="/usuarios">
+                {() => (
+                  <Layout>
+                    <Usuarios />
                   </Layout>
                 )}
               </Route>

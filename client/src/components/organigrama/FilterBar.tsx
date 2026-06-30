@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const PUESTOS = ['Jefe QC', 'Supervisor QC', 'Inspector', 'Otro'] as const;
+export const PUESTOS = ['Ingeniero de Calidad', 'Supervisor de Calidad', 'Tecnico de Calidad', 'Especialista de Calidad', 'Inspector de Calidad'] as const;
 export type PuestoFilter = (typeof PUESTOS)[number] | '';
 
 export type EstatusFilter = 'todos' | 'activo' | 'inactivo';
@@ -56,23 +56,22 @@ export default function FilterBar({
   ];
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
+    <div className="filtros">
       {/* Search */}
-      <div className="flex-1 min-w-[180px]">
-        <label className="block text-xs font-medium text-gray-600 mb-1">
-          {t('organigrama.filtro_buscar')}
-        </label>
+      <div style={{ flex: 1, minWidth: 180 }}>
+        <label>{t('organigrama.filtro_buscar')}</label>
         <div className="relative">
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={t('organigrama.filtro_buscar_placeholder')}
-            className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            style={{ paddingLeft: 32 }}
           />
           {/* Search icon */}
           <svg
-            className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400 pointer-events-none"
+            className="absolute pointer-events-none"
+            style={{ left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#aaa' }}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -84,14 +83,11 @@ export default function FilterBar({
       </div>
 
       {/* Puesto filter */}
-      <div className="min-w-[160px]">
-        <label className="block text-xs font-medium text-gray-600 mb-1">
-          {t('organigrama.form.puesto')}
-        </label>
+      <div style={{ minWidth: 160 }}>
+        <label>{t('organigrama.form.puesto')}</label>
         <select
           value={puesto}
           onChange={(e) => onPuestoChange(e.target.value as PuestoFilter)}
-          className="w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
           <option value="">{t('organigrama.filtro_todos_puestos')}</option>
           {PUESTOS.map((p) => (
@@ -102,14 +98,26 @@ export default function FilterBar({
 
       {/* Estatus radio */}
       <div>
-        <p className="block text-xs font-medium text-gray-600 mb-1">
-          {t('organigrama.form.estatus')}
-        </p>
-        <div className="flex items-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm">
+        <label>{t('organigrama.form.estatus')}</label>
+        <div
+          className="flex items-center gap-3"
+          style={{ padding: '9px 12px', border: '1px solid #e2e2e2', background: '#fff' }}
+        >
           {ESTATUS_OPTIONS.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-1.5 cursor-pointer text-sm text-gray-700 select-none"
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                cursor: 'pointer',
+                fontSize: 13,
+                color: '#111',
+                textTransform: 'none',
+                fontWeight: 400,
+                marginBottom: 0,
+              }}
             >
               <input
                 type="radio"
@@ -117,7 +125,7 @@ export default function FilterBar({
                 value={opt.value}
                 checked={estatus === opt.value}
                 onChange={() => onEstatusChange(opt.value)}
-                className="h-3.5 w-3.5 accent-blue-600"
+                style={{ width: 'auto', accentColor: '#0d2b4e' }}
               />
               {opt.label}
             </label>

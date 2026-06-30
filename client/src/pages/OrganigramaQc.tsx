@@ -29,7 +29,7 @@ import OrgDetailModal from '../components/organigrama/OrgDetailModal';
 
 // ── Position display order ────────────────────────────────────────────────────
 
-const POSITION_ORDER = ['Jefe QC', 'Supervisor QC', 'Inspector', 'Otro'] as const;
+const POSITION_ORDER = ['Ingeniero de Calidad', 'Supervisor de Calidad', 'Tecnico de Calidad', 'Especialista de Calidad', 'Inspector de Calidad'] as const;
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -148,8 +148,7 @@ export default function OrganigramaQc() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(body),
       }),
-    onSuccess: async (created, _, photoFile) => {
-      // photoFile is passed via context — we use the imperative call below
+    onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['organigrama-qc'] });
     },
   });
@@ -268,10 +267,10 @@ export default function OrganigramaQc() {
       {/* Page header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('organigrama.title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111111', marginBottom: 2 }}>{t('organigrama.title')}</h1>
+          <p style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
             {t('organigrama.subtitle')} &mdash;{' '}
-            <span className="font-medium text-gray-700">
+            <span style={{ fontWeight: 600, color: '#333' }}>
               {employees.filter((e) => e.estatus === 'activo').length}
             </span>{' '}
             {t('organigrama.activos_label')}
@@ -280,12 +279,9 @@ export default function OrganigramaQc() {
         <button
           type="button"
           onClick={() => setModal({ type: 'create' })}
-          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="btn btn-primario"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          {t('organigrama.add')}
+          + {t('organigrama.add')}
         </button>
       </div>
 
@@ -301,18 +297,18 @@ export default function OrganigramaQc() {
       {/* Content area */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" aria-label={t('common.loading')} />
+          <div className="inline-block h-8 w-8 animate-spin" style={{ borderRadius: '50%', borderBottom: '2px solid #0d2b4e' }} aria-label={t('common.loading')} />
         </div>
       )}
 
       {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div style={{ background: '#fff0f0', border: '1px solid #ffcccc', borderRadius: 4, padding: '10px 14px', fontSize: 13, color: '#c0392b' }}>
           {t('common.error')}: {(error as Error)?.message ?? 'Error desconocido'}
         </div>
       )}
 
       {!isLoading && !isError && !hasResults && (
-        <div className="rounded-lg border border-gray-200 bg-white p-10 text-center text-sm text-gray-500">
+        <div className="vacio">
           {t('organigrama.sin_resultados')}
         </div>
       )}

@@ -19,9 +19,9 @@ import type { NoConformidad } from '../../types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const AREAS = ['Recepción', 'Almacén', 'Inspección', 'Expedición', 'Otros'] as const;
-const TIPOS = ['Defecto', 'Proceso', 'Documentación'] as const;
-const SEVERIDADES = ['Crítica', 'Mayor', 'Menor'] as const;
+const AREAS = ['Produccion', 'Almacen', 'Logistica', 'Administracion', 'Mantenimiento', 'Calidad', 'Ventas', 'Otro'] as const;
+const TIPOS = ['Producto no conforme', 'Proceso fuera de parametro', 'Documentacion incorrecta', 'Equipo defectuoso', 'Incumplimiento de procedimiento', 'Proveedor', 'Otro'] as const;
+const SEVERIDADES = ['Alta', 'Media', 'Baja'] as const;
 
 // ── Form state shape ──────────────────────────────────────────────────────────
 
@@ -167,20 +167,20 @@ export default function NcForm({
       {/* Dialog panel */}
       <div
         ref={dialogRef}
-        className="
-          relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto
-          bg-white rounded-xl shadow-2xl
-          animate-in zoom-in-95 duration-200
-        "
+        className="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto bg-white"
+        style={{ border: '1px solid #e2e2e2' }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 id="nc-form-title" className="text-lg font-semibold text-gray-900">
+        <div
+          className="sticky top-0 bg-white flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: '1px solid #e2e2e2' }}
+        >
+          <div id="nc-form-title" className="modal-titulo" style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>
             {title}
-          </h2>
+          </div>
           <button
             onClick={onCancel}
-            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#777', lineHeight: 1 }}
             aria-label="Cerrar"
           >
             ✕
@@ -189,126 +189,86 @@ export default function NcForm({
 
         {/* Form body */}
         <form onSubmit={handleSubmit} noValidate>
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-6 py-5">
 
             {/* Fecha + Hora (side by side) */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="form-grid" style={{ marginBottom: 14 }}>
               {/* Fecha — read only, auto from server */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('nc.form.fecha')}
-                </label>
+              <div className="form-group">
+                <label>{t('nc.form.fecha')}</label>
                 <input
                   type="text"
                   value={new Date().toLocaleDateString('es-MX')}
                   readOnly
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
                 />
               </div>
 
               {/* Hora */}
-              <div>
-                <label htmlFor="nc-hora" className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('nc.form.hora')} <span className="text-red-500">*</span>
-                </label>
+              <div className="form-group">
+                <label htmlFor="nc-hora">{t('nc.form.hora')} *</label>
                 <input
                   ref={firstInputRef}
                   id="nc-hora"
                   type="time"
                   value={values.hora}
                   onChange={(e) => set('hora', e.target.value)}
-                  className={`
-                    w-full px-3 py-2 text-sm border rounded-lg
-                    focus:outline-none focus:ring-2 focus:ring-blue-400
-                    ${errors.hora ? 'border-red-400 bg-red-50' : 'border-gray-300'}
-                  `}
                 />
-                {errors.hora && <p className="mt-1 text-xs text-red-600">{errors.hora}</p>}
+                {errors.hora && <span className="form-error">{errors.hora}</span>}
               </div>
             </div>
 
             {/* Área */}
-            <div>
-              <label htmlFor="nc-area" className="block text-sm font-medium text-gray-700 mb-1">
-                {t('nc.form.area')} <span className="text-red-500">*</span>
-              </label>
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label htmlFor="nc-area">{t('nc.form.area')} *</label>
               <select
                 id="nc-area"
                 value={values.area}
                 onChange={(e) => set('area', e.target.value)}
-                className={`
-                  w-full px-3 py-2 text-sm border rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-blue-400
-                  ${errors.area ? 'border-red-400 bg-red-50' : 'border-gray-300'}
-                `}
               >
                 <option value="">— Seleccionar área —</option>
                 {AREAS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
+                  <option key={a} value={a}>{a}</option>
                 ))}
               </select>
-              {errors.area && <p className="mt-1 text-xs text-red-600">{errors.area}</p>}
+              {errors.area && <span className="form-error">{errors.area}</span>}
             </div>
 
             {/* Tipo */}
-            <div>
-              <label htmlFor="nc-tipo" className="block text-sm font-medium text-gray-700 mb-1">
-                {t('nc.form.tipo')} <span className="text-red-500">*</span>
-              </label>
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label htmlFor="nc-tipo">{t('nc.form.tipo')} *</label>
               <select
                 id="nc-tipo"
                 value={values.tipo}
                 onChange={(e) => set('tipo', e.target.value)}
-                className={`
-                  w-full px-3 py-2 text-sm border rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-blue-400
-                  ${errors.tipo ? 'border-red-400 bg-red-50' : 'border-gray-300'}
-                `}
               >
                 <option value="">— Seleccionar tipo —</option>
                 {TIPOS.map((tp) => (
-                  <option key={tp} value={tp}>
-                    {tp}
-                  </option>
+                  <option key={tp} value={tp}>{tp}</option>
                 ))}
               </select>
-              {errors.tipo && <p className="mt-1 text-xs text-red-600">{errors.tipo}</p>}
+              {errors.tipo && <span className="form-error">{errors.tipo}</span>}
             </div>
 
             {/* Severidad */}
-            <div>
-              <label htmlFor="nc-severidad" className="block text-sm font-medium text-gray-700 mb-1">
-                {t('nc.form.severidad')} <span className="text-red-500">*</span>
-              </label>
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label htmlFor="nc-severidad">{t('nc.form.severidad')} *</label>
               <select
                 id="nc-severidad"
                 value={values.severidad}
                 onChange={(e) => set('severidad', e.target.value)}
-                className={`
-                  w-full px-3 py-2 text-sm border rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-blue-400
-                  ${errors.severidad ? 'border-red-400 bg-red-50' : 'border-gray-300'}
-                `}
               >
                 <option value="">— Seleccionar severidad —</option>
                 {SEVERIDADES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-              {errors.severidad && (
-                <p className="mt-1 text-xs text-red-600">{errors.severidad}</p>
-              )}
+              {errors.severidad && <span className="form-error">{errors.severidad}</span>}
             </div>
 
             {/* Descripción */}
-            <div>
-              <label htmlFor="nc-descripcion" className="block text-sm font-medium text-gray-700 mb-1">
-                {t('nc.form.descripcion')} <span className="text-red-500">*</span>
-              </label>
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label htmlFor="nc-descripcion">{t('nc.form.descripcion')} *</label>
               <textarea
                 id="nc-descripcion"
                 rows={3}
@@ -316,86 +276,67 @@ export default function NcForm({
                 onChange={(e) => set('descripcion', e.target.value)}
                 maxLength={500}
                 placeholder="Descripción detallada de la no conformidad…"
-                className={`
-                  w-full px-3 py-2 text-sm border rounded-lg resize-none
-                  focus:outline-none focus:ring-2 focus:ring-blue-400
-                  ${errors.descripcion ? 'border-red-400 bg-red-50' : 'border-gray-300'}
-                `}
               />
-              <div className="flex justify-between mt-1">
+              <div className="flex justify-between" style={{ marginTop: 4 }}>
                 {errors.descripcion
-                  ? <p className="text-xs text-red-600">{errors.descripcion}</p>
+                  ? <span className="form-error">{errors.descripcion}</span>
                   : <span />}
-                <span className="text-xs text-gray-400">
+                <span style={{ fontSize: 11, color: '#aaa' }}>
                   {values.descripcion.length}/500
                 </span>
               </div>
             </div>
 
             {/* Responsable */}
-            <div>
-              <label htmlFor="nc-responsable" className="block text-sm font-medium text-gray-700 mb-1">
-                {t('nc.form.responsable')} <span className="text-red-500">*</span>
-              </label>
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label htmlFor="nc-responsable">{t('nc.form.responsable')} *</label>
               <input
                 id="nc-responsable"
                 type="text"
                 value={values.responsable}
                 onChange={(e) => set('responsable', e.target.value)}
                 placeholder="Nombre del responsable"
-                className={`
-                  w-full px-3 py-2 text-sm border rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-blue-400
-                  ${errors.responsable ? 'border-red-400 bg-red-50' : 'border-gray-300'}
-                `}
               />
-              {errors.responsable && (
-                <p className="mt-1 text-xs text-red-600">{errors.responsable}</p>
-              )}
+              {errors.responsable && <span className="form-error">{errors.responsable}</span>}
             </div>
 
             {/* Acción correctiva */}
-            <div>
-              <label htmlFor="nc-accion" className="block text-sm font-medium text-gray-700 mb-1">
-                {t('nc.form.accion')} <span className="text-red-500">*</span>
-              </label>
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label htmlFor="nc-accion">{t('nc.form.accion')} *</label>
               <textarea
                 id="nc-accion"
                 rows={3}
                 value={values.accion}
                 onChange={(e) => set('accion', e.target.value)}
                 placeholder="Descripción de la acción correctiva…"
-                className={`
-                  w-full px-3 py-2 text-sm border rounded-lg resize-none
-                  focus:outline-none focus:ring-2 focus:ring-blue-400
-                  ${errors.accion ? 'border-red-400 bg-red-50' : 'border-gray-300'}
-                `}
               />
-              {errors.accion && <p className="mt-1 text-xs text-red-600">{errors.accion}</p>}
+              {errors.accion && <span className="form-error">{errors.accion}</span>}
             </div>
 
           </div>
 
           {/* Footer actions */}
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={submitting}
-              className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-70 flex items-center gap-2"
-            >
-              {submitting && (
-                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              )}
-              {isEditing ? 'Actualizar' : t('common.save')}
-            </button>
+          <div
+            className="sticky bottom-0 bg-white flex justify-end px-6 py-4"
+            style={{ borderTop: '1px solid #e2e2e2' }}
+          >
+            <div className="btn-grupo" style={{ marginTop: 0 }}>
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={submitting}
+                className="btn btn-secundario"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn btn-primario"
+              >
+                {isEditing ? 'Actualizar' : t('common.save')}
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -33,10 +33,10 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     };
   }, [toast.id, toast.duration, onDismiss]);
 
-  const colorMap: Record<Toast['type'], string> = {
-    success: 'bg-green-50 border-green-400 text-green-800',
-    error:   'bg-red-50   border-red-400   text-red-800',
-    warning: 'bg-yellow-50 border-yellow-400 text-yellow-800',
+  const bgMap: Record<Toast['type'], string> = {
+    success: '#0d2b4e',
+    error:   '#c0392b',
+    warning: '#8a6a00',
   };
 
   const iconMap: Record<Toast['type'], string> = {
@@ -45,36 +45,47 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     warning: '⚠',
   };
 
-  const iconColorMap: Record<Toast['type'], string> = {
-    success: 'text-green-500',
-    error:   'text-red-500',
-    warning: 'text-yellow-500',
-  };
-
   return (
     <div
       role="alert"
       aria-live="assertive"
-      className={`
-        flex items-start gap-3 w-80 px-4 py-3
-        border rounded-lg shadow-lg
-        animate-in slide-in-from-right-full duration-300
-        ${colorMap[toast.type]}
-      `}
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+        width: 320,
+        padding: '12px 18px',
+        background: bgMap[toast.type],
+        color: '#fff',
+        fontSize: 13,
+        border: 'none',
+      }}
     >
       {/* Icon */}
-      <span className={`mt-0.5 flex-shrink-0 font-bold text-base ${iconColorMap[toast.type]}`}>
+      <span style={{ flexShrink: 0, fontWeight: 700 }}>
         {iconMap[toast.type]}
       </span>
 
       {/* Message */}
-      <p className="flex-1 text-sm leading-snug break-words">{toast.message}</p>
+      <p style={{ flex: 1, margin: 0, wordBreak: 'break-word', lineHeight: 1.4 }}>
+        {toast.message}
+      </p>
 
       {/* Dismiss button */}
       <button
         onClick={() => onDismiss(toast.id)}
         aria-label="Cerrar notificación"
-        className="flex-shrink-0 mt-0.5 opacity-60 hover:opacity-100 transition-opacity text-base leading-none"
+        style={{
+          flexShrink: 0,
+          background: 'none',
+          border: 'none',
+          color: '#fff',
+          cursor: 'pointer',
+          fontSize: 18,
+          lineHeight: 1,
+          opacity: 0.75,
+          padding: 0,
+        }}
       >
         ×
       </button>
@@ -99,11 +110,19 @@ export default function Notify({ toasts, onDismiss }: NotifyProps) {
   return createPortal(
     <div
       aria-label="Notificaciones"
-      className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"
+      style={{
+        position: 'fixed',
+        top: 20,
+        right: 20,
+        zIndex: 500,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        pointerEvents: 'none',
+      }}
     >
       {toasts.map((toast) => (
-        // pointer-events-auto re-enables clicks on individual toasts
-        <div key={toast.id} className="pointer-events-auto">
+        <div key={toast.id} style={{ pointerEvents: 'auto' }}>
           <ToastItem toast={toast} onDismiss={onDismiss} />
         </div>
       ))}

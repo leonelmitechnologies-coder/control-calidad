@@ -67,55 +67,71 @@ export default function Confirm({
       aria-modal="true"
       aria-labelledby="confirm-title"
       aria-describedby="confirm-message"
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 400,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.5)',
+      }}
       onClick={handleOverlayClick}
     >
-      {/* Dark backdrop */}
-      <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
-
       {/* Dialog panel */}
       <div
         ref={dialogRef}
-        className="
-          relative z-10 w-full max-w-md
-          bg-white rounded-xl shadow-2xl
-          p-6 flex flex-col gap-4
-          animate-in zoom-in-95 duration-200
-        "
+        style={{
+          position: 'relative',
+          background: '#fff',
+          border: 'none',
+          padding: 28,
+          width: 380,
+          maxWidth: '95vw',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0,
+        }}
       >
         {/* Title */}
-        <h2 id="confirm-title" className="text-lg font-semibold text-gray-900 leading-snug">
+        <h2
+          id="confirm-title"
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: '#0d2b4e',
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            borderBottom: '2px solid #0d2b4e',
+            paddingBottom: 8,
+            marginBottom: 16,
+            margin: '0 0 16px 0',
+          }}
+        >
           {title}
         </h2>
 
         {/* Message */}
-        <p id="confirm-message" className="text-sm text-gray-600 leading-relaxed">
+        <p
+          id="confirm-message"
+          style={{ fontSize: 14, color: '#111', marginBottom: 20 }}
+        >
           {message}
         </p>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 mt-2">
+        <div className="btn-grupo" style={{ justifyContent: 'flex-end' }}>
           <button
             type="button"
             onClick={onCancel}
-            className="
-              px-4 py-2 text-sm font-medium
-              bg-gray-100 text-gray-700 rounded-lg
-              hover:bg-gray-200 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-gray-400
-            "
+            className="btn btn-secundario"
           >
             {cancelText}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="
-              px-4 py-2 text-sm font-medium
-              bg-blue-600 text-white rounded-lg
-              hover:bg-blue-700 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
+            className="btn btn-primario"
           >
             {confirmText}
           </button>

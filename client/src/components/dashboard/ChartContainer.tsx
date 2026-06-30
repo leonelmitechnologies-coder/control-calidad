@@ -19,9 +19,10 @@ interface ChartContainerProps {
 export default function ChartContainer({ title, children, className = '' }: ChartContainerProps) {
   return (
     <div
-      className={`bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4 ${className}`}
+      className={`card flex flex-col gap-4 ${className}`}
+      style={{ padding: '18px 22px' }}
     >
-      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+      <h3 className="seccion-titulo" style={{ marginBottom: 0 }}>
         {title}
       </h3>
       <div className="relative flex-1 min-h-0">

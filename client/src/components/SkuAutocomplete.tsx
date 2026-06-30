@@ -155,7 +155,7 @@ export default function SkuAutocomplete({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
       {/* Input */}
       <input
         ref={inputRef}
@@ -170,27 +170,30 @@ export default function SkuAutocomplete({
         aria-autocomplete="list"
         aria-expanded={open}
         aria-haspopup="listbox"
-        className={[
-          'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm',
-          'placeholder-gray-400 shadow-sm',
-          'focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500',
-          'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
-          loading ? 'pr-8' : '',
-        ].join(' ')}
+        style={loading ? { paddingRight: 32 } : undefined}
       />
 
       {/* Loading spinner inside input */}
       {loading && (
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
+        <span
+          style={{
+            pointerEvents: 'none',
+            position: 'absolute',
+            right: 10,
+            top: '50%',
+            transform: 'translateY(-50%)',
+          }}
+        >
           <svg
-            className="h-4 w-4 animate-spin text-gray-400"
+            className="animate-spin"
+            style={{ height: 16, width: 16, color: '#aaa' }}
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
           >
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path
-              className="opacity-75"
+              style={{ opacity: 0.75 }}
               fill="currentColor"
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
             />
@@ -202,14 +205,32 @@ export default function SkuAutocomplete({
       {open && !disabled && (
         <ul
           role="listbox"
-          className={[
-            'absolute z-50 mt-1 w-full overflow-auto rounded-md border border-gray-200',
-            'bg-white shadow-lg',
-            'max-h-60 text-sm',
-          ].join(' ')}
+          style={{
+            position: 'fixed',
+            zIndex: 9999,
+            background: '#fff',
+            border: '1px solid #e2e2e2',
+            borderTop: 'none',
+            maxHeight: 200,
+            overflowY: 'auto',
+            margin: 0,
+            padding: 0,
+            listStyle: 'none',
+            width: containerRef.current?.getBoundingClientRect().width ?? 'auto',
+            left: containerRef.current?.getBoundingClientRect().left ?? 0,
+            top: (containerRef.current?.getBoundingClientRect().bottom ?? 0),
+          }}
         >
           {results.length === 0 ? (
-            <li className="px-3 py-2 text-gray-500 italic select-none">
+            <li
+              style={{
+                padding: '8px 12px',
+                fontSize: 13,
+                color: '#777',
+                fontStyle: 'italic',
+                userSelect: 'none',
+              }}
+            >
               {t('sku.notfound')}
             </li>
           ) : (
@@ -224,14 +245,18 @@ export default function SkuAutocomplete({
                   handleSelect(record);
                 }}
                 onMouseEnter={() => setFocusIdx(idx)}
-                className={[
-                  'cursor-pointer px-3 py-2 transition-colors',
-                  idx === focusIdx ? 'bg-blue-50 text-blue-700' : 'text-gray-800 hover:bg-gray-50',
-                ].join(' ')}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  borderBottom: '1px solid #e2e2e2',
+                  background: idx === focusIdx ? '#f0f4f9' : '#fff',
+                  color: '#111',
+                }}
               >
-                <span className="font-medium">{record.sku}</span>
-                <span className="mx-1 text-gray-400">—</span>
-                <span className="text-gray-600">
+                <span style={{ fontWeight: 600 }}>{record.sku}</span>
+                <span style={{ margin: '0 4px', color: '#aaa' }}>—</span>
+                <span style={{ color: '#444' }}>
                   {[record.marca, record.modelo].filter(Boolean).join(' ')}
                   {record.pulgada ? ` (${record.pulgada})` : ''}
                 </span>

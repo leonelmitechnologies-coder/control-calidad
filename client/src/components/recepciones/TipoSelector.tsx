@@ -40,20 +40,24 @@ export default function TipoSelector({ value, onChange, disabled = false }: Tipo
         return (
           <label
             key={opt.value}
-            className={[
-              'flex items-center gap-2 cursor-pointer select-none',
-              'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-              isSelected
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
-              disabled ? 'cursor-not-allowed opacity-60' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              userSelect: 'none',
+              border: isSelected ? '2px solid #0d2b4e' : '1px solid #e2e2e2',
+              padding: isSelected ? '7px 15px' : '8px 16px',
+              background: isSelected ? '#edf2f7' : '#fff',
+              color: isSelected ? '#0d2b4e' : '#555',
+              fontSize: 13,
+              fontWeight: isSelected ? 700 : 400,
+              opacity: disabled ? 0.6 : 1,
+            }}
           >
             <input
               type="radio"
-              className="sr-only" // visually hidden; pill style provides the affordance
+              className="sr-only"
               name="tipo"
               value={opt.value}
               checked={isSelected}

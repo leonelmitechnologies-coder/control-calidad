@@ -60,47 +60,17 @@ function Paginator({ page, pageSize, total, onPageChange }: PaginatorProps) {
   const to   = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-      <p className="text-sm text-gray-600">
-        Mostrando <span className="font-medium">{from}</span>–<span className="font-medium">{to}</span>{' '}
-        de <span className="font-medium">{total}</span> registros
-      </p>
+    <div className="paginador">
+      <span>
+        Mostrando <strong>{from}</strong>–<strong>{to}</strong>{' '}
+        de <strong>{total}</strong> registros
+      </span>
       <div className="flex items-center gap-1">
-        <button
-          onClick={() => onPageChange(1)}
-          disabled={!hasPrev}
-          className="px-2 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Primera página"
-        >
-          «
-        </button>
-        <button
-          onClick={() => onPageChange(page - 1)}
-          disabled={!hasPrev}
-          className="px-2 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Página anterior"
-        >
-          ‹
-        </button>
-        <span className="px-3 py-1 text-sm text-gray-700">
-          {page} / {lastPage}
-        </span>
-        <button
-          onClick={() => onPageChange(page + 1)}
-          disabled={!hasNext}
-          className="px-2 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Página siguiente"
-        >
-          ›
-        </button>
-        <button
-          onClick={() => onPageChange(lastPage)}
-          disabled={!hasNext}
-          className="px-2 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Última página"
-        >
-          »
-        </button>
+        <button onClick={() => onPageChange(1)} disabled={!hasPrev} title="Primera página">«</button>
+        <button onClick={() => onPageChange(page - 1)} disabled={!hasPrev} title="Página anterior">‹</button>
+        <span style={{ padding: '0 8px' }}>{page} / {lastPage}</span>
+        <button onClick={() => onPageChange(page + 1)} disabled={!hasNext} title="Página siguiente">›</button>
+        <button onClick={() => onPageChange(lastPage)} disabled={!hasNext} title="Última página">»</button>
       </div>
     </div>
   );
@@ -114,8 +84,8 @@ function TableSkeleton() {
       {Array.from({ length: 5 }).map((_, i) => (
         <tr key={i} className="animate-pulse">
           {Array.from({ length: 10 }).map((__, j) => (
-            <td key={j} className="px-4 py-3">
-              <div className="h-4 bg-gray-200 rounded w-full" />
+            <td key={j}>
+              <div className="h-4 animate-pulse" style={{ background: '#e8e8e8', borderRadius: 0 }} />
             </td>
           ))}
         </tr>
@@ -140,48 +110,28 @@ export default function NcTable({
   const { t } = useTranslation();
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+    <div style={{ border: '1px solid #e2e2e2', background: '#fff' }}>
+      <div className="tabla-wrap">
+        <table className="tabla">
+          <thead>
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">
-                #
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Fecha
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Hora
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                {t('nc.form.area')}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                {t('nc.form.tipo')}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                {t('nc.form.severidad')}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider max-w-xs">
-                {t('nc.form.descripcion')}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                {t('nc.form.responsable')}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Estatus
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Acciones
-              </th>
+              <th style={{ width: 40 }}>#</th>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>{t('nc.form.area')}</th>
+              <th>{t('nc.form.tipo')}</th>
+              <th>{t('nc.form.severidad')}</th>
+              <th>{t('nc.form.descripcion')}</th>
+              <th>{t('nc.form.responsable')}</th>
+              <th>Estatus</th>
+              <th>Acciones</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
+          <tbody>
             {loading && <TableSkeleton />}
             {!loading && data.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-10 text-center text-gray-400 text-sm">
+                <td colSpan={10} className="vacio">
                   No hay registros para mostrar.
                 </td>
               </tr>
@@ -191,57 +141,49 @@ export default function NcTable({
                 <tr
                   key={nc.id}
                   onClick={() => onView(nc.id)}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
                 >
-                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">
+                  <td className="font-mono" style={{ fontSize: 11 }}>
                     {(currentPage - 1) * pageSize + idx + 1}
                   </td>
-                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                    {formatFecha(nc.fecha)}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap font-mono text-xs">
+                  <td className="whitespace-nowrap">{formatFecha(nc.fecha)}</td>
+                  <td className="whitespace-nowrap font-mono" style={{ fontSize: 11 }}>
                     {(nc.hora ?? '').slice(0, 5)}
                   </td>
-                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                    {nc.area}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                    {nc.tipo}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="whitespace-nowrap">{nc.area}</td>
+                  <td className="whitespace-nowrap">{nc.tipo}</td>
+                  <td className="whitespace-nowrap">
                     <StatusBadge status={nc.severidad} variant="severidad" />
                   </td>
-                  <td className="px-4 py-3 text-gray-600 max-w-xs">
+                  <td style={{ maxWidth: 280 }}>
                     <span title={nc.descripcion}>{truncate(nc.descripcion)}</span>
                   </td>
-                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                    {nc.responsable}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="whitespace-nowrap">{nc.responsable}</td>
+                  <td className="whitespace-nowrap">
                     <StatusBadge status={nc.estatus} />
                   </td>
                   <td
-                    className="px-4 py-3 whitespace-nowrap text-right"
+                    className="whitespace-nowrap"
+                    style={{ textAlign: 'right' }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="flex items-center justify-end gap-1">
                       <button
+                        className="btn-accion"
                         onClick={() => onView(nc.id)}
-                        className="px-2.5 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                         title={t('nc.view')}
                       >
                         {t('nc.view')}
                       </button>
                       <button
+                        className="btn-accion"
                         onClick={() => onEdit(nc.id)}
-                        className="px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
                         title={t('nc.edit')}
                       >
                         {t('nc.edit')}
                       </button>
                       <button
+                        className="btn-accion rojo"
                         onClick={() => onDelete(nc.id)}
-                        className="px-2.5 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
                         title={t('nc.delete')}
                       >
                         {t('nc.delete')}
