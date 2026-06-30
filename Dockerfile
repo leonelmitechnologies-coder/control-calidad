@@ -3,6 +3,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Skip Puppeteer Chromium download — not used in this app
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
 # Copy dependency manifests first for better layer caching
 COPY package.json package-lock.json ./
 
