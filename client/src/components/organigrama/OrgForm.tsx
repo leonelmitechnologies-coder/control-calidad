@@ -397,7 +397,7 @@ export default function OrgForm({
                       checked={values.estatus === val}
                       onChange={handleChange}
                       disabled={isSubmitting}
-                      style={{ width: 'auto', accent: '#0d2b4e' }}
+                      style={{ width: 'auto', accentColor: '#0d2b4e' }}
                     />
                     {val === 'activo'
                       ? t('organigrama.estatus.activo')

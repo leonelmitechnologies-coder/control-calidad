@@ -4,8 +4,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import passport from "passport";
 import multer from "multer";
-import bcrypt from "bcryptjs";
-
 // Initialize paths
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -101,7 +99,7 @@ app.get("/api/auth/login", (req: Request, res: Response, next: NextFunction) => 
 app.get(
   "/auth/callback",
   passport.authenticate("oidc", {
-    failureRedirect: "/login",
+    failureRedirect: "/api/auth/login",
     session: true,
   }),
   (_req: Request, res: Response) => {
@@ -117,53 +115,6 @@ app.post("/api/logout", (req: Request, res: Response) => {
       res.json({ ok: true });
     });
   });
-});
-
-// POST /api/login — autenticación con usuario/contraseña (tabla usuarios)
-app.post("/api/login", async (req: Request, res: Response) => {
-  try {
-    const { usuario, password } = req.body;
-    if (!usuario || !password) {
-      return res.status(400).json({ error: "Usuario y contraseña requeridos" });
-    }
-
-    const rows = await pool.query(
-      "SELECT id, nombre, usuario, password_hash, rol, activo FROM usuarios WHERE usuario = $1",
-      [usuario]
-    );
-    const user = rows.rows[0];
-
-    if (!user || !user.activo) {
-      return res.status(401).json({ error: "Credenciales incorrectas" });
-    }
-
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) {
-      return res.status(401).json({ error: "Credenciales incorrectas" });
-    }
-
-    const sessionUser: PassportUser = {
-      id:     String(user.id),
-      name:   user.nombre,
-      email:  user.usuario,
-      rol:    user.rol,
-      oidcId: undefined,
-    };
-
-    // Persist via Passport so requireAuth / req.user works
-    req.logIn(sessionUser, (err) => {
-      if (err) return res.status(500).json({ error: "Error de sesión" });
-      return res.json({
-        id:      user.id,
-        nombre:  user.nombre,
-        usuario: user.usuario,
-        rol:     user.rol,
-      });
-    });
-  } catch (err: any) {
-    console.error("[API] POST /api/login error:", err);
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // GET /api/me - Get current user

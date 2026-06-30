@@ -68,12 +68,10 @@ export async function logout(): Promise<void> {
       throw new Error(`Logout failed: ${response.status}`);
     }
 
-    // Redirect to login
-    window.location.href = '/login';
+    window.location.href = '/api/auth/login';
   } catch (error) {
     console.error('Error during logout:', error);
-    // Force redirect to login even if logout fails
-    window.location.href = '/login';
+    window.location.href = '/api/auth/login';
   }
 }
 
@@ -115,5 +113,5 @@ export async function handleOIDCCallback(): Promise<User | null> {
  * Redirect to OIDC login provider
  */
 export function redirectToLogin(): void {
-  window.location.href = '/login';
+  window.location.href = '/api/auth/login';
 }

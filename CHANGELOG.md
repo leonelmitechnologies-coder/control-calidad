@@ -3,19 +3,41 @@
 MI Technologies · Planta Logística / Warehouse
 Orientado a la certificación ISO 9001:2015
 
-Este archivo documenta todos los cambios relevantes del sistema agrupados por fecha,
-siguiendo el formato [Keep a Changelog](https://keepachangelog.com/es-ES/).
+Este archivo documenta todos los cambios relevantes del sistema agrupados por versión,
+siguiendo el formato [Keep a Changelog](https://keepachangelog.com/es-ES/) y
+[Semantic Versioning](https://semver.org/).
 
 ---
 
-## [2026-06-26]
+## [1.0.0] — 2026-06-30
+
+### Migración al MI Stack
+
+- **Frontend React 18 + TypeScript + Vite:** migración del SPA monolítico vanilla JS a
+  React 18 con TypeScript 5 y Vite 5 como bundler.
+- **TanStack Query v5:** gestión de estado del servidor con caché y revalidación automática.
+- **Drizzle ORM:** acceso tipado a PostgreSQL; migraciones en `drizzle/`.
+- **react-i18next trilingüe:** soporte completo en español (es-MX), English (en) y
+  简体中文 (zh-CN).
+- **PM2 en producción:** pm2-runtime con reinicio automático y límite de 512 MB.
+
+### Seguridad
+
+- **Autenticación exclusiva por Nextcloud OIDC:** eliminado el login con usuario/contraseña
+  local. El único proveedor de identidad es `cloud.miglobal.com.mx`.
+- **Sesiones httpOnly + secure:** cookies de 8 horas con `httpOnly: true` y `secure: true`
+  en producción (connect-pg-simple).
+
+---
+
+## [0.9.0] — 2026-06-26
 
 ### Agregado
 - **Módulo Liberación Shipping:** nuevo módulo para gestionar la liberación de envíos, con registro de inspecciones y aprobaciones antes del despacho.
 
 ---
 
-## [2026-06-25]
+## [0.8.0] — 2026-06-25
 
 ### Agregado
 - **Módulo Registro AQL:** nuevo módulo para realizar y registrar inspecciones de muestreo bajo el estándar AQL (Acceptable Quality Level).
@@ -32,7 +54,7 @@ siguiendo el formato [Keep a Changelog](https://keepachangelog.com/es-ES/).
 
 ---
 
-## [2026-06-24]
+## [0.1.0] — 2026-06-24
 
 ### Agregado
 - **Módulo Dashboard / KPIs:** panel principal con indicadores clave de calidad, gráficas interactivas (Chart.js) y resumen de actividad del sistema.

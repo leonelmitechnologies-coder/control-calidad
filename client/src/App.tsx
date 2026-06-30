@@ -12,7 +12,6 @@ import { NotifyProvider } from './context/NotifyContext';
 import { ConfirmProvider } from './context/ConfirmContext';
 
 // Page imports
-import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NoConformidades from './pages/NoConformidades';
 import Recepciones from './pages/Recepciones';
@@ -61,9 +60,6 @@ export default function App() {
           <Router>
             <Suspense fallback={<LoadingFallback />}>
             <Switch>
-              {/* Login route - no layout */}
-              <Route path="/login" component={Login} />
-
               {/* Protected routes with layout */}
               <Route path="/">
                 {() => (

@@ -65,7 +65,7 @@ export default function Layout({ children }: LayoutProps) {
     try {
       await logout();
     } catch {
-      window.location.href = '/login';
+      window.location.href = '/api/auth/login';
     }
   };
 
@@ -79,7 +79,7 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   if (!isAuthenticated) {
-    window.location.href = '/login';
+    window.location.href = '/api/auth/login';
     return null;
   }
 

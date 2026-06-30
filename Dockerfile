@@ -37,4 +37,7 @@ RUN mkdir -p public/uploads
 
 EXPOSE 3001
 
-CMD ["node", "dist/server/server/index.js"]
+# Copy PM2 config (pm2-runtime is in node_modules/.bin after npm ci --omit=dev)
+COPY --from=builder /app/ecosystem.config.cjs ./ecosystem.config.cjs
+
+CMD ["node_modules/.bin/pm2-runtime", "ecosystem.config.cjs"]
