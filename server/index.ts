@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import passport from "passport";
 import multer from "multer";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 // Initialize paths
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
