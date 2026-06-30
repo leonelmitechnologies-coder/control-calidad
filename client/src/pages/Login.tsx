@@ -16,7 +16,7 @@ export default function Login() {
         method:      'POST',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json' },
-        body:        JSON.stringify({ usuario, contraseña: contrasena }),
+        body:        JSON.stringify({ usuario, password: contrasena }),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));

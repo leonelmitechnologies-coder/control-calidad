@@ -11,6 +11,7 @@ export interface PassportUser {
   name: string;
   email: string;
   oidcId?: string;
+  rol?: string;
 }
 
 declare global {

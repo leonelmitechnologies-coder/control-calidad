@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import passport from "passport";
 import multer from "multer";
+import bcrypt from "bcrypt";
 
 // Initialize paths
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -118,19 +119,69 @@ app.post("/api/logout", (req: Request, res: Response) => {
   });
 });
 
-// GET /api/me - Get current user (dev bypass when OIDC not configured)
+// POST /api/login — autenticación con usuario/contraseña (tabla usuarios)
+app.post("/api/login", async (req: Request, res: Response) => {
+  try {
+    const { usuario, password } = req.body;
+    if (!usuario || !password) {
+      return res.status(400).json({ error: "Usuario y contraseña requeridos" });
+    }
+
+    const rows = await pool.query(
+      "SELECT id, nombre, usuario, password_hash, rol, activo FROM usuarios WHERE usuario = $1",
+      [usuario]
+    );
+    const user = rows.rows[0];
+
+    if (!user || !user.activo) {
+      return res.status(401).json({ error: "Credenciales incorrectas" });
+    }
+
+    const ok = await bcrypt.compare(password, user.password_hash);
+    if (!ok) {
+      return res.status(401).json({ error: "Credenciales incorrectas" });
+    }
+
+    const sessionUser: PassportUser = {
+      id:     String(user.id),
+      name:   user.nombre,
+      email:  user.usuario,
+      rol:    user.rol,
+      oidcId: undefined,
+    };
+
+    // Persist via Passport so requireAuth / req.user works
+    req.logIn(sessionUser, (err) => {
+      if (err) return res.status(500).json({ error: "Error de sesión" });
+      return res.json({
+        id:      user.id,
+        nombre:  user.nombre,
+        usuario: user.usuario,
+        rol:     user.rol,
+      });
+    });
+  } catch (err: any) {
+    console.error("[API] POST /api/login error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/me - Get current user
 app.get("/api/me", (req: Request, res: Response) => {
+  if (req.user) {
+    // Usuario autenticado (OIDC o login directo)
+    return res.json({
+      id:      req.user.id,
+      nombre:  req.user.name,
+      usuario: req.user.email,
+      rol:     (req.user as any).rol ?? "Usuario",
+    });
+  }
   if (!process.env.OIDC_CLIENT_ID) {
-    return res.json({ id: "dev", name: "Dev Local", email: "dev@local" });
+    // Dev sin OIDC configurado: devuelve usuario de desarrollo
+    return res.json({ id: "dev", nombre: "Dev Local", usuario: "dev", rol: "Administrador" });
   }
-  if (!req.user) {
-    return res.status(401).json({ error: "No autorizado" });
-  }
-  res.json({
-    id: req.user.id,
-    name: req.user.name,
-    email: req.user.email,
-  });
+  return res.status(401).json({ error: "No autorizado" });
 });
 
 // ── HEALTH CHECK ────────────────────────────────────────────────
