@@ -20,6 +20,32 @@ declare global {
 }
 
 /**
+ * Set up session + passport middleware. MUST run synchronously BEFORE any routes
+ * are registered, so req.session exists on the auth routes (otherwise
+ * passport throws "authentication requires session support").
+ */
+export function setupSession(app: any) {
+  const { SESSION_SECRET } = process.env;
+  if (!SESSION_SECRET) {
+    throw new Error("SESSION_SECRET must be set");
+  }
+  app.use(
+    session({
+      secret: SESSION_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        maxAge: 8 * 60 * 60 * 1000, // 8 hours
+      },
+    })
+  );
+  app.use(passport.initialize());
+  app.use(passport.session());
+}
+
+/**
  * Initialize Nextcloud OIDC authentication with Passport
  */
 export async function initializePassport(app: any) {
@@ -38,23 +64,7 @@ export async function initializePassport(app: any) {
     throw new Error("SESSION_SECRET must be set");
   }
 
-  // Initialize session middleware
-  app.use(
-    session({
-      secret: SESSION_SECRET,
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        httpOnly: true,
-        maxAge: 8 * 60 * 60 * 1000, // 8 hours
-      },
-    })
-  );
-
-  // Initialize Passport
-  app.use(passport.initialize());
-  app.use(passport.session());
+  // session + passport middleware are set up by setupSession() at startup
 
   // Discover Nextcloud OIDC provider
   const issuer = await Issuer.discover(
@@ -65,7 +75,7 @@ export async function initializePassport(app: any) {
   const client = new issuer.Client({
     client_id: OIDC_CLIENT_ID,
     client_secret: OIDC_CLIENT_SECRET,
-    redirect_uris: [`${APP_URL}/api/auth/callback`],
+    redirect_uris: [process.env.OIDC_REDIRECT_URI || `${APP_URL}/auth/callback`],
     response_types: ["code"],
   });
 
