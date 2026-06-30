@@ -38,6 +38,7 @@ export function setupSession(app: any) {
       cookie: {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
+        sameSite: "lax", // required: Nextcloud redirects back cross-site
         maxAge: 8 * 60 * 60 * 1000, // 8 hours
       },
     })
