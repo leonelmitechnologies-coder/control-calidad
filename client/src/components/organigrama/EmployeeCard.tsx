@@ -30,7 +30,8 @@ function avatarUrl(emp: OrganigramaQc): string | null {
 
 // ── Initials fallback ─────────────────────────────────────────────────────────
 
-function initials(name: string): string {
+function initials(name: string | undefined): string {
+  if (!name) return '?';
   return name
     .trim()
     .split(/\s+/)

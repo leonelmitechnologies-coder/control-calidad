@@ -36,33 +36,34 @@ export function registerRoutes(app: Express) {
       const year = anio ? parseInt(anio as string) : currentYear;
       const month = mes ? parseInt(mes as string) : currentMonth;
 
-      let dateFilter: string;
-      let dateCondition: any;
+      // Each table has a different date column name
+      let reFilter: string;   // rechazos_externos: registration_date
+      let riFilter: string;   // rechazos_internos: fecha_registro
+      let ncFilter: string;   // no_conformidades:  fecha
 
       if (periodo === "ytd") {
-        dateFilter = `EXTRACT(year FROM re.registration_date) = ${year}`;
+        reFilter = `EXTRACT(year FROM re.registration_date) = ${year}`;
+        riFilter = `EXTRACT(year FROM ri.fecha_registro) = ${year}`;
+        ncFilter = `EXTRACT(year FROM nc.fecha) = ${year}`;
       } else {
-        dateFilter = `EXTRACT(year FROM re.registration_date) = ${year} AND EXTRACT(month FROM re.registration_date) = ${month}`;
+        reFilter = `EXTRACT(year FROM re.registration_date) = ${year} AND EXTRACT(month FROM re.registration_date) = ${month}`;
+        riFilter = `EXTRACT(year FROM ri.fecha_registro) = ${year} AND EXTRACT(month FROM ri.fecha_registro) = ${month}`;
+        ncFilter = `EXTRACT(year FROM nc.fecha) = ${year} AND EXTRACT(month FROM nc.fecha) = ${month}`;
       }
 
       const dashboardData = await pool.query(`
         SELECT
-          COALESCE(SUM(re.sale_price), 0) as sale_price_total,
-          COALESCE(SUM(ri.costo_no_calidad), 0) as copq_interno_total,
-          COUNT(DISTINCT CASE WHEN re.id IS NOT NULL THEN re.id END) as rechazos_total,
-          COUNT(DISTINCT CASE WHEN nc.id IS NOT NULL AND nc.estatus = 'Abierta' THEN nc.id END) as nc_abiertas,
-          COUNT(DISTINCT CASE WHEN org.id IS NOT NULL AND org.estatus = 'activo' THEN org.id END) as colaboradores_activos
-        FROM rechazos_externos re
-        LEFT JOIN rechazos_internos ri ON ${dateFilter.replace(/re\./g, "ri.")}
-        LEFT JOIN no_conformidades nc ON ${dateFilter.replace(/re\./g, "nc.")} AND nc.fecha >= CURRENT_DATE - INTERVAL '30 days'
-        LEFT JOIN organigrama_qc org ON true
-        WHERE ${dateFilter}
+          (SELECT COALESCE(SUM(sale_price), 0) FROM rechazos_externos re WHERE ${reFilter}) as sale_price_total,
+          (SELECT COALESCE(SUM(costo_no_calidad), 0) FROM rechazos_internos ri WHERE ${riFilter}) as copq_interno_total,
+          (SELECT COUNT(*) FROM rechazos_externos re WHERE ${reFilter}) as rechazos_total,
+          (SELECT COUNT(*) FROM no_conformidades nc WHERE ${ncFilter} AND nc.estatus = 'Abierta') as nc_abiertas,
+          (SELECT COUNT(*) FROM organigrama_qc WHERE estatus = 'activo') as colaboradores_activos
       `);
 
       const marksQuery = await pool.query(`
         SELECT brand, SUM(sale_price) as total
-        FROM rechazos_externos
-        WHERE ${dateFilter}
+        FROM rechazos_externos re
+        WHERE ${reFilter}
         GROUP BY brand
         ORDER BY total DESC
         LIMIT 6
@@ -70,23 +71,23 @@ export function registerRoutes(app: Express) {
 
       const clasifQuery = await pool.query(`
         SELECT classification, COUNT(*) as count
-        FROM rechazos_externos
-        WHERE ${dateFilter}
+        FROM rechazos_externos re
+        WHERE ${reFilter}
         GROUP BY classification
         ORDER BY count DESC
       `);
 
       const severityQuery = await pool.query(`
         SELECT severidad, COUNT(*) as count
-        FROM no_conformidades
-        WHERE ${dateFilter.replace(/re\./g, "nc.")}
+        FROM no_conformidades nc
+        WHERE ${ncFilter}
         GROUP BY severidad
       `);
 
       const areaQuery = await pool.query(`
         SELECT area, COUNT(*) as count
-        FROM no_conformidades
-        WHERE ${dateFilter.replace(/re\./g, "nc.")}
+        FROM no_conformidades nc
+        WHERE ${ncFilter}
         GROUP BY area
       `);
 

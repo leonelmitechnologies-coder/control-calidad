@@ -251,8 +251,6 @@ export default function ReForm({
     return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onCancel]);
 
-  if (!isOpen) return null;
-
   // ── Generic field setter ───────────────────────────────────────────────────
 
   function set<K extends keyof ReFormData>(key: K, value: ReFormData[K]) {
@@ -348,6 +346,8 @@ export default function ReForm({
   const canAddProblem = form.problems.length < MAX_PROBLEMS;
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  if (!isOpen) return null;
 
   return createPortal(
     <div

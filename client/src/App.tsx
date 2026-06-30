@@ -5,7 +5,7 @@
 
 import { Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Router, Route } from 'wouter';
+import { Router, Route, Switch } from 'wouter';
 import './config/i18n';
 import Layout from './components/Layout';
 import { NotifyProvider } from './context/NotifyContext';
@@ -59,6 +59,7 @@ export default function App() {
         <ConfirmProvider>
           <Router>
             <Suspense fallback={<LoadingFallback />}>
+            <Switch>
               {/* Login route - no layout */}
               <Route path="/login" component={Login} />
 
@@ -160,6 +161,7 @@ export default function App() {
                   return null;
                 }}
               </Route>
+            </Switch>
             </Suspense>
           </Router>
         </ConfirmProvider>

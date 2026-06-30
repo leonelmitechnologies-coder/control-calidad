@@ -35,7 +35,7 @@ export async function fetchCurrentUser(): Promise<User | null> {
     }
 
     const data = await response.json();
-    return data.user || null;
+    return data.user ?? data ?? null;
   } catch (error) {
     console.error('Error fetching current user:', error);
     return null;

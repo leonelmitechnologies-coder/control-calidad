@@ -1,12 +1,9 @@
+import "dotenv/config"; // must be first — loads .env before any module-level code runs
 import express, { Request, Response, NextFunction } from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import dotenv from "dotenv";
 import passport from "passport";
 import multer from "multer";
-
-// Load environment variables
-dotenv.config();
 
 // Initialize paths
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -93,8 +90,11 @@ const upload = multer({
 
 // ── AUTHENTICATION ENDPOINTS ──────────────────────────────────
 
-// GET /api/auth/login - Redirect to Nextcloud SSO
-app.get("/api/auth/login", passport.authenticate("oidc"));
+// GET /api/auth/login - Redirect to Nextcloud SSO (skip if OIDC not configured)
+app.get("/api/auth/login", (req: Request, res: Response, next: NextFunction) => {
+  if (!process.env.OIDC_CLIENT_ID) return res.redirect("/");
+  passport.authenticate("oidc")(req, res, next);
+});
 
 // GET /api/auth/callback - OIDC callback handler
 app.get(
@@ -118,8 +118,11 @@ app.post("/api/logout", (req: Request, res: Response) => {
   });
 });
 
-// GET /api/me - Get current user
+// GET /api/me - Get current user (dev bypass when OIDC not configured)
 app.get("/api/me", (req: Request, res: Response) => {
+  if (!process.env.OIDC_CLIENT_ID) {
+    return res.json({ id: "dev", name: "Dev Local", email: "dev@local" });
+  }
   if (!req.user) {
     return res.status(401).json({ error: "No autorizado" });
   }
@@ -158,15 +161,7 @@ app.get("/api/nc", async (req: Request, res: Response) => {
     const result = await db
       .select()
       .from(schema.noConformidades)
-      .leftJoin(
-        schema.capas,
-        and(
-          eq(schema.capas.origenTipo, "nc"),
-          eq(schema.capas.origenId, schema.noConformidades.id)
-        )
-      )
       .where(whereClause)
-      .groupBy(schema.noConformidades.id)
       .orderBy(desc(schema.noConformidades.fecha), desc(schema.noConformidades.id));
 
     res.json(result);
