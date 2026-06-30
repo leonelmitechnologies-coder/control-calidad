@@ -38,7 +38,7 @@ RUN npm ci --omit=dev
 # Create uploads directory for file storage
 RUN mkdir -p public/uploads
 
-EXPOSE 5000
+EXPOSE 3001
 
 # Copy PM2 config (pm2-runtime is in node_modules/.bin after npm ci --omit=dev)
 COPY --from=builder /app/ecosystem.config.cjs ./ecosystem.config.cjs

@@ -23,7 +23,7 @@ import { registerRoutes } from "./routes.js";
 // ── Express Setup ──────────────────────────────────────────────
 
 const app = express();
-const PORT = parseInt(process.env.PORT || "5000", 10);
+const PORT = parseInt(process.env.PORT || "3001", 10);
 
 // Trust Traefik/Coolify reverse proxy so req.secure and cookies work correctly
 app.set("trust proxy", 1);
