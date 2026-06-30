@@ -1,5 +1,5 @@
 # ── Build Stage ──────────────────────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ COPY . .
 RUN npm run build
 
 # ── Runtime Stage ────────────────────────────────────────────────────────────
-FROM node:22-alpine AS runner
+FROM node:20-alpine AS runner
 
 WORKDIR /app
 
@@ -35,7 +35,7 @@ RUN npm ci --omit=dev
 # Create uploads directory for file storage
 RUN mkdir -p public/uploads
 
-EXPOSE 3001
+EXPOSE 5000
 
 # Copy PM2 config (pm2-runtime is in node_modules/.bin after npm ci --omit=dev)
 COPY --from=builder /app/ecosystem.config.cjs ./ecosystem.config.cjs

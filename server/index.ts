@@ -23,7 +23,7 @@ import { registerRoutes } from "./routes.js";
 // ── Express Setup ──────────────────────────────────────────────
 
 const app = express();
-const PORT = parseInt(process.env.PORT || "3001", 10);
+const PORT = parseInt(process.env.PORT || "5000", 10);
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
