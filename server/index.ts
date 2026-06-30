@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Import local modules
 import { initDB, pool, db, getClient, beginTransaction, commitTransaction, rollbackTransaction } from "./db.js";
-import { initializePassport, requireAuth, requireAdmin, PassportUser } from "./auth.js";
+import { setupSession, initializePassport, requireAuth, requireAdmin, PassportUser } from "./auth.js";
 import * as s3 from "./s3.js";
 import * as types from "./types.js";
 
@@ -32,6 +32,9 @@ const PORT = parseInt(process.env.PORT || "3001", 10);
 // Middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+// Session + passport middleware MUST be registered before any routes below.
+setupSession(app);
 
 // ── Initialize Authentication ──────────────────────────────────
 
@@ -95,7 +98,7 @@ app.get("/api/auth/login", passport.authenticate("oidc"));
 
 // GET /api/auth/callback - OIDC callback handler
 app.get(
-  "/api/auth/callback",
+  "/auth/callback",
   passport.authenticate("oidc", {
     failureRedirect: "/login",
     session: true,
