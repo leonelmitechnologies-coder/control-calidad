@@ -29,8 +29,28 @@ const PORT = parseInt(process.env.PORT || "3001", 10);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-// Session + passport middleware MUST be registered before any routes below.
+// Session + passport: use a dev fallback when SESSION_SECRET is not set so the
+// server can still start and serve the health endpoint even in misconfigured envs.
+const SESSION_SECRET_VALUE = process.env.SESSION_SECRET ||
+  (process.env.NODE_ENV !== "production" ? "dev-insecure-secret" : "");
+if (!SESSION_SECRET_VALUE) {
+  console.error("[App] FATAL: SESSION_SECRET env var is required in production");
+}
+// Override process.env so setupSession() picks it up
+if (!process.env.SESSION_SECRET) {
+  process.env.SESSION_SECRET = SESSION_SECRET_VALUE || "startup-placeholder";
+}
 setupSession(app);
+
+// ── Startup state ──────────────────────────────────────────────
+let appReady = false;
+let startupError: string | null = null;
+
+// ── Start HTTP server FIRST (so Traefik/Coolify health checks pass) ──
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`[App] Server listening on 0.0.0.0:${PORT}`);
+  initApp();
+});
 
 // ── Initialize Authentication ──────────────────────────────────
 
@@ -63,13 +83,12 @@ async function initApp() {
       res.sendFile(path.join(publicDir, "index.html"));
     });
 
-    // Start server
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`[App] Server listening on 0.0.0.0:${PORT}`);
-    });
-  } catch (err) {
-    console.error("[App] Initialization error:", err);
-    process.exit(1);
+    appReady = true;
+    console.log("[App] Initialization complete — ready to serve");
+  } catch (err: any) {
+    startupError = err?.message ?? String(err);
+    console.error("[App] Initialization error:", startupError);
+    // Do NOT call process.exit — keep the server alive so /api/health is reachable
   }
 }
 
@@ -138,7 +157,10 @@ app.get("/api/me", (req: Request, res: Response) => {
 // ── HEALTH CHECK ────────────────────────────────────────────────
 
 app.get("/api/health", (_req: Request, res: Response) => {
-  res.json({ ok: true });
+  if (startupError) {
+    return res.status(503).json({ ok: false, error: startupError });
+  }
+  res.json({ ok: appReady, status: appReady ? "ready" : "initializing" });
 });
 
 // ── NO CONFORMIDADES ────────────────────────────────────────────
