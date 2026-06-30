@@ -28,12 +28,17 @@ const PORT = parseInt(process.env.PORT || "3001", 10);
 // Trust Traefik/Coolify reverse proxy so req.secure and cookies work correctly
 app.set("trust proxy", 1);
 
-// Force HTTPS in production (redirect before any other middleware)
+// Security headers + HTTPS redirect in production
 if (process.env.NODE_ENV === "production") {
   app.use((req: Request, res: Response, next: NextFunction) => {
+    // Force HTTPS
     if (req.headers["x-forwarded-proto"] !== "https") {
       return res.redirect(301, "https://" + req.headers.host + req.url);
     }
+    // HSTS: tell browsers to always use HTTPS for 1 year
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
     next();
   });
 }
