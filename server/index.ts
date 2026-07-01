@@ -36,7 +36,7 @@ if (process.env.NODE_ENV === "production") {
       return res.redirect(301, "https://" + req.headers.host + req.url);
     }
     // HSTS: tell browsers to always use HTTPS for 1 year
-    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "SAMEORIGIN");
     next();
