@@ -14,7 +14,7 @@ export default function Login() {
 
         {/* Branding */}
         <div style={{ marginBottom: 32 }}>
-          <img src="/logo.png" alt="Logo" style={{ height: 56, width: 'auto', objectFit: 'contain', marginBottom: 16 }} />
+          <img src="/logo.png" alt="Logo" style={{ height: 56, width: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto 16px' }} />
           <p style={{
             fontSize: 11,
             fontWeight: 700,
