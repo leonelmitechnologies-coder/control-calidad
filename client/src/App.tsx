@@ -157,18 +157,12 @@ export default function App() {
                 )}
               </Route>
 
-              {/* Logged-out confirmation page */}
+              {/* Post-logout landing — auto-redirect to login */}
               <Route path="/logged-out">
-                {() => (
-                  <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
-                    <div style={{ textAlign: 'center', background: '#fff', padding: '2.5rem 3rem', borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}>
-                      <p style={{ fontSize: 18, color: '#374151', marginBottom: 24 }}>Sesión cerrada correctamente.</p>
-                      <a href="/api/auth/login" style={{ display: 'inline-block', padding: '10px 28px', background: '#1d4ed8', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 15 }}>
-                        Iniciar sesión
-                      </a>
-                    </div>
-                  </div>
-                )}
+                {() => {
+                  window.location.href = '/api/auth/login';
+                  return null;
+                }}
               </Route>
 
               {/* Catch all - redirect to home */}
