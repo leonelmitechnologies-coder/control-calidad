@@ -80,20 +80,20 @@ let passportClient: any;
 let oidcReady = false;
 
 async function initApp() {
-  // Retry DB connection up to 10 times with 5s delay (handles transient DB startup races)
+  // Retry DB connection up to 5 times with 15s delay (handles transient DB startup races)
   let dbOk = false;
-  for (let attempt = 1; attempt <= 10; attempt++) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
     try {
       await initDB();
       dbOk = true;
       console.log("[App] Database initialized");
       break;
     } catch (err: any) {
-      console.warn(`[App] DB init attempt ${attempt}/10 failed: ${err.message}`);
-      if (attempt < 10) {
-        await new Promise((r) => setTimeout(r, 5000));
+      console.warn(`[App] DB init attempt ${attempt}/5 failed: ${err.message}`);
+      if (attempt < 5) {
+        await new Promise((r) => setTimeout(r, 15000));
       } else {
-        startupError = `DB init failed after 10 attempts: ${err.message}`;
+        startupError = `DB init failed after 5 attempts: ${err.message}`;
         console.error("[App]", startupError);
         return; // Keep server alive — /api/health will report the error
       }
