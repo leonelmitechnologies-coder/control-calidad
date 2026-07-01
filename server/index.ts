@@ -73,6 +73,7 @@ app.listen(PORT, "0.0.0.0", () => {
 // ── Initialize Authentication ──────────────────────────────────
 
 let passportClient: any;
+let oidcReady = false;
 
 async function initApp() {
   try {
@@ -83,6 +84,7 @@ async function initApp() {
     // Initialize Passport OIDC (optional — skip if SSO vars not yet configured)
     try {
       passportClient = await initializePassport(app);
+      oidcReady = true;
       console.log("[App] Passport OIDC initialized");
     } catch (err: any) {
       console.warn("[App] OIDC not configured, SSO disabled:", err.message);
@@ -127,20 +129,33 @@ const upload = multer({
 // ── AUTHENTICATION ENDPOINTS ──────────────────────────────────
 
 // GET /api/auth/login - Redirect to Nextcloud SSO (skip if OIDC not configured)
-app.get("/api/auth/login", (req: Request, res: Response, next: NextFunction) => {
+app.get("/api/auth/login", async (req: Request, res: Response, next: NextFunction) => {
   if (!process.env.OIDC_CLIENT_ID) return res.redirect("/");
+  // If OIDC failed at startup, retry initialization before giving up
+  if (!oidcReady) {
+    try {
+      passportClient = await initializePassport(app);
+      oidcReady = true;
+      console.log("[Auth] OIDC re-initialized on login attempt");
+    } catch (err: any) {
+      console.error("[Auth] OIDC re-init failed:", err.message);
+      return res.status(503).send("SSO no disponible. Nextcloud no accesible desde el servidor. Contacte al administrador.");
+    }
+  }
   passport.authenticate("oidc")(req, res, next);
 });
 
 // GET /api/auth/callback - OIDC callback handler
 app.get(
   "/auth/callback",
-  passport.authenticate("oidc", {
-    failureRedirect: "/api/auth/login",
-    session: true,
-  }),
+  (req: Request, res: Response, next: NextFunction) => {
+    if (!oidcReady) return res.redirect("/api/auth/login");
+    passport.authenticate("oidc", {
+      failureRedirect: "/api/auth/login",
+      session: true,
+    })(req, res, next);
+  },
   (_req: Request, res: Response) => {
-    // Redirect to dashboard after successful login
     res.redirect("/");
   }
 );
