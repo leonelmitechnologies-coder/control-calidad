@@ -10,7 +10,7 @@ export interface UseAuthReturn {
   user: User | null;
   loading: boolean;
   error: Error | null;
-  logout: () => Promise<void>;
+  logout: () => void;
   isAuthenticated: boolean;
 }
 

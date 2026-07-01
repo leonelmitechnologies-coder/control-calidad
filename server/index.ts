@@ -168,11 +168,28 @@ app.get(
   }
 );
 
-// POST /api/logout - Logout user
+// GET /api/auth/logout - Destroy local session + redirect to OIDC end_session
+app.get("/api/auth/logout", (req: Request, res: Response) => {
+  req.logout((_err) => {
+    req.session.destroy((_destroyErr) => {
+      res.clearCookie("connect.sid");
+      const appUrl = process.env.APP_URL || "https://control-calidad-qc.mi2.com.mx";
+      const endSession = oidcReady && passportClient?.issuer?.metadata?.end_session_endpoint;
+      if (endSession) {
+        const url = `${endSession}?post_logout_redirect_uri=${encodeURIComponent(appUrl + "/logged-out")}`;
+        return res.redirect(url);
+      }
+      res.redirect("/logged-out");
+    });
+  });
+});
+
+// POST /api/logout - legacy, kept for compatibility
 app.post("/api/logout", (req: Request, res: Response) => {
   req.logout((_err) => {
     req.session.destroy((_destroyErr) => {
-      res.json({ ok: true });
+      res.clearCookie("connect.sid");
+      res.json({ ok: true, redirect: "/logged-out" });
     });
   });
 });

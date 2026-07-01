@@ -55,24 +55,12 @@ export async function fetchCurrentUser(): Promise<User | null> {
 }
 
 /**
- * Logout the current user
+ * Logout the current user — navigates to GET /api/auth/logout which
+ * destroys the local session and redirects to the OIDC end_session_endpoint
+ * so the Nextcloud SSO session is also cleared.
  */
-export async function logout(): Promise<void> {
-  try {
-    const response = await fetch(API_ENDPOINTS.auth.logout, {
-      method: 'POST',
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Logout failed: ${response.status}`);
-    }
-
-    window.location.href = '/api/auth/login';
-  } catch (error) {
-    console.error('Error during logout:', error);
-    window.location.href = '/api/auth/login';
-  }
+export function logout(): void {
+  window.location.href = '/api/auth/logout';
 }
 
 /**

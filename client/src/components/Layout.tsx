@@ -61,12 +61,8 @@ export default function Layout({ children }: LayoutProps) {
   const { user, isAuthenticated, loading } = useAuth();
   const notify = useNotify();
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch {
-      window.location.href = '/api/auth/login';
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   if (loading) {
