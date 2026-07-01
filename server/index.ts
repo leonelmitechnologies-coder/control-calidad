@@ -64,6 +64,10 @@ setupSession(app);
 let appReady = false;
 let startupError: string | null = null;
 
+// ── Serve static files BEFORE initApp so "/" always works ──────────
+const publicDir = path.join(process.cwd(), "dist/client");
+app.use(express.static(publicDir));
+
 // ── Start HTTP server FIRST (so Traefik/Coolify health checks pass) ──
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`[App] Server listening on 0.0.0.0:${PORT}`);
@@ -93,15 +97,6 @@ async function initApp() {
     // Register additional routes
     registerRoutes(app);
     console.log("[App] Routes registered");
-
-    // Serve static files (Vite build output)
-    const publicDir = path.join(process.cwd(), "dist/client");
-    app.use(express.static(publicDir));
-
-    // Catch-all SPA route (for client-side routing)
-    app.get("*", (_req: Request, res: Response) => {
-      res.sendFile(path.join(publicDir, "index.html"));
-    });
 
     appReady = true;
     console.log("[App] Initialization complete — ready to serve");
@@ -1765,6 +1760,14 @@ app.delete("/api/capas/:id", requireAuth, async (req: Request, res: Response) =>
     console.error("[API] DELETE /api/capas/:id error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+// ── SPA Catch-all ────────────────────────────────────────────────
+// Serves index.html for all non-API routes (client-side routing via wouter).
+// Registered after all API routes so Express only reaches this for deep-links.
+app.get("*", (req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith("/api/") || req.path.startsWith("/auth/")) return next();
+  res.sendFile(path.join(publicDir, "index.html"));
 });
 
 export default app;
