@@ -100,11 +100,14 @@ export default function Layout({ children }: LayoutProps) {
         style={{ width: 220, background: S.bg }}
       >
         {/* Logo */}
-        <div className="px-5 py-5" style={{ borderBottom: `1px solid ${S.border}` }}>
-          <p className="text-white font-bold uppercase tracking-wide text-xs leading-relaxed">
-            Control de Calidad
-          </p>
-          <p style={{ color: S.userMuted, fontSize: 11 }}>MI Technologies</p>
+        <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: `1px solid ${S.border}` }}>
+          <img src="/logo.png" alt="Logo" style={{ height: 38, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+          <div>
+            <p className="text-white font-bold uppercase tracking-wide text-xs leading-relaxed">
+              Control de Calidad
+            </p>
+            <p style={{ color: S.userMuted, fontSize: 11 }}>MI Technologies</p>
+          </div>
         </div>
 
         {/* Nav */}
