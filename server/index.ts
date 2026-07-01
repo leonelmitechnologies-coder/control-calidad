@@ -194,22 +194,42 @@ app.post("/api/logout", (req: Request, res: Response) => {
   });
 });
 
-// GET /api/me - Get current user
-app.get("/api/me", (req: Request, res: Response) => {
+// GET /api/me - Get current user with fresh permisos from DB
+app.get("/api/me", async (req: Request, res: Response) => {
   if (req.user) {
     const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(Boolean);
-    const isAdmin = adminEmails.some(a => a === req.user!.email || a === req.user!.id);
-    const rol = isAdmin ? "Administrador" : ((req.user as any).rol ?? "Usuario");
+    const isEnvAdmin = adminEmails.some(a => a === req.user!.email || a === req.user!.id);
+
+    let rol = isEnvAdmin ? "Administrador" : ((req.user as any).rol ?? "Usuario");
+    let permisos: any = (req.user as any).permisos ?? {};
+
+    // Always fetch fresh permisos + rol from DB
+    try {
+      const dbUser = await pool.query(
+        "SELECT rol, permisos, activo FROM usuarios WHERE oidc_id = $1",
+        [req.user.id]
+      );
+      if (dbUser.rows.length > 0) {
+        if (!isEnvAdmin) rol = dbUser.rows[0].rol;
+        permisos = dbUser.rows[0].permisos || {};
+        if (!dbUser.rows[0].activo) {
+          return res.status(403).json({ error: "Cuenta desactivada. Contacte al administrador." });
+        }
+      }
+    } catch (err) {
+      console.error("[API] /api/me DB query error:", err);
+    }
+
     return res.json({
-      id:      req.user.id,
-      nombre:  req.user.name,
-      usuario: req.user.email,
+      id:       req.user.id,
+      nombre:   req.user.name,
+      usuario:  req.user.email,
       rol,
+      permisos: rol === "Administrador" ? null : permisos,
     });
   }
   if (!process.env.OIDC_CLIENT_ID) {
-    // Dev sin OIDC configurado: devuelve usuario de desarrollo
-    return res.json({ id: "dev", nombre: "Dev Local", usuario: "dev", rol: "Administrador" });
+    return res.json({ id: "dev", nombre: "Dev Local", usuario: "dev", rol: "Administrador", permisos: null });
   }
   return res.status(401).json({ error: "No autorizado" });
 });
@@ -1790,6 +1810,54 @@ app.delete("/api/capas/:id", requireAuth, async (req: Request, res: Response) =>
     res.json({ ok: true });
   } catch (err) {
     console.error("[API] DELETE /api/capas/:id error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── USUARIOS (Administración) ──────────────────────────────────
+
+// GET /api/usuarios - List all OIDC users (admin only)
+app.get("/api/usuarios", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, oidc_id, nombre, usuario, email, rol, activo, permisos, ultimo_acceso, created_at
+      FROM usuarios
+      WHERE oidc_id IS NOT NULL
+      ORDER BY ultimo_acceso DESC NULLS LAST, created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("[API] GET /api/usuarios error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /api/usuarios/:id - Update rol, permisos, activo (admin only)
+app.patch("/api/usuarios/:id", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { rol, permisos, activo } = req.body;
+
+    const fields: string[] = [];
+    const vals: any[]      = [];
+    let i = 1;
+
+    if (rol      !== undefined) { fields.push(`rol = $${i++}`);                vals.push(rol); }
+    if (permisos !== undefined) { fields.push(`permisos = $${i++}`);           vals.push(JSON.stringify(permisos)); }
+    if (activo   !== undefined) { fields.push(`activo = $${i++}`);             vals.push(activo); }
+
+    if (fields.length === 0) return res.status(400).json({ error: "Sin campos a actualizar" });
+
+    vals.push(id);
+    const result = await pool.query(
+      `UPDATE usuarios SET ${fields.join(", ")} WHERE id = $${i} RETURNING *`,
+      vals
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("[API] PATCH /api/usuarios/:id error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });

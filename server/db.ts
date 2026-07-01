@@ -32,12 +32,25 @@ export async function initDB() {
         id SERIAL PRIMARY KEY,
         nombre VARCHAR(100) NOT NULL,
         usuario VARCHAR(50) NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
+        password_hash TEXT NOT NULL DEFAULT '',
         rol VARCHAR(20) NOT NULL DEFAULT 'Usuario',
         area VARCHAR(50) DEFAULT '',
         activo BOOLEAN NOT NULL DEFAULT true,
         created_at TIMESTAMP DEFAULT NOW()
       )
+    `);
+
+    // Migrate usuarios → OIDC-based (idempotent)
+    await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS oidc_id TEXT`);
+    await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email TEXT`);
+    await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_acceso TIMESTAMPTZ`);
+    await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos JSONB NOT NULL DEFAULT '{}'`);
+    await pool.query(`ALTER TABLE usuarios ALTER COLUMN password_hash SET DEFAULT ''`);
+    await pool.query(`
+      DO $$ BEGIN
+        ALTER TABLE usuarios ADD CONSTRAINT usuarios_oidc_id_key UNIQUE (oidc_id);
+      EXCEPTION WHEN duplicate_table THEN NULL;
+      END $$
     `);
 
     // Create no_conformidades table

@@ -1,5 +1,5 @@
 /**
- * Usuarios — Administración de cuentas del sistema
+ * Usuarios — Administración de usuarios SSO y permisos por módulo
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -7,23 +7,43 @@ import { useNotify } from '../context/NotifyContext';
 import { useConfirm } from '../context/ConfirmContext';
 import { API_BASE_URL } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
+import type { ModuloPermisos } from '../api/auth';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface Usuario {
+interface UsuarioDb {
   id: number;
+  oidc_id: string;
   nombre: string;
   usuario: string;
+  email: string;
   rol: string;
-  area?: string;
   activo: boolean;
-  createdAt?: string;
+  permisos: Record<string, ModuloPermisos>;
+  ultimo_acceso: string | null;
+  created_at: string;
 }
 
-const ROLES  = ['Administrador', 'Usuario'];
-const AREAS  = ['Incoming', 'Sorting', 'FFT', 'Paletizado', 'Almacen', 'Shipping', 'Calidad', 'Administracion'];
+// Módulos con sus claves de permisos
+const MODULOS_PERMISOS = [
+  { key: '',                    label: 'Dashboard',            soloVer: true  },
+  { key: 'nc',                  label: 'No Conformidades',     soloVer: false },
+  { key: 'recepciones',         label: 'Recepciones',          soloVer: false },
+  { key: 'rechazos-ext',        label: 'Rechazos Externos',    soloVer: false },
+  { key: 'rechazos-int',        label: 'Rechazos Internos',    soloVer: false },
+  { key: 'capas',               label: 'CAPA',                 soloVer: false },
+  { key: 'aql',                 label: 'AQL',                  soloVer: false },
+  { key: 'liberacion-shipping', label: 'Liberación Shipping',  soloVer: false },
+  { key: 'organigrama-qc',      label: 'Organigrama QC',       soloVer: false },
+  { key: 'calendario',          label: 'Calendario',           soloVer: false },
+  { key: 'manual',              label: 'Manual',               soloVer: true  },
+];
 
-// ── API ───────────────────────────────────────────────────────────────────────
+const DEFAULT_PERMISOS: Record<string, ModuloPermisos> = Object.fromEntries(
+  MODULOS_PERMISOS.map(m => [m.key, { ver: true, editar: !m.soloVer, eliminar: false }])
+);
+
+// ── API helper ────────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { credentials: 'include', ...init });
@@ -36,166 +56,163 @@ async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-// ── Modal Nuevo Usuario ───────────────────────────────────────────────────────
-
-interface NuevoModalProps { onClose: () => void; onSaved: () => void; }
-
-function NuevoModal({ onClose, onSaved }: NuevoModalProps) {
-  const notify = useNotify();
-  const [saving,  setSaving]  = useState(false);
-  const [nombre,  setNombre]  = useState('');
-  const [usuario, setUsuario] = useState('');
-  const [pass,    setPass]    = useState('');
-  const [pass2,   setPass2]   = useState('');
-  const [rol,     setRol]     = useState('Usuario');
-  const [area,    setArea]    = useState('');
-  const [errMsg,  setErrMsg]  = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrMsg('');
-    if (!/^\S+$/.test(usuario)) { setErrMsg('El usuario no debe contener espacios.'); return; }
-    if (pass.length < 6)         { setErrMsg('La contraseña debe tener al menos 6 caracteres.'); return; }
-    if (pass !== pass2)           { setErrMsg('Las contraseñas no coinciden.'); return; }
-
-    setSaving(true);
-    try {
-      await apiFetch(`${API_BASE_URL}/api/usuarios`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: nombre.trim(), usuario: usuario.trim().toLowerCase(), password: pass, rol, area }),
-      });
-      notify('Usuario creado correctamente.', 'success');
-      onSaved();
-    } catch (err: any) { setErrMsg(err.message ?? 'Error al crear usuario.'); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md" style={{ border: '1px solid #e2e2e2' }}>
-        <div className="p-6">
-          <div className="modal-titulo">Nuevo Usuario</div>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-              <label>Nombre completo <span style={{ color: '#d00' }}>*</span></label>
-              <input className="w-full" value={nombre} onChange={e => setNombre(e.target.value)} required />
-            </div>
-            <div>
-              <label>Nombre de usuario <span style={{ color: '#d00' }}>*</span></label>
-              <input className="w-full" value={usuario} onChange={e => setUsuario(e.target.value.toLowerCase())} required autoComplete="off" />
-            </div>
-            <div className="form-grid">
-              <div>
-                <label>Contraseña <span style={{ color: '#d00' }}>*</span></label>
-                <input type="password" className="w-full" value={pass} onChange={e => setPass(e.target.value)} required autoComplete="new-password" />
-              </div>
-              <div>
-                <label>Confirmar contraseña <span style={{ color: '#d00' }}>*</span></label>
-                <input type="password" className="w-full" value={pass2} onChange={e => setPass2(e.target.value)} required />
-              </div>
-              <div>
-                <label>Rol</label>
-                <select className="w-full" value={rol} onChange={e => setRol(e.target.value)}>
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-              <div>
-                <label>Área</label>
-                <select className="w-full" value={area} onChange={e => setArea(e.target.value)}>
-                  <option value="">Sin área</option>
-                  {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
-            </div>
-            {errMsg && <p className="form-error">{errMsg}</p>}
-            <div className="flex gap-2 justify-end pt-2" style={{ borderTop: '1px solid #e2e2e2' }}>
-              <button type="button" className="btn btn-secundario" onClick={onClose}>Cancelar</button>
-              <button type="submit" disabled={saving} className="btn btn-primario" style={{ opacity: saving ? 0.6 : 1 }}>
-                {saving ? 'Guardando...' : 'Crear usuario'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
+function fmt(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
 }
 
-// ── Modal Editar Usuario ──────────────────────────────────────────────────────
+// ── Panel de permisos (modal lateral) ────────────────────────────────────────
 
-interface EditarModalProps { usr: Usuario; onClose: () => void; onSaved: () => void; }
+interface PermisosModalProps {
+  usr: UsuarioDb;
+  onClose: () => void;
+  onSaved: () => void;
+}
 
-function EditarModal({ usr, onClose, onSaved }: EditarModalProps) {
-  const notify = useNotify();
-  const [saving,  setSaving]  = useState(false);
-  const [nombre,  setNombre]  = useState(usr.nombre);
-  const [usuario, setUsuario] = useState(usr.usuario);
-  const [pass,    setPass]    = useState('');
-  const [rol,     setRol]     = useState(usr.rol);
-  const [area,    setArea]    = useState(usr.area ?? '');
-  const [errMsg,  setErrMsg]  = useState('');
+function PermisosModal({ usr, onClose, onSaved }: PermisosModalProps) {
+  const notify  = useNotify();
+  const [saving, setSaving]   = useState(false);
+  const [rol,    setRol]      = useState(usr.rol);
+  const [perms,  setPerms]    = useState<Record<string, ModuloPermisos>>(
+    () => ({ ...DEFAULT_PERMISOS, ...usr.permisos })
+  );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrMsg('');
-    if (!/^\S+$/.test(usuario))  { setErrMsg('El usuario no debe contener espacios.'); return; }
-    if (pass && pass.length < 6) { setErrMsg('La contraseña debe tener al menos 6 caracteres.'); return; }
+  const isAdmin = rol === 'Administrador';
 
+  const toggle = (key: string, campo: keyof ModuloPermisos) => {
+    setPerms(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [campo]: !prev[key]?.[campo] },
+    }));
+  };
+
+  const handleSave = async () => {
     setSaving(true);
     try {
       await apiFetch(`${API_BASE_URL}/api/usuarios/${usr.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: nombre.trim(), usuario: usuario.trim().toLowerCase(), ...(pass ? { password: pass } : {}), rol, area }),
+        body: JSON.stringify({ rol, permisos: isAdmin ? DEFAULT_PERMISOS : perms }),
       });
-      notify('Usuario actualizado correctamente.', 'success');
+      notify('Permisos actualizados correctamente.', 'success');
       onSaved();
-    } catch (err: any) { setErrMsg(err.message ?? 'Error al actualizar usuario.'); }
-    finally { setSaving(false); }
+    } catch (err: any) {
+      notify(err.message ?? 'Error al guardar permisos.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const S = {
+    th: { padding: '8px 12px', textAlign: 'center' as const, fontSize: 11, color: '#666', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px' },
+    td: { padding: '8px 12px', textAlign: 'center' as const },
+    tdLabel: { padding: '8px 12px', fontSize: 13, color: '#222' },
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md" style={{ border: '1px solid #e2e2e2' }}>
-        <div className="p-6">
-          <div className="modal-titulo">Editar Usuario</div>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-              <label>Nombre completo <span style={{ color: '#d00' }}>*</span></label>
-              <input className="w-full" value={nombre} onChange={e => setNombre(e.target.value)} required />
-            </div>
-            <div>
-              <label>Nombre de usuario <span style={{ color: '#d00' }}>*</span></label>
-              <input className="w-full" value={usuario} onChange={e => setUsuario(e.target.value.toLowerCase())} required />
-            </div>
-            <div className="form-grid">
-              <div className="full">
-                <label>Nueva contraseña <span style={{ color: '#aaa', fontWeight: 'normal' }}>(dejar en blanco para no cambiar)</span></label>
-                <input type="password" className="w-full" value={pass} onChange={e => setPass(e.target.value)} autoComplete="new-password" />
-              </div>
-              <div>
-                <label>Rol</label>
-                <select className="w-full" value={rol} onChange={e => setRol(e.target.value)}>
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-              <div>
-                <label>Área</label>
-                <select className="w-full" value={area} onChange={e => setArea(e.target.value)}>
-                  <option value="">Sin área</option>
-                  {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
-            </div>
-            {errMsg && <p className="form-error">{errMsg}</p>}
-            <div className="flex gap-2 justify-end pt-2" style={{ borderTop: '1px solid #e2e2e2' }}>
-              <button type="button" className="btn btn-secundario" onClick={onClose}>Cancelar</button>
-              <button type="submit" disabled={saving} className="btn btn-primario" style={{ opacity: saving ? 0.6 : 1 }}>
-                {saving ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-            </div>
-          </form>
+      <div className="bg-white w-full max-w-lg flex flex-col" style={{ border: '1px solid #e2e2e2', maxHeight: '90vh' }}>
+
+        {/* Header */}
+        <div className="px-6 py-4" style={{ borderBottom: '1px solid #e2e2e2' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#0d2b4e' }}>{usr.nombre}</div>
+          <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{usr.email || usr.oidc_id}</div>
+        </div>
+
+        {/* Rol */}
+        <div className="px-6 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: '#444', minWidth: 40 }}>Rol:</label>
+          <select
+            value={rol}
+            onChange={e => setRol(e.target.value)}
+            style={{ fontSize: 13, padding: '4px 8px', border: '1px solid #ddd' }}
+          >
+            <option value="Usuario">Usuario</option>
+            <option value="Administrador">Administrador</option>
+          </select>
+          {isAdmin && (
+            <span style={{ fontSize: 11, color: '#888', fontStyle: 'italic' }}>
+              Los administradores tienen acceso total
+            </span>
+          )}
+        </div>
+
+        {/* Permisos grid */}
+        <div className="overflow-y-auto flex-1">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8f8f8', borderBottom: '1px solid #e8e8e8' }}>
+                <th style={{ ...S.th, textAlign: 'left', minWidth: 160 }}>Módulo</th>
+                <th style={S.th}>Ver</th>
+                <th style={S.th}>Editar</th>
+                <th style={S.th}>Eliminar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MODULOS_PERMISOS.map((m, idx) => {
+                const p = perms[m.key] ?? DEFAULT_PERMISOS[m.key];
+                return (
+                  <tr key={m.key} style={{ borderBottom: '1px solid #f0f0f0', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                    <td style={S.tdLabel}>{m.label}</td>
+
+                    {/* Ver */}
+                    <td style={S.td}>
+                      <input
+                        type="checkbox"
+                        checked={isAdmin || p.ver}
+                        disabled={isAdmin}
+                        onChange={() => toggle(m.key, 'ver')}
+                        style={{ cursor: isAdmin ? 'default' : 'pointer', width: 15, height: 15 }}
+                      />
+                    </td>
+
+                    {/* Editar */}
+                    <td style={S.td}>
+                      {m.soloVer ? (
+                        <span style={{ color: '#ccc', fontSize: 11 }}>—</span>
+                      ) : (
+                        <input
+                          type="checkbox"
+                          checked={isAdmin || p.editar}
+                          disabled={isAdmin}
+                          onChange={() => toggle(m.key, 'editar')}
+                          style={{ cursor: isAdmin ? 'default' : 'pointer', width: 15, height: 15 }}
+                        />
+                      )}
+                    </td>
+
+                    {/* Eliminar */}
+                    <td style={S.td}>
+                      {m.soloVer ? (
+                        <span style={{ color: '#ccc', fontSize: 11 }}>—</span>
+                      ) : (
+                        <input
+                          type="checkbox"
+                          checked={isAdmin || p.eliminar}
+                          disabled={isAdmin}
+                          onChange={() => toggle(m.key, 'eliminar')}
+                          style={{ cursor: isAdmin ? 'default' : 'pointer', width: 15, height: 15 }}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-2 justify-end px-6 py-4" style={{ borderTop: '1px solid #e2e2e2' }}>
+          <button className="btn btn-secundario" onClick={onClose}>Cancelar</button>
+          <button
+            className="btn btn-primario"
+            onClick={handleSave}
+            disabled={saving}
+            style={{ opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? 'Guardando...' : 'Guardar permisos'}
+          </button>
         </div>
       </div>
     </div>
@@ -207,98 +224,106 @@ function EditarModal({ usr, onClose, onSaved }: EditarModalProps) {
 export default function Usuarios() {
   const notify  = useNotify();
   const confirm = useConfirm();
-  const { user } = useAuth();
+  const { user: meUser } = useAuth();
 
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [showNuevo,  setShowNuevo]  = useState(false);
-  const [editando,   setEditando]   = useState<Usuario | null>(null);
+  const [usuarios,   setUsuarios]   = useState<UsuarioDb[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [gestionando, setGestionando] = useState<UsuarioDb | null>(null);
 
   const cargar = useCallback(async () => {
+    setLoading(true);
     try {
-      const data = await apiFetch<Usuario[]>(`${API_BASE_URL}/api/usuarios`);
+      const data = await apiFetch<UsuarioDb[]>(`${API_BASE_URL}/api/usuarios`);
       setUsuarios(data);
-    } catch (err: any) { notify(err.message ?? 'Error cargando usuarios.', 'error'); }
-    finally { setLoading(false); }
+    } catch (err: any) {
+      notify(err.message ?? 'Error cargando usuarios.', 'error');
+    } finally {
+      setLoading(false);
+    }
   }, [notify]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  const toggleActivo = async (u: Usuario) => {
-    try {
-      await apiFetch(`${API_BASE_URL}/api/usuarios/${u.id}/toggle`, { method: 'PATCH' });
-      await cargar();
-    } catch (err: any) { notify(err.message ?? 'Error al cambiar estatus.', 'error'); }
-  };
-
-  const eliminar = async (u: Usuario) => {
-    const ok = await confirm({ title: 'Eliminar usuario', message: `Esta acción eliminará al usuario "${u.nombre}" de forma permanente.` });
+  const toggleActivo = async (u: UsuarioDb) => {
+    const accion = u.activo ? 'desactivar' : 'activar';
+    const ok = await confirm({
+      title: `${u.activo ? 'Desactivar' : 'Activar'} usuario`,
+      message: `¿Seguro que deseas ${accion} a "${u.nombre}"?${u.activo ? ' No podrá iniciar sesión.' : ''}`,
+    });
     if (!ok) return;
     try {
-      await apiFetch(`${API_BASE_URL}/api/usuarios/${u.id}`, { method: 'DELETE' });
-      notify('Usuario eliminado.', 'success');
+      await apiFetch(`${API_BASE_URL}/api/usuarios/${u.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !u.activo }),
+      });
+      notify(`Usuario ${u.activo ? 'desactivado' : 'activado'}.`, 'success');
       await cargar();
-    } catch (err: any) { notify(err.message ?? 'Error al eliminar.', 'error'); }
+    } catch (err: any) {
+      notify(err.message ?? 'Error al cambiar estatus.', 'error');
+    }
   };
 
-  if (loading) return <p className="vacio">Cargando...</p>;
+  if (loading) return <p className="vacio">Cargando usuarios...</p>;
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold">Usuarios del Sistema</h1>
-        <button className="btn btn-primario" onClick={() => setShowNuevo(true)}>+ Nuevo usuario</button>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h1 className="text-2xl font-bold">Usuarios del Sistema</h1>
+          <p style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+            Los usuarios se registran automáticamente al iniciar sesión con SSO.
+          </p>
+        </div>
       </div>
 
       {usuarios.length === 0 ? (
-        <p className="vacio">Sin usuarios registrados.</p>
+        <p className="vacio">Ningún usuario ha iniciado sesión aún.</p>
       ) : (
         <div className="tabla-wrap">
           <table className="tabla">
             <thead>
               <tr>
-                <th>#</th>
                 <th>Nombre</th>
-                <th>Usuario</th>
+                <th>Email / Usuario</th>
                 <th>Rol</th>
-                <th>Área</th>
+                <th>Último acceso</th>
                 <th>Estatus</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((u, i) => {
-                const esMio = user && (u.usuario === (user as any).username || u.nombre === (user as any).name);
+              {usuarios.map(u => {
+                const esMio = meUser && u.oidc_id === meUser.id;
                 return (
                   <tr key={u.id}>
-                    <td style={{ color: '#aaa' }}>{i + 1}</td>
-                    <td style={{ fontWeight: '500' }}>
+                    <td style={{ fontWeight: 500 }}>
                       {u.nombre}
-                      {esMio && <span style={{ marginLeft: '8px', fontSize: '10px', color: '#aaa' }}>(sesión actual)</span>}
+                      {esMio && <span style={{ marginLeft: 8, fontSize: 10, color: '#aaa' }}>(tú)</span>}
                     </td>
-                    <td className="font-mono" style={{ fontSize: '12px' }}>{u.usuario}</td>
+                    <td style={{ fontSize: 12, color: '#555' }}>
+                      {u.email || u.usuario || u.oidc_id}
+                    </td>
                     <td>
                       <span className={u.rol === 'Administrador' ? 'badge badge-admin' : 'badge badge-usuario'}>
                         {u.rol}
                       </span>
                     </td>
-                    <td style={{ fontSize: '12px', color: '#555' }}>{u.area || '—'}</td>
+                    <td style={{ fontSize: 12, color: '#777' }}>{fmt(u.ultimo_acceso)}</td>
                     <td>
                       <span className={u.activo ? 'badge badge-activo' : 'badge badge-inactivo'}>
                         {u.activo ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
                     <td className="whitespace-nowrap">
-                      <button className="btn-accion" onClick={() => setEditando(u)}>Editar</button>
+                      <button className="btn-accion" onClick={() => setGestionando(u)}>
+                        Permisos
+                      </button>
+                      {' '}
                       {!esMio && (
-                        <>
-                          {' '}
-                          <button className="btn-accion" onClick={() => toggleActivo(u)}>
-                            {u.activo ? 'Desactivar' : 'Activar'}
-                          </button>
-                          {' '}
-                          <button className="btn-accion rojo" onClick={() => eliminar(u)}>Eliminar</button>
-                        </>
+                        <button className="btn-accion" onClick={() => toggleActivo(u)}>
+                          {u.activo ? 'Desactivar' : 'Activar'}
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -309,8 +334,13 @@ export default function Usuarios() {
         </div>
       )}
 
-      {showNuevo && <NuevoModal onClose={() => setShowNuevo(false)} onSaved={() => { setShowNuevo(false); cargar(); }} />}
-      {editando  && <EditarModal usr={editando} onClose={() => setEditando(null)} onSaved={() => { setEditando(null); cargar(); }} />}
+      {gestionando && (
+        <PermisosModal
+          usr={gestionando}
+          onClose={() => setGestionando(null)}
+          onSaved={() => { setGestionando(null); cargar(); }}
+        />
+      )}
     </div>
   );
 }

@@ -5,6 +5,12 @@
 
 import { API_ENDPOINTS } from '../config/api';
 
+export interface ModuloPermisos {
+  ver:      boolean;
+  editar:   boolean;
+  eliminar: boolean;
+}
+
 export interface User {
   id:       string;
   name:     string;
@@ -12,6 +18,7 @@ export interface User {
   picture?: string;
   rol?:     string;
   usuario?: string;
+  permisos?: Record<string, ModuloPermisos> | null;
 }
 
 export interface AuthState {
@@ -40,13 +47,13 @@ export async function fetchCurrentUser(): Promise<User | null> {
 
     // El servidor devuelve { id, nombre, usuario, rol } — mapeamos a User
     return {
-      id:      String(data.id),
-      name:    data.nombre ?? data.name ?? data.usuario ?? '',
-      email:   data.email  ?? data.usuario ?? '',
-      picture: data.picture,
-      // campos extra del servidor
-      ...(data.rol      && { rol:     data.rol }),
-      ...(data.usuario  && { usuario: data.usuario }),
+      id:       String(data.id),
+      name:     data.nombre ?? data.name ?? data.usuario ?? '',
+      email:    data.email  ?? data.usuario ?? '',
+      picture:  data.picture,
+      rol:      data.rol,
+      usuario:  data.usuario,
+      permisos: data.permisos ?? null,
     } as User;
   } catch (error) {
     console.error('Error fetching current user:', error);

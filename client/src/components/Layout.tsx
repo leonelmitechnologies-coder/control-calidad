@@ -109,9 +109,13 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-2">
-          {NAV_ITEMS.filter((item) =>
-            item.href !== '/usuarios' || user?.rol === 'Administrador'
-          ).map((item) => {
+          {NAV_ITEMS.filter((item) => {
+            if (user?.rol === 'Administrador' || user?.permisos === null) return true;
+            if (item.href === '/usuarios') return false; // solo admin
+            const key = item.href === '/' ? '' : item.href.slice(1);
+            const p = user?.permisos?.[key];
+            return p ? p.ver : true; // sin entrada = visible por defecto
+          }).map((item) => {
             const active = location === item.href;
             return (
               <Link
