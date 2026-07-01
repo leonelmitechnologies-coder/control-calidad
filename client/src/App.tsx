@@ -24,6 +24,7 @@ import OrganigramaQc from './pages/OrganigramaQc';
 import Calendario from './pages/Calendario';
 import Usuarios from './pages/Usuarios';
 import Manual from './pages/Manual';
+import Login from './pages/Login';
 
 // Create TanStack Query client
 const queryClient = new QueryClient({
@@ -157,10 +158,15 @@ export default function App() {
                 )}
               </Route>
 
-              {/* Post-logout landing — auto-redirect to login */}
+              {/* Login page */}
+              <Route path="/login">
+                {() => <Login />}
+              </Route>
+
+              {/* Post-logout landing — redirect to app login */}
               <Route path="/logged-out">
                 {() => {
-                  window.location.href = '/api/auth/login';
+                  window.location.href = '/login';
                   return null;
                 }}
               </Route>

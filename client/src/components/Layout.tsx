@@ -75,7 +75,7 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   if (!isAuthenticated) {
-    window.location.href = '/api/auth/login';
+    window.location.href = '/login';
     return null;
   }
 
