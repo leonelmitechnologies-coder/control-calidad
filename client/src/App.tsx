@@ -163,12 +163,9 @@ export default function App() {
                 {() => <Login />}
               </Route>
 
-              {/* Post-logout landing — redirect to app login */}
+              {/* Fallback post-logout landing */}
               <Route path="/logged-out">
-                {() => {
-                  window.location.href = '/login';
-                  return null;
-                }}
+                {() => { window.location.href = '/login'; return null; }}
               </Route>
 
               {/* Catch all - redirect to home */}
