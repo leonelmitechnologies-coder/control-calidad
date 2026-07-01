@@ -80,31 +80,44 @@ let passportClient: any;
 let oidcReady = false;
 
 async function initApp() {
-  try {
-    // Initialize database
-    await initDB();
-    console.log("[App] Database initialized");
-
-    // Initialize Passport OIDC (optional — skip if SSO vars not yet configured)
+  // Retry DB connection up to 10 times with 5s delay (handles transient DB startup races)
+  let dbOk = false;
+  for (let attempt = 1; attempt <= 10; attempt++) {
     try {
-      passportClient = await initializePassport(app);
-      oidcReady = true;
-      console.log("[App] Passport OIDC initialized");
+      await initDB();
+      dbOk = true;
+      console.log("[App] Database initialized");
+      break;
     } catch (err: any) {
-      console.warn("[App] OIDC not configured, SSO disabled:", err.message);
+      console.warn(`[App] DB init attempt ${attempt}/10 failed: ${err.message}`);
+      if (attempt < 10) {
+        await new Promise((r) => setTimeout(r, 5000));
+      } else {
+        startupError = `DB init failed after 10 attempts: ${err.message}`;
+        console.error("[App]", startupError);
+        return; // Keep server alive — /api/health will report the error
+      }
     }
-
-    // Register additional routes
-    registerRoutes(app);
-    console.log("[App] Routes registered");
-
-    appReady = true;
-    console.log("[App] Initialization complete — ready to serve");
-  } catch (err: any) {
-    startupError = err?.message ?? String(err);
-    console.error("[App] Initialization error:", startupError);
-    // Do NOT call process.exit — keep the server alive so /api/health is reachable
   }
+
+  if (!dbOk) return;
+
+  // Initialize Passport OIDC (optional — skip if SSO vars not yet configured)
+  try {
+    passportClient = await initializePassport(app);
+    oidcReady = true;
+    console.log("[App] Passport OIDC initialized");
+  } catch (err: any) {
+    console.warn("[App] OIDC not configured, SSO disabled:", err.message);
+  }
+
+  // Register additional routes
+  registerRoutes(app);
+  console.log("[App] Routes registered");
+
+  appReady = true;
+  startupError = null;
+  console.log("[App] Initialization complete — ready to serve");
 }
 
 // ── Multer Configuration (temporary, for validation) ──────────────
