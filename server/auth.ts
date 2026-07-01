@@ -88,11 +88,11 @@ export async function initializePassport(app: any) {
       usePKCE: false,
     },
     (tokenSet: any, userInfo: any, done: any) => {
-      // Map OIDC user info to our user object
+      console.log("[OIDC] userInfo claims:", JSON.stringify(userInfo));
       const user: PassportUser = {
-        id: userInfo.sub || userInfo.email || "unknown",
-        name: userInfo.name || userInfo.given_name || "Usuario",
-        email: userInfo.email || "",
+        id: userInfo.sub || userInfo.preferred_username || userInfo.email || "unknown",
+        name: userInfo.name || userInfo.display_name || userInfo.preferred_username || userInfo.given_name || "Usuario",
+        email: userInfo.email || userInfo.preferred_username || "",
         oidcId: userInfo.sub,
       };
       return done(null, user);

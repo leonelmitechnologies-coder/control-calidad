@@ -198,7 +198,7 @@ app.post("/api/logout", (req: Request, res: Response) => {
 app.get("/api/me", (req: Request, res: Response) => {
   if (req.user) {
     const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(Boolean);
-    const isAdmin = adminEmails.includes(req.user.email || "");
+    const isAdmin = adminEmails.some(a => a === req.user!.email || a === req.user!.id);
     const rol = isAdmin ? "Administrador" : ((req.user as any).rol ?? "Usuario");
     return res.json({
       id:      req.user.id,
