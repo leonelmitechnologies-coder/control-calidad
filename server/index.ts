@@ -197,12 +197,14 @@ app.post("/api/logout", (req: Request, res: Response) => {
 // GET /api/me - Get current user
 app.get("/api/me", (req: Request, res: Response) => {
   if (req.user) {
-    // Usuario autenticado (OIDC o login directo)
+    const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(Boolean);
+    const isAdmin = adminEmails.includes(req.user.email || "");
+    const rol = isAdmin ? "Administrador" : ((req.user as any).rol ?? "Usuario");
     return res.json({
       id:      req.user.id,
       nombre:  req.user.name,
       usuario: req.user.email,
-      rol:     (req.user as any).rol ?? "Usuario",
+      rol,
     });
   }
   if (!process.env.OIDC_CLIENT_ID) {
