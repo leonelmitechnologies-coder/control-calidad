@@ -95,7 +95,7 @@ export default function OrgDetailModal({
       aria-label={`${t('organigrama.detail_title')}: ${employee.nombre_completo}`}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
       <div

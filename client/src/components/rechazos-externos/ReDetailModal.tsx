@@ -72,7 +72,7 @@ export default function ReDetailModal({
       style={{ paddingTop: 24 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
+      <div className="fixed inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
 
       <div className="relative z-10 my-4 w-full" style={{ maxWidth: 780, background: '#fff', border: '1px solid #e2e2e2' }}>
 

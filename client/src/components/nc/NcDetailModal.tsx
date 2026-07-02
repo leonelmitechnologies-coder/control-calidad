@@ -107,7 +107,7 @@ export default function NcDetailModal({
       onClick={handleOverlayClick}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
 
       {/* Dialog panel */}
       <div

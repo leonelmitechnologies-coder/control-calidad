@@ -143,7 +143,7 @@ export default function RecepcionDetailModal({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
 
       {/* Dialog panel */}
       <div className="relative z-10 w-full max-w-2xl bg-white" style={{ border: '1px solid #e2e2e2' }}>

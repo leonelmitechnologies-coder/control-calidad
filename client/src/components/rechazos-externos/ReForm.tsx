@@ -1,6 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import ImageUpload from '../ImageUpload';
 import type { RechazosExterno } from '../../types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -121,6 +120,7 @@ export default function ReForm({
   const [errors,  setErrors]  = useState<FormErrors>({});
   const [touched, setTouched] = useState(false);
   const [files,   setFiles]   = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Populate / reset ───────────────────────────────────────────────────────
 
@@ -164,8 +164,6 @@ export default function ReForm({
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onCancel]);
-
-  if (!isOpen) return null;
 
   // ── Field setter ───────────────────────────────────────────────────────────
 
@@ -271,6 +269,8 @@ export default function ReForm({
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  if (!isOpen) return null;
+
   return createPortal(
     <div
       role="dialog"
@@ -280,7 +280,7 @@ export default function ReForm({
       style={{ paddingTop: 24 }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
+      <div className="fixed inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
 
       <div className="relative z-10 my-4 w-full" style={{ maxWidth: 720, background: '#fff', border: '1px solid #e2e2e2' }}>
 
@@ -419,33 +419,33 @@ export default function ReForm({
             <div style={{ marginBottom: 20 }}>
               <div className="seccion-titulo">Problem Description</div>
               {form.problems.map((p, idx) => (
-                <div key={idx} style={{ background: '#fff', border: '1px solid #e2e2e2', padding: 14, marginBottom: 8 }}>
-                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e' }}>
-                      Problema {idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveProblem(idx)}
+                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, color: '#555', paddingTop: 10, minWidth: 18, textAlign: 'right' }}>
+                    {idx + 1}.
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <textarea
+                      rows={3}
+                      value={p.descripcion}
+                      onChange={(e) => handleProblemChange(idx, e.target.value)}
                       disabled={isSaving}
-                      style={{
-                        visibility: form.problems.length <= 1 ? 'hidden' : 'visible',
-                        fontSize: 12, padding: '3px 10px',
-                        background: '#e74c3c', color: '#fff', border: 'none', cursor: 'pointer',
-                      }}
-                    >
-                      Eliminar
-                    </button>
+                      placeholder="Describir el problema..."
+                      style={errors.problems?.[idx] ? { borderColor: '#c0392b' } : undefined}
+                    />
+                    {errors.problems?.[idx] && <span className="form-error">{errors.problems[idx]}</span>}
                   </div>
-                  <textarea
-                    rows={3}
-                    value={p.descripcion}
-                    onChange={(e) => handleProblemChange(idx, e.target.value)}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveProblem(idx)}
                     disabled={isSaving}
-                    placeholder="Describir el problema..."
-                    style={errors.problems?.[idx] ? { borderColor: '#c0392b' } : undefined}
-                  />
-                  {errors.problems?.[idx] && <span className="form-error">{errors.problems[idx]}</span>}
+                    style={{
+                      visibility: form.problems.length <= 1 ? 'hidden' : 'visible',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: 18, color: '#c0392b', paddingTop: 6, flexShrink: 0,
+                    }}
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
               <button
@@ -465,7 +465,7 @@ export default function ReForm({
               <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#555', marginBottom: 8 }}>
                 Departamentos afectados
               </p>
-              <div className="flex flex-wrap" style={{ gap: 8, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px 12px', marginBottom: 16 }}>
                 {DEPARTAMENTOS_RE.map((dept) => {
                   const isActive = form.corrective_actions.some((ca) => ca.departamento === dept);
                   return (
@@ -475,14 +475,17 @@ export default function ReForm({
                       onClick={() => handleToggleDept(dept)}
                       disabled={isSaving}
                       style={{
-                        background: isActive ? '#0d2b4e' : '#f4f6f9',
-                        color:      isActive ? '#fff'    : '#111',
-                        border:     '1px solid #e2e2e2',
-                        padding:    '4px 12px',
-                        fontSize:   12,
-                        fontWeight: 600,
-                        cursor:     'pointer',
-                        letterSpacing: 0.3,
+                        background:  'none',
+                        border:      'none',
+                        textAlign:   'left',
+                        padding:     '4px 0',
+                        fontSize:    12,
+                        fontWeight:  isActive ? 700 : 400,
+                        color:       isActive ? '#0d2b4e' : '#555',
+                        cursor:      'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.5,
+                        textDecoration: isActive ? 'underline' : 'none',
                       }}
                     >
                       {dept}
@@ -551,13 +554,36 @@ export default function ReForm({
             {/* ── Evidencia Fotografica ── */}
             <div style={{ marginBottom: 8 }}>
               <div className="seccion-titulo">Evidencia Fotografica</div>
-              <p style={{ fontSize: 12, color: '#777', marginBottom: 8 }}>Máximo 10 imágenes, 10 MB c/u</p>
-              <ImageUpload
-                maxFiles={10}
-                onFilesSelect={setFiles}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
                 disabled={isSaving}
-                label="Seleccionar imágenes"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  if (e.target.files) setFiles(Array.from(e.target.files));
+                }}
               />
+              <label
+                onClick={() => !isSaving && fileInputRef.current?.click()}
+                style={{
+                  display:       'block',
+                  border:        '2px dashed #cccccc',
+                  padding:       '20px 16px',
+                  textAlign:     'center',
+                  cursor:        isSaving ? 'not-allowed' : 'pointer',
+                  fontSize:      11,
+                  fontWeight:    700,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                  color:         '#666',
+                }}
+              >
+                {files.length > 0
+                  ? `${files.length} imagen(es) seleccionada(s) — haz clic para cambiar`
+                  : 'Haz clic para agregar imágenes (JPG, PNG, WEBP — MAX 10MB c/u)'}
+              </label>
               {isEditing && data?.images && data.images.length > 0 && (
                 <p style={{ fontSize: 12, color: '#777', fontStyle: 'italic', marginTop: 8 }}>
                   Este registro ya tiene {data.images.length} imagen(es). Las nuevas se agregarán.

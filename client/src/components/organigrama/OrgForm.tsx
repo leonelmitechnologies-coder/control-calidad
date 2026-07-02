@@ -251,7 +251,7 @@ export default function OrgForm({
       aria-label={title}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onCancel} aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/50" onClick={onCancel} aria-hidden="true" />
 
       {/* Panel */}
       <div

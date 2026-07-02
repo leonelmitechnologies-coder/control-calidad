@@ -258,7 +258,7 @@ export default function RecepcionForm({
       className="fixed inset-0 z-[800] flex items-start justify-center overflow-y-auto p-4 sm:items-center"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
 
       <div className="relative z-10 w-full max-w-2xl bg-white" style={{ border: '1px solid #e2e2e2' }}>
         {/* Header */}
