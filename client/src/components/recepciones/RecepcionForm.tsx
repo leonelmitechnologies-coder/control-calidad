@@ -1,21 +1,6 @@
-/**
- * RecepcionForm — Create / Edit modal form for Recepciones.
- *
- * Grouped into 4 sections:
- *   1. Información General  (fecha, hora, company, origen)
- *   2. Carga               (cargo, unit_qty, pallet_qty)
- *   3. Logística           (tipo, estatus)
- *   4. Auditoría           (registrado_por, fecha_actualizado — read-only)
- *
- * All validation is done before submission; invalid fields get a red border
- * and an inline error message.
- */
-
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../hooks/useAuth';
-import TipoSelector from './TipoSelector';
 import type { Recepcion } from '../../types';
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -57,16 +42,11 @@ const BLANK: RecepcionFormData = {
   estatus:    'Confirmado',
 };
 
-// ── Estatus options ───────────────────────────────────────────────────────────
+// ── Option lists ──────────────────────────────────────────────────────────────
 
 const ESTATUS_OPTS: Recepcion['estatus'][] = [
-  'Confirmado',
-  'En descarga',
-  'Descargado',
-  'Rechazado',
+  'Confirmado', 'En descarga', 'Descargado', 'Rechazado',
 ];
-
-// ── Autocomplete lists ────────────────────────────────────────────────────────
 
 const COMPANIES: string[] = [
   'JB HUNT', 'OMEGA', 'ARIITRANS', 'TRANE', 'SOLBE', 'MAFER',
@@ -102,15 +82,81 @@ function validate(form: RecepcionFormData): FormErrors {
   return errors;
 }
 
-// ── Section wrapper ───────────────────────────────────────────────────────────
+// ── ComboBox — custom autocomplete with inline scrollable list ────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function ComboBox({
+  value,
+  onChange,
+  options,
+  placeholder,
+  hasError,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
+  hasError?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, []);
+
+  const filtered = value
+    ? options.filter((o) => o.toLowerCase().includes(value.toLowerCase()))
+    : options;
+
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div className="seccion-titulo">{title}</div>
-      <div className="form-grid">
-        {children}
-      </div>
+    <div ref={ref} style={{ position: 'relative' }}>
+      <input
+        type="text"
+        value={value}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        placeholder={placeholder}
+        autoComplete="off"
+        style={hasError ? { borderColor: '#c0392b' } : undefined}
+      />
+      {open && filtered.length > 0 && (
+        <div
+          style={{
+            position:   'absolute',
+            top:        '100%',
+            left:       0,
+            right:      0,
+            zIndex:     900,
+            background: '#fff',
+            border:     '1px solid #e2e2e2',
+            maxHeight:  180,
+            overflowY:  'auto',
+            boxShadow:  '0 4px 12px rgba(0,0,0,0.12)',
+          }}
+        >
+          {filtered.map((o) => (
+            <div
+              key={o}
+              onMouseDown={() => { onChange(o); setOpen(false); }}
+              style={{
+                padding:      '8px 12px',
+                fontSize:     13,
+                cursor:       'pointer',
+                borderBottom: '1px solid #f0f0f0',
+                color:        '#111',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#f4f6f9'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ''; }}
+            >
+              {o}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -148,19 +194,17 @@ export default function RecepcionForm({
   isSaving = false,
 }: RecepcionFormProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
 
   const [form, setForm] = useState<RecepcionFormData>(BLANK);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState(false);
 
-  // Populate form when editing or reset when opening create
   useEffect(() => {
     if (!isOpen) return;
     if (isEditing && data) {
       setForm({
         fecha:      data.fecha,
-        hora:       data.hora.slice(0, 5), // strip seconds
+        hora:       data.hora.slice(0, 5),
         company:    data.company,
         origen:     data.origen,
         cargo:      data.cargo,
@@ -176,7 +220,6 @@ export default function RecepcionForm({
     setTouched(false);
   }, [isOpen, isEditing, data]);
 
-  // Close on Escape
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
@@ -186,12 +229,9 @@ export default function RecepcionForm({
 
   if (!isOpen) return null;
 
-  // ── Field updaters ────────────────────────────────────────────────────────
-
   function set<K extends keyof RecepcionFormData>(key: K, value: RecepcionFormData[K]) {
     setForm((f) => ({ ...f, [key]: value }));
     if (touched) {
-      // Re-validate on change after first submit attempt
       const next = { ...form, [key]: value };
       setErrors(validate(next));
     }
@@ -210,11 +250,7 @@ export default function RecepcionForm({
     ? `${t('recepciones.form.edit_title')} #${data?.id ?? ''}`
     : t('recepciones.add');
 
-  const now = new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
-  const registradoPor = isEditing ? (data?.registrado_por ?? user?.name ?? '') : (user?.name ?? '');
-
   return createPortal(
-    /* Overlay */
     <div
       role="dialog"
       aria-modal="true"
@@ -222,17 +258,19 @@ export default function RecepcionForm({
       className="fixed inset-0 z-[800] flex items-start justify-center overflow-y-auto p-4 sm:items-center"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
 
-      {/* Dialog panel */}
       <div className="relative z-10 w-full max-w-2xl bg-white" style={{ border: '1px solid #e2e2e2' }}>
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-4"
           style={{ borderBottom: '1px solid #e2e2e2' }}
         >
-          <div id="recepcion-form-title" className="modal-titulo" style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>
+          <div
+            id="recepcion-form-title"
+            className="modal-titulo"
+            style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}
+          >
             {title}
           </div>
           <button
@@ -248,14 +286,14 @@ export default function RecepcionForm({
         {/* Form body */}
         <form onSubmit={handleSubmit} noValidate>
           <div className="px-6 py-5">
+            <div className="form-grid">
 
-            {/* ── Section 1: Información General ── */}
-            <Section title={t('recepciones.form.section_general')}>
               <Field label={t('recepciones.form.fecha')} error={errors.fecha}>
                 <input
                   type="date"
                   value={form.fecha}
                   onChange={(e) => set('fecha', e.target.value)}
+                  style={errors.fecha ? { borderColor: '#c0392b' } : undefined}
                   required
                 />
               </Field>
@@ -265,53 +303,65 @@ export default function RecepcionForm({
                   type="time"
                   value={form.hora}
                   onChange={(e) => set('hora', e.target.value)}
+                  style={errors.hora ? { borderColor: '#c0392b' } : undefined}
                   required
                 />
               </Field>
 
               <Field label={t('recepciones.form.company')} error={errors.company}>
-                <input
-                  list="companies-list"
-                  type="text"
+                <ComboBox
                   value={form.company}
-                  onChange={(e) => set('company', e.target.value)}
-                  placeholder="Ej. JB HUNT"
-                  required
+                  onChange={(v) => set('company', v)}
+                  options={COMPANIES}
+                  placeholder="Escribe o selecciona..."
+                  hasError={!!errors.company}
                 />
-                <datalist id="companies-list">
-                  {COMPANIES.map((c) => (
-                    <option key={c} value={c} />
-                  ))}
-                </datalist>
               </Field>
 
               <Field label={t('recepciones.form.origen')} error={errors.origen}>
-                <input
-                  list="origenes-list"
-                  type="text"
+                <ComboBox
                   value={form.origen}
-                  onChange={(e) => set('origen', e.target.value)}
-                  placeholder="Ej. Groesbeck TX"
-                  required
+                  onChange={(v) => set('origen', v)}
+                  options={ORIGENES}
+                  placeholder="Escribe o selecciona..."
+                  hasError={!!errors.origen}
                 />
-                <datalist id="origenes-list">
-                  {ORIGENES.map((o) => (
-                    <option key={o} value={o} />
-                  ))}
-                </datalist>
               </Field>
-            </Section>
 
-            {/* ── Section 2: Carga ── */}
-            <Section title={t('recepciones.form.section_carga')}>
               <Field label={t('recepciones.form.cargo')} error={errors.cargo} fullWidth>
                 <input
                   type="text"
                   value={form.cargo}
                   onChange={(e) => set('cargo', e.target.value)}
                   placeholder="Tipo de mercancía"
+                  style={errors.cargo ? { borderColor: '#c0392b' } : undefined}
                   required
                 />
+              </Field>
+
+              <Field label={t('recepciones.form.tipo')} error={errors.tipo}>
+                <select
+                  value={form.tipo}
+                  onChange={(e) => set('tipo', e.target.value as Recepcion['tipo'])}
+                  style={errors.tipo ? { borderColor: '#c0392b' } : undefined}
+                  required
+                >
+                  <option value="Import">Import</option>
+                  <option value="Export">Export</option>
+                </select>
+              </Field>
+
+              <Field label={t('recepciones.form.estatus')} error={errors.estatus}>
+                <select
+                  value={form.estatus}
+                  onChange={(e) => set('estatus', e.target.value as Recepcion['estatus'])}
+                  style={errors.estatus ? { borderColor: '#c0392b' } : undefined}
+                  required
+                >
+                  {ESTATUS_OPTS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </Field>
 
               <Field label={t('recepciones.form.unit_qty')} error={errors.unit_qty}>
@@ -320,6 +370,7 @@ export default function RecepcionForm({
                   min={0}
                   value={form.unit_qty}
                   onChange={(e) => set('unit_qty', parseInt(e.target.value, 10) || 0)}
+                  style={errors.unit_qty ? { borderColor: '#c0392b' } : undefined}
                   required
                 />
               </Field>
@@ -330,51 +381,12 @@ export default function RecepcionForm({
                   min={0}
                   value={form.pallet_qty}
                   onChange={(e) => set('pallet_qty', parseInt(e.target.value, 10) || 0)}
+                  style={errors.pallet_qty ? { borderColor: '#c0392b' } : undefined}
                   required
                 />
               </Field>
-            </Section>
 
-            {/* ── Section 3: Logística ── */}
-            <Section title={t('recepciones.form.section_logistica')}>
-              <Field label={t('recepciones.form.tipo')} error={errors.tipo} fullWidth>
-                <TipoSelector value={form.tipo} onChange={(v) => set('tipo', v)} />
-              </Field>
-
-              <Field label={t('recepciones.form.estatus')} error={errors.estatus} fullWidth>
-                <select
-                  value={form.estatus}
-                  onChange={(e) => set('estatus', e.target.value as Recepcion['estatus'])}
-                  required
-                >
-                  {ESTATUS_OPTS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </Field>
-            </Section>
-
-            {/* ── Section 4: Auditoría (read-only) ── */}
-            <Section title={t('recepciones.form.section_auditoria')}>
-              <Field label={t('recepciones.form.registrado_por')}>
-                <input
-                  type="text"
-                  value={registradoPor}
-                  readOnly
-                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
-                />
-              </Field>
-
-              <Field label={t('recepciones.form.fecha_actualizado')}>
-                <input
-                  type="text"
-                  value={now}
-                  readOnly
-                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
-                />
-              </Field>
-            </Section>
-
+            </div>
           </div>
 
           {/* Footer */}

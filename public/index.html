@@ -4241,7 +4241,7 @@ const modCAPA = {
         <td style="font-size:11px">${a.fecha_compromiso ? String(a.fecha_compromiso).slice(0,10) : '—'}</td>
         <td><span class="${badgeCls[a.estatus]||''}">${a.estatus}</span></td>
         <td style="white-space:nowrap">
-          <button class="btn-accion" title="Editar" onclick="modCAPA.abrirEditarAccion(${capaId},${a.id},'${(a.accion||'').replace(/'/g,'\\'')}','${(a.responsable||'').replace(/'/g,'\\'')}','${a.fecha_compromiso?String(a.fecha_compromiso).slice(0,10):''}','${a.estatus}')">&#9998;</button>
+          <button class="btn-accion" title="Editar" onclick="modCAPA.abrirEditarAccion(${capaId},${a.id},'${(a.accion||'').replace(/'/g,"\\'")}','${(a.responsable||'').replace(/'/g,"\\'")}','${a.fecha_compromiso?String(a.fecha_compromiso).slice(0,10):''}','${a.estatus}')">&#9998;</button>
           <button class="btn-accion" title="Ciclar estatus" onclick="modCAPA.ciclarEstatusAccion(${capaId},${a.id},'${a.estatus}')">&#8635;</button>
           <button class="btn-accion rojo" title="Eliminar" onclick="modCAPA.eliminarAccion(${capaId},${a.id})">&#x2715;</button>
         </td>
