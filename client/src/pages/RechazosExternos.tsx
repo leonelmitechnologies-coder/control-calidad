@@ -228,9 +228,6 @@ export default function RechazosExternos() {
         sales_channel:         form.sales_channel,
         sku:                   form.sku,
         brand:                 form.brand,
-        modelo:                form.modelo,
-        pulgada:               form.pulgada,
-        descripcion:           form.descripcion,
         plant_entry:           form.plant_entry,
         plant_exit:            form.plant_exit || null,
         total_time_minutes:    form.total_time_minutes,
@@ -238,7 +235,7 @@ export default function RechazosExternos() {
         processed_by:          form.processed_by,
         registration_date:     form.registration_date || null,
         sale_price:            form.sale_price ? parseFloat(form.sale_price) : null,
-        estatus:               form.estatus,
+        estatus:               'Pendiente',
         problem_descriptions:  form.problems.map((p, i) => ({ orden: i + 1, descripcion: p.descripcion })),
         corrective_actions:    (form.corrective_actions ?? []),
       };
@@ -269,9 +266,6 @@ export default function RechazosExternos() {
         sales_channel:         form.sales_channel,
         sku:                   form.sku,
         brand:                 form.brand,
-        modelo:                form.modelo,
-        pulgada:               form.pulgada,
-        descripcion:           form.descripcion,
         plant_entry:           form.plant_entry,
         plant_exit:            form.plant_exit || null,
         total_time_minutes:    form.total_time_minutes,
@@ -279,7 +273,6 @@ export default function RechazosExternos() {
         processed_by:          form.processed_by,
         registration_date:     form.registration_date || null,
         sale_price:            form.sale_price ? parseFloat(form.sale_price) : null,
-        estatus:               form.estatus,
         problem_descriptions:  form.problems.map((p, i) => ({ orden: i + 1, descripcion: p.descripcion })),
         corrective_actions:    (form.corrective_actions ?? []),
       };
@@ -351,6 +344,14 @@ export default function RechazosExternos() {
     if (!detailTarget) return;
     deletePhotoMutation.mutate({ reId: detailTarget.id, imageId });
   }, [detailTarget, deletePhotoMutation]);
+
+  const handleEditFromDetail = useCallback(() => {
+    if (!detailTarget) return;
+    setDetailOpen(false);
+    setEditTarget(detailTarget);
+    setIsEditing(true);
+    setFormOpen(true);
+  }, [detailTarget]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const rows      = listQuery.data?.data    ?? [];
@@ -471,6 +472,7 @@ export default function RechazosExternos() {
           isOpen={detailOpen}
           data={detailTarget}
           onClose={() => setDetailOpen(false)}
+          onEdit={handleEditFromDetail}
           onDeletePhoto={handleDeletePhoto}
           isDeletingPhoto={deletePhotoMutation.isPending}
         />

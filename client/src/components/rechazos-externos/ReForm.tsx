@@ -1,40 +1,16 @@
-/**
- * ReForm — Create / Edit modal form for Rechazos Externos.
- *
- * Sections:
- *   1. Información Base        (return_order, license_plate, classification, inches, sales_channel)
- *   2. Producto / SKU          (sku autocomplete + cascading fill: brand/modelo/pulgada/descripcion)
- *   3. Tiempos en Planta       (plant_entry, plant_exit, total_time_minutes — auto-calculated)
- *   4. Información de Orden    (outbound_order, processed_by)
- *   5. Precios y Registro      (sale_price, estatus, registrado_por)
- *   6. Problemas y Acciones    (1–5 ProblemActionRow pairs, with add/remove)
- *   7. Fotos                   (ImageUpload max 10)
- *
- * On submit (create): POST body includes `problems` array + multipart images (two-step).
- * On submit (edit):   PUT body includes `problems` array; photos uploaded separately.
- */
-
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../hooks/useAuth';
-import SkuAutocomplete from '../SkuAutocomplete';
 import ImageUpload from '../ImageUpload';
-import ProblemActionRow from './ProblemActionRow';
-import FieldGroup, { FieldGroupRow } from '../recepciones/FieldGroup';
-import { API_BASE_URL } from '../../config/api';
-import type { RechazosExterno, RechazosExternoProblem, SkuRecord } from '../../types';
+import type { RechazosExterno } from '../../types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const MAX_PROBLEMS = 5;
-const MIN_PROBLEMS = 1;
+const DEPARTAMENTOS_RE = [
+  'INCOMING', 'SORTING', 'FFT', 'PALETIZADO',
+  'OPEN CELL', 'ALMACEN', 'SHIPPING B2C', 'SHIPPING B2B',
+] as const;
 
-const CLASSIFICATION_OPTIONS = ['A', 'B', 'C', 'D', 'E'];
-const SALES_CHANNEL_OPTIONS  = ['Walmart', 'Amazon', 'Liverpool', 'Soriana', 'Coppel', 'Otros'];
-const ESTATUS_OPTIONS        = ['Pendiente', 'Aceptado', 'Rechazado'] as const;
-
-const DEPARTAMENTOS_RE = ['INCOMING', 'SORTING', 'FFT', 'PALETIZADO', 'OPEN CELL', 'ALMACEN', 'SHIPPING B2C', 'SHIPPING B2B'] as const;
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface CorrectiveAction {
   departamento: string;
@@ -42,77 +18,48 @@ interface CorrectiveAction {
   accion:       string;
 }
 
-// ── Form data shape ───────────────────────────────────────────────────────────
-
 export interface ReFormData {
-  return_order: string;
-  license_plate: string;
-  classification: string;
-  inches: string;
-  sales_channel: string;
-  sku: string;
-  brand: string;
-  modelo: string;
-  pulgada: string;
-  descripcion: string;
-  plant_entry: string;
-  plant_exit: string;
+  return_order:       string;
+  license_plate:      string;
+  classification:     string;
+  inches:             string;
+  sales_channel:      string;
+  sku:                string;
+  brand:              string;
+  outbound_order:     string;
+  plant_entry:        string;
+  plant_exit:         string;
   total_time_minutes: number | null;
-  outbound_order: string;
-  processed_by: string;
-  registration_date: string;
-  sale_price: string;
-  estatus: string;
-  problems: RechazosExternoProblem[];
+  processed_by:       string;
+  registration_date:  string;
+  sale_price:         string;
+  problems:           { descripcion: string }[];
   corrective_actions: CorrectiveAction[];
 }
 
-// ── Blank form ────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeBlank(): ReFormData {
-  const now = new Date().toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+  const now = new Date().toISOString().slice(0, 16);
   return {
     return_order:       '',
     license_plate:      '',
-    classification:     'A',
+    classification:     '',
     inches:             '',
-    sales_channel:      'Walmart',
+    sales_channel:      '',
     sku:                '',
     brand:              '',
-    modelo:             '',
-    pulgada:            '',
-    descripcion:        '',
+    outbound_order:     '',
     plant_entry:        now,
     plant_exit:         now,
     total_time_minutes: null,
-    outbound_order:     '',
     processed_by:       '',
     registration_date:  new Date().toISOString().slice(0, 10),
     sale_price:         '',
-    estatus:            'Pendiente',
-    problems:           [{ descripcion: '', accion: '' }],
+    problems:           [{ descripcion: '' }],
     corrective_actions: [],
   };
 }
-
-// ── Derive problems from detail endpoint data ─────────────────────────────────
-
-function deriveProblems(data: RechazosExterno): RechazosExternoProblem[] {
-  const probs   = data.problem_descriptions ?? [];
-  const actions = data.corrective_actions   ?? [];
-
-  if (probs.length === 0) return [{ descripcion: '', accion: '' }];
-
-  return probs.map((p) => {
-    const matched = actions.find((a) => a.orden === p.orden) ?? actions[0];
-    return {
-      descripcion: p.descripcion,
-      accion:      matched?.accion ?? '',
-    };
-  });
-}
-
-// ── Calculate total minutes ───────────────────────────────────────────────────
 
 function calcMinutes(entry: string, exit: string): number | null {
   if (!entry || !exit) return null;
@@ -121,37 +68,42 @@ function calcMinutes(entry: string, exit: string): number | null {
   return Math.round(diff / 60000);
 }
 
+function formatTime(minutes: number | null): string {
+  if (minutes == null) return '—';
+  const d = Math.floor(minutes / 1440);
+  const h = Math.floor((minutes % 1440) / 60);
+  const m = minutes % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
 // ── Validation ────────────────────────────────────────────────────────────────
 
 type FormErrors = Partial<Record<keyof Omit<ReFormData, 'problems' | 'corrective_actions'>, string>> & {
-  problems?: string[];
+  problems?: (string | undefined)[];
 };
 
 function validateForm(form: ReFormData): FormErrors {
   const errors: FormErrors = {};
-
-  if (!form.return_order.trim())  errors.return_order   = 'Requerido';
-  if (!form.license_plate.trim()) errors.license_plate  = 'Requerido';
-  if (!form.classification)       errors.classification = 'Requerido';
-  if (!form.plant_entry)          errors.plant_entry    = 'Requerido';
-  if (!form.processed_by.trim())  errors.processed_by   = 'Requerido';
-
-  const probErrors = form.problems.map((p) =>
-    p.descripcion.trim() ? undefined : 'Requerido',
-  );
-  if (probErrors.some(Boolean)) errors.problems = probErrors as string[];
-
+  if (!form.return_order.trim())   errors.return_order   = 'Requerido';
+  if (!form.license_plate.trim())  errors.license_plate  = 'Requerido';
+  if (!form.classification.trim()) errors.classification = 'Requerido';
+  if (!form.plant_entry)           errors.plant_entry    = 'Requerido';
+  if (!form.processed_by.trim())   errors.processed_by   = 'Requerido';
+  const probErrors = form.problems.map((p) => p.descripcion.trim() ? undefined : 'Requerido');
+  if (probErrors.some(Boolean)) errors.problems = probErrors;
   return errors;
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface ReFormProps {
-  isOpen: boolean;
+  isOpen:    boolean;
   isEditing: boolean;
-  data?: RechazosExterno;
-  onSubmit: (formData: ReFormData, files: File[]) => void;
-  onCancel: () => void;
+  data?:     RechazosExterno;
+  onSubmit:  (formData: ReFormData, files: File[]) => void;
+  onCancel:  () => void;
   isSaving?: boolean;
 }
 
@@ -165,60 +117,46 @@ export default function ReForm({
   onCancel,
   isSaving = false,
 }: ReFormProps) {
-  const { t }   = useTranslation();
-  const { user } = useAuth();
-
   const [form,    setForm]    = useState<ReFormData>(makeBlank());
   const [errors,  setErrors]  = useState<FormErrors>({});
   const [touched, setTouched] = useState(false);
   const [files,   setFiles]   = useState<File[]>([]);
-  // Track whether SKU fields are manually overridden
-  const [skuLocked, setSkuLocked] = useState(true);
 
-  // ── Populate / reset form ──────────────────────────────────────────────────
+  // ── Populate / reset ───────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!isOpen) return;
     if (isEditing && data) {
+      const probs = data.problem_descriptions ?? [];
       setForm({
         return_order:       data.return_order,
         license_plate:      data.license_plate,
-        classification:     data.classification || 'A',
+        classification:     data.classification || '',
         inches:             data.inches || '',
-        sales_channel:      data.sales_channel || 'Walmart',
+        sales_channel:      data.sales_channel || '',
         sku:                data.sku || '',
         brand:              data.brand || '',
-        modelo:             data.modelo || '',
-        pulgada:            data.pulgada || '',
-        descripcion:        data.descripcion || '',
+        outbound_order:     data.outbound_order || '',
         plant_entry:        data.plant_entry ? data.plant_entry.slice(0, 16) : '',
         plant_exit:         data.plant_exit  ? data.plant_exit.slice(0, 16)  : '',
         total_time_minutes: data.total_time_minutes ?? null,
-        outbound_order:     data.outbound_order || '',
         processed_by:       data.processed_by || '',
-        registration_date:  data.registration_date
-                              ? data.registration_date.slice(0, 10)
-                              : new Date().toISOString().slice(0, 10),
+        registration_date:  data.registration_date ? data.registration_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
         sale_price:         data.sale_price != null ? String(data.sale_price) : '',
-        estatus:            data.estatus || 'Pendiente',
-        problems:           deriveProblems(data),
+        problems:           probs.length > 0 ? probs.map((p) => ({ descripcion: p.descripcion })) : [{ descripcion: '' }],
         corrective_actions: (data.corrective_actions ?? []).map((ca) => ({
           departamento: ca.departamento,
           orden:        ca.orden,
           accion:       ca.accion,
         })),
       });
-      setSkuLocked(true);
     } else {
       setForm(makeBlank());
-      setSkuLocked(true);
     }
     setErrors({});
     setTouched(false);
     setFiles([]);
   }, [isOpen, isEditing, data]);
-
-  // ── Close on Escape ────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!isOpen) return;
@@ -227,12 +165,13 @@ export default function ReForm({
     return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onCancel]);
 
-  // ── Generic field setter ───────────────────────────────────────────────────
+  if (!isOpen) return null;
+
+  // ── Field setter ───────────────────────────────────────────────────────────
 
   function set<K extends keyof ReFormData>(key: K, value: ReFormData[K]) {
     setForm((f) => {
       const next = { ...f, [key]: value };
-      // Auto-calculate total_time_minutes when plant times change
       if (key === 'plant_entry' || key === 'plant_exit') {
         next.total_time_minutes = calcMinutes(
           key === 'plant_entry' ? (value as string) : f.plant_entry,
@@ -244,50 +183,24 @@ export default function ReForm({
     });
   }
 
-  // ── SKU selection handler ──────────────────────────────────────────────────
+  // ── Problem handlers ───────────────────────────────────────────────────────
 
-  const handleSkuSelect = useCallback((record: SkuRecord) => {
+  const handleProblemChange = useCallback((index: number, value: string) => {
     setForm((f) => {
-      const next = {
-        ...f,
-        sku:        record.sku,
-        brand:      record.marca,
-        modelo:     record.modelo,
-        pulgada:    record.pulgada,
-        descripcion: record.descripcion,
-      };
+      const updated = f.problems.map((p, i) => i === index ? { descripcion: value } : p);
+      const next = { ...f, problems: updated };
       if (touched) setErrors(validateForm(next));
       return next;
     });
-    setSkuLocked(true);
   }, [touched]);
 
-  // ── Problem management ─────────────────────────────────────────────────────
-
-  const handleProblemChange = useCallback(
-    (index: number, value: string) => {
-      setForm((f) => {
-        const updated = f.problems.map((p, i) =>
-          i === index ? { ...p, descripcion: value } : p,
-        );
-        const next = { ...f, problems: updated };
-        if (touched) setErrors(validateForm(next));
-        return next;
-      });
-    },
-    [touched],
-  );
-
   const handleAddProblem = useCallback(() => {
-    setForm((f) => {
-      if (f.problems.length >= MAX_PROBLEMS) return f;
-      return { ...f, problems: [...f.problems, { descripcion: '', accion: '' }] };
-    });
+    setForm((f) => ({ ...f, problems: [...f.problems, { descripcion: '' }] }));
   }, []);
 
   const handleRemoveProblem = useCallback((index: number) => {
     setForm((f) => {
-      if (f.problems.length <= MIN_PROBLEMS) return f;
+      if (f.problems.length <= 1) return f;
       const updated = f.problems.filter((_, i) => i !== index);
       const next = { ...f, problems: updated };
       if (touched) setErrors(validateForm(next));
@@ -295,28 +208,43 @@ export default function ReForm({
     });
   }, [touched]);
 
-  // ── Corrective actions by department ──────────────────────────────────────
+  // ── Corrective action handlers ─────────────────────────────────────────────
 
   const handleToggleDept = useCallback((dept: string) => {
     setForm((f) => {
       const isActive = f.corrective_actions.some((ca) => ca.departamento === dept);
-      const updated = isActive
-        ? f.corrective_actions.filter((ca) => ca.departamento !== dept)
-        : [...f.corrective_actions, { departamento: dept, orden: f.corrective_actions.length + 1, accion: '' }];
-      return { ...f, corrective_actions: updated };
+      if (isActive) {
+        return { ...f, corrective_actions: f.corrective_actions.filter((ca) => ca.departamento !== dept) };
+      }
+      return { ...f, corrective_actions: [...f.corrective_actions, { departamento: dept, orden: 1, accion: '' }] };
     });
   }, []);
 
-  const handleDeptActionChange = useCallback((dept: string, value: string) => {
+  const handleDeptActionChange = useCallback((globalIdx: number, value: string) => {
     setForm((f) => ({
       ...f,
-      corrective_actions: f.corrective_actions.map((ca) =>
-        ca.departamento === dept ? { ...ca, accion: value } : ca,
-      ),
+      corrective_actions: f.corrective_actions.map((ca, i) => i === globalIdx ? { ...ca, accion: value } : ca),
     }));
   }, []);
 
-  // ── Form submit ────────────────────────────────────────────────────────────
+  const handleAddDeptAction = useCallback((dept: string) => {
+    setForm((f) => {
+      const count = f.corrective_actions.filter((ca) => ca.departamento === dept).length;
+      return {
+        ...f,
+        corrective_actions: [...f.corrective_actions, { departamento: dept, orden: count + 1, accion: '' }],
+      };
+    });
+  }, []);
+
+  const handleRemoveDeptAction = useCallback((globalIdx: number) => {
+    setForm((f) => ({
+      ...f,
+      corrective_actions: f.corrective_actions.filter((_, i) => i !== globalIdx),
+    }));
+  }, []);
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -332,19 +260,16 @@ export default function ReForm({
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
+  const activeDepts = form.corrective_actions.reduce((acc, ca) => {
+    if (!acc.includes(ca.departamento)) acc.push(ca.departamento);
+    return acc;
+  }, [] as string[]);
+
   const title = isEditing
-    ? `${t('rechazos_externos.form.edit_title')} #${data?.id ?? ''}`
-    : t('rechazos_externos.add');
+    ? `Editar Rechazo Externo #${data?.id ?? ''}`
+    : 'Nueva Recepción';
 
-  const registradoPor = isEditing
-    ? (data?.registrado_por ?? user?.name ?? '')
-    : (user?.name ?? '');
-
-  const canAddProblem = form.problems.length < MAX_PROBLEMS;
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  if (!isOpen) return null;
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return createPortal(
     <div
@@ -355,11 +280,9 @@ export default function ReForm({
       style={{ paddingTop: 24 }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
 
-      {/* Dialog panel */}
-      <div className="relative z-10 my-4 w-full" style={{ maxWidth: 780, background: '#fff', border: '1px solid #e2e2e2' }}>
+      <div className="relative z-10 my-4 w-full" style={{ maxWidth: 720, background: '#fff', border: '1px solid #e2e2e2' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between" style={{ padding: '16px 24px', borderBottom: '2px solid #0d2b4e' }}>
@@ -370,319 +293,178 @@ export default function ReForm({
             type="button"
             onClick={onCancel}
             style={{ background: 'none', border: 'none', fontSize: 18, color: '#777', cursor: 'pointer', padding: '2px 6px' }}
-            aria-label={t('common.close')}
           >
             &#10005;
           </button>
         </div>
 
-        {/* Form body */}
         <form onSubmit={handleSubmit} noValidate>
           <div style={{ padding: '20px 24px' }}>
 
-            {/* ── Section 1: Información Base ── */}
-            <FieldGroup title={t('rechazos_externos.form.section_base')}>
-              <div>
-                <label>
-                  {t('rechazos_externos.form.return_order')}
-                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.return_order}
+            {/* ── Datos del Rechazo ── */}
+            <div className="seccion-titulo">Datos del Rechazo</div>
+            <div className="form-grid" style={{ marginBottom: 24 }}>
+
+              <div className="form-group">
+                <label>Return Order <span style={{ color: '#c0392b' }}>*</span></label>
+                <input type="text" value={form.return_order}
                   onChange={(e) => set('return_order', e.target.value)}
                   placeholder="Ej. RO-2024-001"
-                  style={errors.return_order ? { borderColor: '#c0392b' } : undefined}
-                />
+                  style={errors.return_order ? { borderColor: '#c0392b' } : undefined} />
                 {errors.return_order && <span className="form-error">{errors.return_order}</span>}
               </div>
 
-              <div>
-                <label>
-                  {t('rechazos_externos.form.license_plate')}
-                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.license_plate}
+              <div className="form-group">
+                <label>License Plate <span style={{ color: '#c0392b' }}>*</span></label>
+                <input type="text" value={form.license_plate}
                   onChange={(e) => set('license_plate', e.target.value)}
                   placeholder="Ej. ABC-1234"
-                  style={errors.license_plate ? { borderColor: '#c0392b' } : undefined}
-                />
+                  style={errors.license_plate ? { borderColor: '#c0392b' } : undefined} />
                 {errors.license_plate && <span className="form-error">{errors.license_plate}</span>}
               </div>
 
-              <div>
-                <label>
-                  {t('rechazos_externos.form.classification')}
-                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                </label>
-                <select
-                  value={form.classification}
+              <div className="form-group">
+                <label>Classification <span style={{ color: '#c0392b' }}>*</span></label>
+                <input type="text" value={form.classification}
                   onChange={(e) => set('classification', e.target.value)}
-                  style={errors.classification ? { borderColor: '#c0392b' } : undefined}
-                >
-                  {CLASSIFICATION_OPTIONS.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                  placeholder="Ej. GRB"
+                  style={errors.classification ? { borderColor: '#c0392b' } : undefined} />
                 {errors.classification && <span className="form-error">{errors.classification}</span>}
               </div>
 
-              <div>
-                <label>{t('rechazos_externos.form.inches')}</label>
-                <input
-                  type="text"
-                  value={form.inches}
+              <div className="form-group">
+                <label>Inches</label>
+                <input type="text" value={form.inches}
                   onChange={(e) => set('inches', e.target.value)}
-                  placeholder='Ej. 55"'
-                />
+                  placeholder='Ej. 55"' />
               </div>
 
-              <div className="full">
-                <label>{t('rechazos_externos.form.sales_channel')}</label>
-                <select
-                  value={form.sales_channel}
+              <div className="form-group">
+                <label>Sales Channel</label>
+                <input type="text" value={form.sales_channel}
                   onChange={(e) => set('sales_channel', e.target.value)}
-                >
-                  {SALES_CHANNEL_OPTIONS.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-            </FieldGroup>
-
-            {/* ── Section 2: Producto / SKU ── */}
-            <FieldGroup title={t('rechazos_externos.form.section_product')}>
-              <FieldGroupRow>
-                <label>{t('rechazos_externos.form.sku')}</label>
-                <SkuAutocomplete
-                  value={form.sku}
-                  onChange={(text) => set('sku', text)}
-                  onSelect={handleSkuSelect}
-                  placeholder={t('sku.search')}
-                />
-              </FieldGroupRow>
-
-              {/* Override checkbox */}
-              <FieldGroupRow>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textTransform: 'none', fontSize: 12 }}>
-                  <input
-                    type="checkbox"
-                    checked={!skuLocked}
-                    onChange={(e) => setSkuLocked(!e.target.checked)}
-                    style={{ width: 'auto' }}
-                  />
-                  {t('rechazos_externos.form.override_sku_fields')}
-                </label>
-              </FieldGroupRow>
-
-              <div>
-                <label>{t('rechazos_externos.form.brand')}</label>
-                <input
-                  type="text"
-                  value={form.brand}
-                  onChange={(e) => set('brand', e.target.value)}
-                  readOnly={skuLocked}
-                  style={skuLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : undefined}
-                />
+                  placeholder="Ej. Walmart" />
               </div>
 
-              <div>
-                <label>{t('rechazos_externos.form.modelo')}</label>
-                <input
-                  type="text"
-                  value={form.modelo}
-                  onChange={(e) => set('modelo', e.target.value)}
-                  readOnly={skuLocked}
-                  style={skuLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : undefined}
-                />
+              <div className="form-group">
+                <label>SKU</label>
+                <input type="text" value={form.sku}
+                  onChange={(e) => set('sku', e.target.value)} />
               </div>
 
-              <div>
-                <label>{t('rechazos_externos.form.pulgada')}</label>
-                <input
-                  type="text"
-                  value={form.pulgada}
-                  onChange={(e) => set('pulgada', e.target.value)}
-                  readOnly={skuLocked}
-                  style={skuLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : undefined}
-                />
+              <div className="form-group">
+                <label>Brand</label>
+                <input type="text" value={form.brand}
+                  onChange={(e) => set('brand', e.target.value)} />
               </div>
 
-              <div className="full">
-                <label>{t('rechazos_externos.form.descripcion')}</label>
-                <input
-                  type="text"
-                  value={form.descripcion}
-                  onChange={(e) => set('descripcion', e.target.value)}
-                  readOnly={skuLocked}
-                  style={skuLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : undefined}
-                />
+              <div className="form-group">
+                <label>Outbound Order</label>
+                <input type="text" value={form.outbound_order}
+                  onChange={(e) => set('outbound_order', e.target.value)} />
               </div>
-            </FieldGroup>
 
-            {/* ── Section 3: Tiempos en Planta ── */}
-            <FieldGroup title={t('rechazos_externos.form.section_plant')}>
-              <div>
-                <label>
-                  {t('rechazos_externos.form.plant_entry')}
-                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  value={form.plant_entry}
+              <div className="form-group">
+                <label>Plant Entry <span style={{ color: '#c0392b' }}>*</span></label>
+                <input type="datetime-local" value={form.plant_entry}
                   onChange={(e) => set('plant_entry', e.target.value)}
-                  style={errors.plant_entry ? { borderColor: '#c0392b' } : undefined}
-                />
+                  style={errors.plant_entry ? { borderColor: '#c0392b' } : undefined} />
                 {errors.plant_entry && <span className="form-error">{errors.plant_entry}</span>}
               </div>
 
-              <div>
-                <label>{t('rechazos_externos.form.plant_exit')}</label>
-                <input
-                  type="datetime-local"
-                  value={form.plant_exit}
-                  onChange={(e) => set('plant_exit', e.target.value)}
-                />
+              <div className="form-group">
+                <label>Plant Exit</label>
+                <input type="datetime-local" value={form.plant_exit}
+                  onChange={(e) => set('plant_exit', e.target.value)} />
               </div>
 
-              <div>
-                <label>{t('rechazos_externos.form.total_time')}</label>
-                <input
-                  type="text"
-                  value={
-                    form.total_time_minutes != null
-                      ? `${form.total_time_minutes} min`
-                      : '—'
-                  }
+              <div className="form-group">
+                <label>Total Time in Plant</label>
+                <input type="text"
+                  value={formatTime(form.total_time_minutes)}
                   readOnly
-                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
-                />
+                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }} />
               </div>
 
-              <div>
-                <label>{t('rechazos_externos.form.registration_date')}</label>
-                <input
-                  type="date"
-                  value={form.registration_date}
-                  onChange={(e) => set('registration_date', e.target.value)}
-                />
-              </div>
-            </FieldGroup>
-
-            {/* ── Section 4: Información de Orden ── */}
-            <FieldGroup title={t('rechazos_externos.form.section_order')}>
-              <div>
-                <label>{t('rechazos_externos.form.outbound_order')}</label>
-                <input
-                  type="text"
-                  value={form.outbound_order}
-                  onChange={(e) => set('outbound_order', e.target.value)}
-                  placeholder="Ej. OO-2024-001"
-                />
-              </div>
-
-              <div>
-                <label>
-                  {t('rechazos_externos.form.processed_by')}
-                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.processed_by}
+              <div className="form-group full">
+                <label>Processed By <span style={{ color: '#c0392b' }}>*</span></label>
+                <input type="text" value={form.processed_by}
                   onChange={(e) => set('processed_by', e.target.value)}
-                  placeholder={t('rechazos_externos.form.processed_by_placeholder')}
-                  style={errors.processed_by ? { borderColor: '#c0392b' } : undefined}
-                />
+                  placeholder="Ej. FFT Area and Open Cell Area"
+                  style={errors.processed_by ? { borderColor: '#c0392b' } : undefined} />
                 {errors.processed_by && <span className="form-error">{errors.processed_by}</span>}
               </div>
-            </FieldGroup>
 
-            {/* ── Section 5: Precios y Estatus ── */}
-            <FieldGroup title={t('rechazos_externos.form.section_pricing')}>
-              <div>
-                <label>{t('rechazos_externos.form.sale_price')}</label>
+              <div className="form-group">
+                <label>Registration Date</label>
+                <input type="date" value={form.registration_date}
+                  onChange={(e) => set('registration_date', e.target.value)} />
+              </div>
+
+              <div className="form-group">
+                <label>Sale Price</label>
                 <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: 13 }}>
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
+                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: 13 }}>$</span>
+                  <input type="number" min={0} step={0.01}
                     value={form.sale_price}
                     onChange={(e) => set('sale_price', e.target.value)}
                     placeholder="0.00"
-                    style={{ paddingLeft: 22 }}
-                  />
+                    style={{ paddingLeft: 22 }} />
                 </div>
               </div>
 
-              <div>
-                <label>
-                  {t('rechazos_externos.form.estatus')}
-                  <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                </label>
-                <select
-                  value={form.estatus}
-                  onChange={(e) => set('estatus', e.target.value)}
-                >
-                  {ESTATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label>{t('rechazos_externos.form.registrado_por')}</label>
-                <input
-                  type="text"
-                  value={registradoPor}
-                  readOnly
-                  style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
-                />
-              </div>
-            </FieldGroup>
-
-            {/* ── Section 6: Problemas y Acciones Correctivas ── */}
-            <div style={{ marginBottom: 20 }}>
-              <div className="seccion-titulo">{t('rechazos_externos.form.section_problems')}</div>
-
-              <div>
-                {form.problems.map((problem, idx) => (
-                  <ProblemActionRow
-                    key={idx}
-                    index={idx}
-                    descripcion={problem.descripcion}
-                    onChange={handleProblemChange}
-                    onRemove={handleRemoveProblem}
-                    canRemove={form.problems.length > MIN_PROBLEMS}
-                    error={errors.problems?.[idx]}
-                    disabled={isSaving}
-                  />
-                ))}
-
-                <button
-                  type="button"
-                  onClick={handleAddProblem}
-                  disabled={!canAddProblem || isSaving}
-                  className="btn btn-secundario"
-                  style={!canAddProblem ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-                >
-                  + {t('rechazos_externos.form.add_problem')}
-                  <span style={{ fontSize: 11, color: '#777', marginLeft: 6 }}>
-                    ({form.problems.length}/{MAX_PROBLEMS})
-                  </span>
-                </button>
-              </div>
             </div>
 
-            {/* ── Section 7: Acciones Correctivas por Departamento ── */}
+            {/* ── Problem Description ── */}
             <div style={{ marginBottom: 20 }}>
-              <div className="seccion-titulo">Acciones Correctivas por Departamento</div>
+              <div className="seccion-titulo">Problem Description</div>
+              {form.problems.map((p, idx) => (
+                <div key={idx} style={{ background: '#fff', border: '1px solid #e2e2e2', padding: 14, marginBottom: 8 }}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e' }}>
+                      Problema {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveProblem(idx)}
+                      disabled={isSaving}
+                      style={{
+                        visibility: form.problems.length <= 1 ? 'hidden' : 'visible',
+                        fontSize: 12, padding: '3px 10px',
+                        background: '#e74c3c', color: '#fff', border: 'none', cursor: 'pointer',
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={p.descripcion}
+                    onChange={(e) => handleProblemChange(idx, e.target.value)}
+                    disabled={isSaving}
+                    placeholder="Describir el problema..."
+                    style={errors.problems?.[idx] ? { borderColor: '#c0392b' } : undefined}
+                  />
+                  {errors.problems?.[idx] && <span className="form-error">{errors.problems[idx]}</span>}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={handleAddProblem}
+                disabled={isSaving}
+                className="btn btn-secundario"
+              >
+                + Agregar punto
+              </button>
+            </div>
 
-              {/* Department chip buttons */}
+            {/* ── Corrective Actions ── */}
+            <div style={{ marginBottom: 20 }}>
+              <div className="seccion-titulo">Corrective Actions</div>
+
+              <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#555', marginBottom: 8 }}>
+                Departamentos afectados
+              </p>
               <div className="flex flex-wrap" style={{ gap: 8, marginBottom: 16 }}>
                 {DEPARTAMENTOS_RE.map((dept) => {
                   const isActive = form.corrective_actions.some((ca) => ca.departamento === dept);
@@ -694,12 +476,12 @@ export default function ReForm({
                       disabled={isSaving}
                       style={{
                         background: isActive ? '#0d2b4e' : '#f4f6f9',
-                        color: isActive ? '#ffffff' : '#111111',
-                        border: '1px solid #e2e2e2',
-                        padding: '4px 12px',
-                        fontSize: 12,
+                        color:      isActive ? '#fff'    : '#111',
+                        border:     '1px solid #e2e2e2',
+                        padding:    '4px 12px',
+                        fontSize:   12,
                         fontWeight: 600,
-                        cursor: 'pointer',
+                        cursor:     'pointer',
                         letterSpacing: 0.3,
                       }}
                     >
@@ -709,24 +491,56 @@ export default function ReForm({
                 })}
               </div>
 
-              {/* Active department action cards */}
               <div>
-                {form.corrective_actions.map((ca) => (
-                  <div key={ca.departamento} style={{ border: '1px solid #0d2b4e', padding: '10px 14px', marginBottom: 8, background: '#fff' }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: '#0d2b4e', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
-                      {ca.departamento}
-                    </p>
-                    <textarea
-                      value={ca.accion}
-                      onChange={(e) => handleDeptActionChange(ca.departamento, e.target.value)}
-                      placeholder="Describir la acción correctiva..."
-                      rows={2}
-                      disabled={isSaving}
-                    />
-                  </div>
-                ))}
-
-                {form.corrective_actions.length === 0 && (
+                {activeDepts.map((dept) => {
+                  const deptEntries = form.corrective_actions
+                    .map((ca, idx) => ({ ...ca, _idx: idx }))
+                    .filter((ca) => ca.departamento === dept);
+                  return (
+                    <div key={dept} style={{ border: '1px solid #0d2b4e', marginBottom: 8, background: '#fff' }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: '#0d2b4e', textTransform: 'uppercase', letterSpacing: 1, padding: '8px 14px 4px', margin: 0 }}>
+                        {dept}
+                      </p>
+                      {deptEntries.map(({ _idx, accion }) => (
+                        <div key={_idx} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '4px 14px 8px' }}>
+                          <textarea
+                            value={accion}
+                            onChange={(e) => handleDeptActionChange(_idx, e.target.value)}
+                            placeholder="Describir la acción correctiva..."
+                            rows={2}
+                            disabled={isSaving}
+                            style={{ flex: 1 }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDeptAction(_idx)}
+                            disabled={isSaving}
+                            style={{
+                              visibility: deptEntries.length <= 1 ? 'hidden' : 'visible',
+                              background: 'none', border: '1px solid #e2e2e2',
+                              width: 28, height: 28, cursor: 'pointer',
+                              fontSize: 14, color: '#c0392b', flexShrink: 0, marginTop: 4,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      <div style={{ padding: '0 14px 10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleAddDeptAction(dept)}
+                          disabled={isSaving}
+                          className="btn btn-secundario"
+                          style={{ fontSize: 12, padding: '4px 12px' }}
+                        >
+                          + Acción
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {activeDepts.length === 0 && (
                   <p style={{ fontSize: 12, color: '#999', fontStyle: 'italic' }}>
                     Selecciona los departamentos involucrados para agregar acciones correctivas.
                   </p>
@@ -734,52 +548,36 @@ export default function ReForm({
               </div>
             </div>
 
-            {/* ── Section 8: Fotos ── */}
-            <FieldGroup title={t('rechazos_externos.form.section_photos')}>
-              <FieldGroupRow>
-                <p style={{ fontSize: 12, color: '#777', marginBottom: 8 }}>
-                  {t('rechazos_externos.form.max_photos')}
+            {/* ── Evidencia Fotografica ── */}
+            <div style={{ marginBottom: 8 }}>
+              <div className="seccion-titulo">Evidencia Fotografica</div>
+              <p style={{ fontSize: 12, color: '#777', marginBottom: 8 }}>Máximo 10 imágenes, 10 MB c/u</p>
+              <ImageUpload
+                maxFiles={10}
+                onFilesSelect={setFiles}
+                disabled={isSaving}
+                label="Seleccionar imágenes"
+              />
+              {isEditing && data?.images && data.images.length > 0 && (
+                <p style={{ fontSize: 12, color: '#777', fontStyle: 'italic', marginTop: 8 }}>
+                  Este registro ya tiene {data.images.length} imagen(es). Las nuevas se agregarán.
                 </p>
-                <ImageUpload
-                  maxFiles={10}
-                  onFilesSelect={setFiles}
-                  disabled={isSaving}
-                  label={t('rechazos_externos.form.photos')}
-                />
-              </FieldGroupRow>
-            </FieldGroup>
-
-            {/* Existing photos note when editing */}
-            {isEditing && data?.images && data.images.length > 0 && (
-              <p style={{ fontSize: 12, color: '#777', fontStyle: 'italic' }}>
-                {t('rechazos_externos.form.existing_photos_note', { count: data.images.length })}
-              </p>
-            )}
+              )}
+            </div>
 
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end" style={{ gap: 10, padding: '14px 24px', borderTop: '1px solid #e2e2e2' }}>
+          <div className="flex justify-end" style={{ padding: '14px 24px', borderTop: '1px solid #e2e2e2' }}>
             <div className="btn-grupo">
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isSaving}
-                className="btn btn-secundario"
-                style={isSaving ? { opacity: 0.5 } : undefined}
-              >
-                {t('common.cancel')}
+              <button type="button" onClick={onCancel} disabled={isSaving} className="btn btn-secundario">
+                Cancelar
               </button>
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="btn btn-primario"
-                style={isSaving ? { opacity: 0.5 } : undefined}
-              >
+              <button type="submit" disabled={isSaving} className="btn btn-primario">
                 {isSaving && (
                   <span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 6 }} />
                 )}
-                {isEditing ? t('rechazos_externos.form.update') : t('common.save')}
+                {isEditing ? 'Guardar cambios' : 'Registrar'}
               </button>
             </div>
           </div>
