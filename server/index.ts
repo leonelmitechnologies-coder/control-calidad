@@ -462,6 +462,42 @@ app.delete("/api/recepciones/:id", requireAuth, async (req: Request, res: Respon
 
 // ── CATÁLOGO SKU (Lookup) ──────────────────────────────────────
 
+// POST /api/catalogo-sku/seed — bulk insert SKU records (token protected)
+app.post("/api/catalogo-sku/seed", async (req: Request, res: Response) => {
+  const token = req.headers["x-seed-token"];
+  if (token !== process.env.SESSION_SECRET) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  const records: Array<{ sku: string; marca: string; modelo: string; pulgada: string; descripcion: string }> = req.body;
+  if (!Array.isArray(records) || records.length === 0) {
+    return res.status(400).json({ error: "Body must be a non-empty array" });
+  }
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      for (const r of records) {
+        await client.query(
+          `INSERT INTO catalogo_sku (sku, marca, modelo, pulgada, descripcion)
+           VALUES ($1,$2,$3,$4,$5)
+           ON CONFLICT (sku) DO UPDATE SET marca=$2, modelo=$3, pulgada=$4, descripcion=$5`,
+          [r.sku, r.marca ?? "", r.modelo ?? "", r.pulgada ?? "", r.descripcion ?? ""]
+        );
+      }
+      await client.query("COMMIT");
+    } catch (e) {
+      await client.query("ROLLBACK");
+      throw e;
+    } finally {
+      client.release();
+    }
+    res.json({ inserted: records.length });
+  } catch (err) {
+    console.error("[API] POST /api/catalogo-sku/seed error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/catalogo-sku?q=... - Search SKU prefix
 app.get("/api/catalogo-sku", async (req: Request, res: Response) => {
   try {
