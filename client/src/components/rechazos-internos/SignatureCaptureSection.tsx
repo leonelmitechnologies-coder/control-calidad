@@ -43,21 +43,6 @@ export default function SignatureCaptureSection({
 
       {/* Status indicators */}
       <div className="flex items-center" style={{ gap: 10, marginBottom: 10 }}>
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          background: '#fdecea',
-          border: '1px solid #f5c6cb',
-          padding: '3px 10px',
-          fontSize: 11,
-          fontWeight: 700,
-          color: '#c0392b',
-          textTransform: 'uppercase',
-          letterSpacing: 0.5,
-        }}>
-          {t('rechazos_internos.form.firma_requerida')}
-        </span>
         {isSigned && (
           <span style={{
             display: 'inline-flex',

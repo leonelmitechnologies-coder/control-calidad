@@ -99,7 +99,7 @@ export default function RiDetailModal({ id, isOpen, onClose }: RiDetailModalProp
         className="fixed inset-0 z-[800] flex items-center justify-center p-4"
         onClick={handleOverlayClick}
       >
-        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
+        <div className="fixed inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
 
         <div
           className="relative z-10 w-full overflow-y-auto"

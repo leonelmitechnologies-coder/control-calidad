@@ -68,6 +68,9 @@ let startupError: string | null = null;
 const publicDir = path.join(process.cwd(), "dist/client");
 app.use(express.static(publicDir));
 
+// Local uploads (used when S3 is not configured)
+app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
+
 // ── Start HTTP server FIRST (so Traefik/Coolify health checks pass) ──
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`[App] Server listening on 0.0.0.0:${PORT}`);
@@ -469,7 +472,7 @@ app.get("/api/catalogo-sku", async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      `SELECT sku, marca, modelo, pulgada, descripcion FROM catalogo_sku WHERE UPPER(sku) LIKE UPPER($1) LIMIT 10`,
+      `SELECT sku, marca, modelo, pulgada, descripcion FROM catalogo_sku WHERE UPPER(sku) LIKE UPPER($1) LIMIT 25`,
       [`${q}%`]
     );
 
@@ -876,17 +879,46 @@ app.delete("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: 
 // GET /api/rechazos-internos - List internal rejects
 app.get("/api/rechazos-internos", requireAuth, async (req: Request, res: Response) => {
   try {
-    const result = await pool.query(`
-      SELECT
-        ri.*,
-        COUNT(DISTINCT rii.id) as images_count
-      FROM rechazos_internos ri
-      LEFT JOIN ri_images rii ON rii.rechazo_id = ri.id
-      GROUP BY ri.id
-      ORDER BY ri.fecha_registro DESC, ri.created_at DESC
-    `);
+    const estatus  = req.query.estatus  as string | undefined;
+    const search   = req.query.search   as string | undefined;
+    const page     = Math.max(1, parseInt(req.query.page  as string) || 1);
+    const limit    = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const offset   = (page - 1) * limit;
 
-    res.json(result.rows);
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
+    if (estatus) {
+      params.push(estatus);
+      conditions.push(`ri.estatus = $${params.length}`);
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      const n = params.length;
+      conditions.push(`(ri.license_plate ILIKE $${n} OR ri.sku ILIKE $${n} OR ri.defecto ILIKE $${n})`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM rechazos_internos ri ${where}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].count, 10);
+
+    params.push(limit, offset);
+    const dataResult = await pool.query(
+      `SELECT ri.*, COUNT(DISTINCT rii.id) as images_count
+       FROM rechazos_internos ri
+       LEFT JOIN ri_images rii ON rii.rechazo_id = ri.id
+       ${where}
+       GROUP BY ri.id
+       ORDER BY ri.fecha_registro DESC, ri.created_at DESC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+
+    res.json({ data: dataResult.rows, total, page, limit });
   } catch (err) {
     console.error("[API] GET /api/rechazos-internos error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -917,7 +949,10 @@ app.get("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: Res
 
     res.json({
       ...riMain[0],
-      images,
+      images: images.map((img) => ({
+        ...img,
+        url: s3.getFileUrl("rechazos-internos", img.filename),
+      })),
     });
   } catch (err) {
     console.error("[API] GET /api/rechazos-internos/:id error:", err);

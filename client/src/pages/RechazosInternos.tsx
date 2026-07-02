@@ -135,7 +135,7 @@ export default function RechazosInternos() {
   const createMutation = useMutation({
     mutationFn: async (values: RiFormValues) => {
       // 1. Create record
-      const created = await apiFetch<{ data: RechazosInterno }>(`${API_BASE_URL}/api/rechazos-internos`, {
+      const created = await apiFetch<RechazosInterno>(`${API_BASE_URL}/api/rechazos-internos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -151,16 +151,19 @@ export default function RechazosInternos() {
           costo_no_calidad:   values.costo_no_calidad,
           origen_hallazgo:    values.origen_hallazgo,
           inspector:          values.inspector,
-          observaciones:      values.observaciones,
           firma_digital:      values.firma_digital,
         }),
       });
-      const newId = created.data.id;
-      // 2. Upload images if any
+      const newId = created.id;
+      // 2. Upload images if any (non-fatal — record is already saved)
       if (values.newFiles.length > 0) {
-        await uploadImages(newId, values.newFiles);
+        try {
+          await uploadImages(newId, values.newFiles);
+        } catch {
+          notify('El registro se guardó, pero las fotos no pudieron subirse.', 'error');
+        }
       }
-      return created.data;
+      return created;
     },
     onSuccess: () => {
       notify('Rechazo Interno registrado correctamente.', 'success');
@@ -172,7 +175,7 @@ export default function RechazosInternos() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: number; values: RiFormValues }) => {
-      const updated = await apiFetch<{ data: RechazosInterno }>(
+      const updated = await apiFetch<RechazosInterno>(
         `${API_BASE_URL}/api/rechazos-internos/${id}`,
         {
           method: 'PUT',
@@ -190,15 +193,18 @@ export default function RechazosInternos() {
             costo_no_calidad:   values.costo_no_calidad,
             origen_hallazgo:    values.origen_hallazgo,
             inspector:          values.inspector,
-            observaciones:      values.observaciones,
             firma_digital:      values.firma_digital,
           }),
         },
       );
       if (values.newFiles.length > 0) {
-        await uploadImages(id, values.newFiles);
+        try {
+          await uploadImages(id, values.newFiles);
+        } catch {
+          notify('El registro se actualizó, pero las fotos no pudieron subirse.', 'error');
+        }
       }
-      return updated.data;
+      return updated;
     },
     onSuccess: () => {
       notify('Rechazo Interno actualizado correctamente.', 'success');

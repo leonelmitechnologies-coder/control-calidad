@@ -1,30 +1,8 @@
-/**
- * RiForm
- *
- * Modal form for creating or editing a Rechazo Interno.
- *
- * Sections:
- *   1. Información Básica (fecha, license plate, SKU + cascading auto-fill)
- *   2. Defecto & COPQ (CopqSection with auto-fill + manual override)
- *   3. Información Adicional (origen, inspector, observaciones)
- *   4. Fotos (ImageUpload, max 5)
- *   5. Firma Digital (SignatureCaptureSection, MANDATORY)
- *
- * Business rules:
- *   - Signature is MANDATORY — submit is blocked until drawn
- *   - COPQ fields auto-fill on defecto select, locked until manual override
- *   - SKU selection cascades: auto-fills marca, modelo, pulgada, descripcion
- *   - In edit mode: existing photos shown, new uploads appended
- *   - In edit mode: existing signature shown as preview, re-drawing replaces it
- */
-
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import type { RechazosInterno, SkuRecord } from '../../types';
-import { getCopqMapping } from '../../data/copq-mapping';
-import { API_BASE_URL } from '../../config/api';
+import { useAuth } from '../../hooks/useAuth';
 import SkuAutocomplete from '../SkuAutocomplete';
 import ImageUpload from '../ImageUpload';
 import CopqSection, { type CopqValues } from './CopqSection';
@@ -37,22 +15,21 @@ const ORIGENES = ['FFT Lineas', 'FFT Paletizado', 'Almacen', 'Shipping B2B', 'Sh
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface RiFormValues {
-  fecha_registro: string;
-  license_plate: string;
-  sku: string;
-  marca: string;
-  modelo: string;
-  pulgada: string;
-  descripcion: string;
-  defecto: string;
+  fecha_registro:     string;
+  license_plate:      string;
+  sku:                string;
+  marca:              string;
+  modelo:             string;
+  pulgada:            string;
+  descripcion:        string;
+  defecto:            string;
   actividad_realizar: string;
-  costo_no_calidad: number;
-  manual_override: boolean;
-  origen_hallazgo: string;
-  inspector: string;
-  observaciones: string;
-  firma_digital: string;
-  newFiles: File[];
+  costo_no_calidad:   number;
+  manual_override:    boolean;
+  origen_hallazgo:    string;
+  inspector:          string;
+  firma_digital:      string;
+  newFiles:           File[];
 }
 
 type FieldErrors = Partial<Record<
@@ -61,19 +38,12 @@ type FieldErrors = Partial<Record<
 >>;
 
 interface RiFormProps {
-  isOpen: boolean;
-  isEditing: boolean;
-  data?: RechazosInterno | null;
-  onSubmit: (values: RiFormValues) => void;
-  onCancel: () => void;
+  isOpen:      boolean;
+  isEditing:   boolean;
+  data?:       RechazosInterno | null;
+  onSubmit:    (values: RiFormValues) => void;
+  onCancel:    () => void;
   submitting?: boolean;
-}
-
-interface OrgPerson {
-  id: number;
-  nombre_completo: string;
-  puesto: string;
-  estatus: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -96,36 +66,9 @@ const EMPTY_FORM: RiFormValues = {
   manual_override:   false,
   origen_hallazgo:   '',
   inspector:         '',
-  observaciones:     '',
   firma_digital:     '',
   newFiles:          [],
 };
-
-// ── Section label ─────────────────────────────────────────────────────────────
-
-function SectionTitle({ num, label, danger }: { num: number; label: string; danger?: boolean }) {
-  return (
-    <div className="flex items-center" style={{ gap: 8, marginBottom: 14 }}>
-      <span style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 20,
-        height: 20,
-        background: danger ? '#c0392b' : '#0d2b4e',
-        color: '#fff',
-        fontSize: 11,
-        fontWeight: 700,
-        flexShrink: 0,
-      }}>
-        {num}
-      </span>
-      <div className="seccion-titulo" style={{ margin: 0, borderBottom: 'none', paddingBottom: 0, flex: 1 }}>
-        {label}
-      </div>
-    </div>
-  );
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -138,30 +81,13 @@ export default function RiForm({
   submitting = false,
 }: RiFormProps) {
   const { t } = useTranslation();
+  const { user } = useAuth();
 
-  const [values, setValues] = useState<RiFormValues>(EMPTY_FORM);
-  const [errors, setErrors] = useState<FieldErrors>({});
+  const [values, setValues]         = useState<RiFormValues>(EMPTY_FORM);
+  const [errors, setErrors]         = useState<FieldErrors>({});
   const [showSigError, setShowSigError] = useState(false);
 
   const firstInputRef = useRef<HTMLInputElement>(null);
-
-  // ── Organigrama query (inspectors) ────────────────────────────────────────
-
-  const { data: orgData } = useQuery<{ data: OrgPerson[] } | OrgPerson[]>({
-    queryKey: ['organigrama-qc'],
-    queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/api/organigrama-qc`, { credentials: 'include' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const inspectors: OrgPerson[] = (() => {
-    if (!orgData) return [];
-    const arr = Array.isArray(orgData) ? orgData : (orgData.data ?? []);
-    return arr.filter((p) => p.estatus === 'activo');
-  })();
 
   // ── Populate form on open ─────────────────────────────────────────────────
 
@@ -183,17 +109,16 @@ export default function RiForm({
         manual_override:   false,
         origen_hallazgo:   data.origen_hallazgo  ?? '',
         inspector:         data.inspector        ?? '',
-        observaciones:     data.observaciones    ?? '',
         firma_digital:     data.firma_digital    ?? '',
         newFiles:          [],
       });
     } else {
-      setValues({ ...EMPTY_FORM, fecha_registro: today() });
+      setValues({ ...EMPTY_FORM, fecha_registro: today(), inspector: user?.name ?? '' });
     }
 
     setErrors({});
     setShowSigError(false);
-  }, [isOpen, isEditing, data]);
+  }, [isOpen, isEditing, data, user]);
 
   // Focus first field on open
   useEffect(() => {
@@ -222,11 +147,11 @@ export default function RiForm({
   function handleSkuSelect(record: SkuRecord) {
     setValues((prev) => ({
       ...prev,
-      sku:        record.sku,
-      marca:      record.marca        ?? '',
-      modelo:     record.modelo       ?? '',
-      pulgada:    record.pulgada      ?? '',
-      descripcion: record.descripcion ?? '',
+      sku:         record.sku,
+      marca:       record.marca        ?? '',
+      modelo:      record.modelo       ?? '',
+      pulgada:     record.descripcion  ?? '',
+      descripcion: record.pulgada      ?? '',
     }));
   }
 
@@ -259,19 +184,11 @@ export default function RiForm({
 
   function validate(): boolean {
     const e: FieldErrors = {};
-
-    if (!values.fecha_registro) e.fecha_registro = t('forms.required_field');
-    if (!values.license_plate?.trim()) e.license_plate = t('forms.required_field');
-    if (!values.defecto) e.defecto = t('forms.required_field');
+    if (!values.fecha_registro)          e.fecha_registro  = t('forms.required_field');
+    if (!values.license_plate?.trim())   e.license_plate   = t('forms.required_field');
+    if (!values.defecto)                 e.defecto         = t('forms.required_field');
     if (!values.actividad_realizar?.trim()) e.actividad_realizar = t('forms.required_field');
-    if (!values.origen_hallazgo) e.origen_hallazgo = t('forms.required_field');
-    if (!values.inspector?.trim()) e.inspector = t('forms.required_field');
-
-    if (!values.firma_digital) {
-      setShowSigError(true);
-      e.firma = t('rechazos_internos.form.firma_requerida');
-    }
-
+    if (!values.origen_hallazgo)         e.origen_hallazgo = t('forms.required_field');
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -288,16 +205,12 @@ export default function RiForm({
     if (e.target === e.currentTarget) onCancel();
   }
 
-  // ── COPQ section values ───────────────────────────────────────────────────
-
   const copqValues: CopqValues = {
     defecto:            values.defecto,
     actividad_realizar: values.actividad_realizar,
     costo_no_calidad:   values.costo_no_calidad,
     manual_override:    values.manual_override,
   };
-
-  const canSubmit = !submitting;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -309,10 +222,8 @@ export default function RiForm({
       className="fixed inset-0 z-[800] flex items-center justify-center p-4"
       onClick={handleOverlayClick}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
+      <div className="fixed inset-0" style={{ background: 'rgba(0,0,0,0.5)' }} aria-hidden="true" />
 
-      {/* Dialog panel */}
       <div
         className="relative z-10 w-full overflow-y-auto"
         style={{ maxWidth: 680, maxHeight: '92vh', background: '#fff', border: '1px solid #e2e2e2' }}
@@ -324,11 +235,10 @@ export default function RiForm({
           style={{ padding: '16px 24px', borderBottom: '2px solid #0d2b4e', background: '#fff' }}
         >
           <h2 id="ri-form-title" className="modal-titulo" style={{ margin: 0, border: 'none', paddingBottom: 0 }}>
-            {isEditing
-              ? `${t('rechazos_internos.title')} #${data?.id ?? ''} — Editar`
-              : t('rechazos_internos.add')}
+            {isEditing ? `Rechazo Interno #${data?.id ?? ''} — Editar` : 'Nuevo Rechazo Interno'}
           </h2>
           <button
+            type="button"
             onClick={onCancel}
             style={{ background: 'none', border: 'none', fontSize: 18, color: '#777', cursor: 'pointer', padding: '2px 6px' }}
             aria-label={t('common.cancel')}
@@ -341,177 +251,153 @@ export default function RiForm({
         <form onSubmit={handleSubmit} noValidate>
           <div style={{ padding: '20px 24px' }}>
 
-            {/* ── Section 1: Información Básica ── */}
-            <div style={{ marginBottom: 24 }}>
-              <SectionTitle num={1} label="Información Básica" />
+            {/* ── Main field grid ── */}
+            <div className="form-grid" style={{ marginBottom: 16 }}>
 
-              {/* Fecha + License Plate */}
-              <div className="form-grid" style={{ marginBottom: 12 }}>
-                <div>
-                  <label htmlFor="ri-fecha">
-                    {t('rechazos_internos.form.fecha_registro')}
-                    <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                  </label>
-                  <input
-                    ref={firstInputRef}
-                    id="ri-fecha"
-                    type="date"
-                    value={values.fecha_registro}
-                    onChange={(e) => set('fecha_registro', e.target.value)}
-                    required
-                    style={errors.fecha_registro ? { borderColor: '#c0392b' } : undefined}
-                  />
-                  {errors.fecha_registro && <span className="form-error">{errors.fecha_registro}</span>}
-                </div>
-
-                <div>
-                  <label htmlFor="ri-lp">
-                    {t('rechazos_internos.form.license_plate')}
-                    <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                  </label>
-                  <input
-                    id="ri-lp"
-                    type="text"
-                    value={values.license_plate}
-                    onChange={(e) => set('license_plate', e.target.value.toUpperCase())}
-                    placeholder="Ej. MT123456"
-                    style={errors.license_plate ? { borderColor: '#c0392b' } : undefined}
-                  />
-                  {errors.license_plate && <span className="form-error">{errors.license_plate}</span>}
-                </div>
+              {/* Fecha */}
+              <div>
+                <label htmlFor="ri-fecha">
+                  Fecha de Registro <span style={{ color: '#c0392b' }}>*</span>
+                </label>
+                <input
+                  ref={firstInputRef}
+                  id="ri-fecha"
+                  type="date"
+                  value={values.fecha_registro}
+                  onChange={(e) => set('fecha_registro', e.target.value)}
+                  required
+                  style={errors.fecha_registro ? { borderColor: '#c0392b' } : undefined}
+                />
+                {errors.fecha_registro && <span className="form-error">{errors.fecha_registro}</span>}
               </div>
 
-              {/* SKU Autocomplete */}
-              <div style={{ marginBottom: 12 }}>
-                <label htmlFor="ri-sku">{t('rechazos_internos.form.sku')}</label>
+              {/* License Plate */}
+              <div>
+                <label htmlFor="ri-lp">
+                  License Plate <span style={{ color: '#c0392b' }}>*</span>
+                </label>
+                <input
+                  id="ri-lp"
+                  type="text"
+                  value={values.license_plate}
+                  onChange={(e) => set('license_plate', e.target.value.toUpperCase())}
+                  placeholder="Ej. MT123456"
+                  style={errors.license_plate ? { borderColor: '#c0392b' } : undefined}
+                />
+                {errors.license_plate && <span className="form-error">{errors.license_plate}</span>}
+              </div>
+
+              {/* SKU */}
+              <div>
+                <label htmlFor="ri-sku">SKU</label>
                 <SkuAutocomplete
                   value={values.sku}
                   onChange={(text) => set('sku', text)}
                   onSelect={handleSkuSelect}
-                  placeholder={t('sku.search')}
+                  placeholder="Código de producto"
                 />
-                <p style={{ marginTop: 4, fontSize: 12, color: '#aaa' }}>
-                  Seleccione para auto-llenar Marca, Modelo, Pulgada y Descripción
-                </p>
               </div>
 
-              {/* Cascaded SKU fields (read-only) */}
-              <div className="form-grid" style={{ marginBottom: 12 }}>
-                {[
-                  { field: 'marca' as const,   label: t('rechazos_internos.form.marca') },
-                  { field: 'modelo' as const,   label: t('rechazos_internos.form.modelo') },
-                  { field: 'pulgada' as const,  label: t('rechazos_internos.form.pulgada') },
-                ].map(({ field, label }) => (
-                  <div key={field}>
-                    <label>{label}</label>
-                    <input
-                      type="text"
-                      value={values[field]}
-                      readOnly
-                      style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* Descripcion (full width) */}
-              {values.descripcion && (
-                <div>
-                  <label>{t('rechazos_internos.form.descripcion')}</label>
-                  <input
-                    type="text"
-                    value={values.descripcion}
-                    readOnly
-                    style={{ background: '#f4f6f9', color: '#777', cursor: 'not-allowed' }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* ── Section 2: Defecto & COPQ ── */}
-            <div style={{ marginBottom: 24 }}>
-              <SectionTitle num={2} label="Defecto & COPQ" />
-              <CopqSection
-                values={copqValues}
-                onChange={handleCopqChange}
-                errors={{
-                  defecto:            errors.defecto,
-                  actividad_realizar: errors.actividad_realizar,
-                  costo_no_calidad:   errors.costo_no_calidad,
-                }}
-              />
-            </div>
-
-            {/* ── Section 3: Información Adicional ── */}
-            <div style={{ marginBottom: 24 }}>
-              <SectionTitle num={3} label="Información Adicional" />
-
-              <div className="form-grid" style={{ marginBottom: 12 }}>
-                {/* Origen Hallazgo */}
-                <div>
-                  <label htmlFor="ri-origen">
-                    {t('rechazos_internos.form.origen_hallazgo')}
-                    <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                  </label>
-                  <select
-                    id="ri-origen"
-                    value={values.origen_hallazgo}
-                    onChange={(e) => set('origen_hallazgo', e.target.value)}
-                    style={errors.origen_hallazgo ? { borderColor: '#c0392b' } : undefined}
-                  >
-                    <option value="">— Seleccionar —</option>
-                    {ORIGENES.map((o) => (
-                      <option key={o} value={o}>{o}</option>
-                    ))}
-                  </select>
-                  {errors.origen_hallazgo && <span className="form-error">{errors.origen_hallazgo}</span>}
-                </div>
-
-                {/* Inspector */}
-                <div>
-                  <label htmlFor="ri-inspector">
-                    {t('rechazos_internos.form.inspector')}
-                    <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-                  </label>
-                  <select
-                    id="ri-inspector"
-                    value={values.inspector}
-                    onChange={(e) => set('inspector', e.target.value)}
-                    style={errors.inspector ? { borderColor: '#c0392b' } : undefined}
-                  >
-                    <option value="">— Seleccionar Inspector —</option>
-                    {inspectors.map((p) => (
-                      <option key={p.id} value={p.nombre_completo}>
-                        {p.nombre_completo} — {p.puesto}
-                      </option>
-                    ))}
-                    {/* Allow manual entry if not in org chart */}
-                    {values.inspector && !inspectors.find((p) => p.nombre_completo === values.inspector) && (
-                      <option value={values.inspector}>{values.inspector}</option>
-                    )}
-                  </select>
-                  {errors.inspector && <span className="form-error">{errors.inspector}</span>}
-                </div>
-              </div>
-
-              {/* Observaciones */}
+              {/* Marca */}
               <div>
-                <label htmlFor="ri-obs">{t('rechazos_internos.form.observaciones')}</label>
-                <textarea
-                  id="ri-obs"
-                  rows={3}
-                  value={values.observaciones}
-                  onChange={(e) => set('observaciones', e.target.value)}
-                  placeholder="Notas adicionales sobre el rechazo…"
+                <label htmlFor="ri-marca">Marca</label>
+                <input
+                  id="ri-marca"
+                  type="text"
+                  value={values.marca}
+                  onChange={(e) => set('marca', e.target.value)}
+                  placeholder="Ej. Samsung"
                 />
               </div>
+
+              {/* Modelo */}
+              <div>
+                <label htmlFor="ri-modelo">Modelo</label>
+                <input
+                  id="ri-modelo"
+                  type="text"
+                  value={values.modelo}
+                  onChange={(e) => set('modelo', e.target.value)}
+                  placeholder="Ej. UN55TU8000"
+                />
+              </div>
+
+              {/* Pulgada */}
+              <div>
+                <label htmlFor="ri-pulgada">Pulgada</label>
+                <input
+                  id="ri-pulgada"
+                  type="text"
+                  value={values.pulgada}
+                  onChange={(e) => set('pulgada', e.target.value)}
+                  placeholder='Ej. 55"'
+                />
+              </div>
+
+              {/* Descripción — full width textarea */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label htmlFor="ri-desc">Descripción</label>
+                <textarea
+                  id="ri-desc"
+                  rows={2}
+                  value={values.descripcion}
+                  onChange={(e) => set('descripcion', e.target.value)}
+                  placeholder="Observaciones del producto"
+                />
+              </div>
+
             </div>
 
-            {/* ── Section 4: Fotos ── */}
-            <div style={{ marginBottom: 24 }}>
-              <SectionTitle num={4} label={t('rechazos_internos.form.fotos')} />
+            {/* ── Defecto & COPQ ── */}
+            <CopqSection
+              values={copqValues}
+              onChange={handleCopqChange}
+              errors={{
+                defecto:            errors.defecto,
+                actividad_realizar: errors.actividad_realizar,
+                costo_no_calidad:   errors.costo_no_calidad,
+              }}
+            />
 
-              {/* Existing photos in edit mode */}
+            {/* ── Origen + Inspector ── */}
+            <div className="form-grid" style={{ marginTop: 16 }}>
+
+              <div>
+                <label htmlFor="ri-origen">
+                  Origen de Hallazgo <span style={{ color: '#c0392b' }}>*</span>
+                </label>
+                <select
+                  id="ri-origen"
+                  value={values.origen_hallazgo}
+                  onChange={(e) => set('origen_hallazgo', e.target.value)}
+                  style={errors.origen_hallazgo ? { borderColor: '#c0392b' } : undefined}
+                >
+                  <option value="">— Seleccionar —</option>
+                  {ORIGENES.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+                {errors.origen_hallazgo && <span className="form-error">{errors.origen_hallazgo}</span>}
+              </div>
+
+              <div>
+                <label htmlFor="ri-inspector">Inspector</label>
+                <input
+                  id="ri-inspector"
+                  type="text"
+                  value={values.inspector}
+                  readOnly
+                  style={{ background: '#f4f6f9', color: '#777', cursor: 'default' }}
+                />
+                {errors.inspector && <span className="form-error">{errors.inspector}</span>}
+              </div>
+
+            </div>
+
+            {/* ── Fotos ── */}
+            <div style={{ marginTop: 20 }}>
+              <div className="seccion-titulo" style={{ marginBottom: 10 }}>Fotos del Producto</div>
+
               {isEditing && data?.images && data.images.length > 0 && (
                 <div style={{ marginBottom: 12 }}>
                   <p style={{ fontSize: 12, color: '#777', marginBottom: 8 }}>
@@ -530,7 +416,6 @@ export default function RiForm({
                 </div>
               )}
 
-              {/* New file upload */}
               <ImageUpload
                 onFilesSelect={handleFilesSelect}
                 maxFiles={5}
@@ -538,16 +423,17 @@ export default function RiForm({
               />
             </div>
 
-            {/* ── Section 5: Firma Digital ── */}
-            <div style={{ marginBottom: 8 }}>
-              <SectionTitle num={5} label={t('rechazos_internos.form.firma_digital')} danger />
-
+            {/* ── Firma ── */}
+            <div style={{ marginTop: 20, marginBottom: 8 }}>
+              <div className="seccion-titulo" style={{ marginBottom: 8 }}>Firma de Recibido</div>
+              <p style={{ fontSize: 11, color: '#777', marginBottom: 6 }}>
+                Firma del responsable de recibir el reproceso
+              </p>
               <SignatureCaptureSection
                 signature={values.firma_digital}
                 onSignature={handleSignature}
                 showError={showSigError}
               />
-
               {errors.firma && (
                 <span className="form-error" style={{ marginTop: 6 }}>{errors.firma}</span>
               )}
@@ -560,11 +446,10 @@ export default function RiForm({
             className="sticky bottom-0 z-10 flex items-center justify-between"
             style={{ gap: 12, padding: '14px 24px', borderTop: '1px solid #e2e2e2', background: '#fff' }}
           >
-            {/* Signature status */}
             <div style={{ fontSize: 12, color: '#777' }}>
               {values.firma_digital
                 ? <span style={{ color: '#2e7d32', fontWeight: 700 }}>Firma capturada</span>
-                : <span style={{ color: '#c0392b' }}>Firma requerida para guardar</span>
+                : <span style={{ color: '#aaa' }}>Sin firma (opcional)</span>
               }
             </div>
             <div className="btn-grupo">
@@ -579,9 +464,9 @@ export default function RiForm({
               </button>
               <button
                 type="submit"
-                disabled={!canSubmit}
+                disabled={submitting}
                 className="btn btn-primario"
-                style={!canSubmit ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                style={submitting ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
               >
                 {submitting && (
                   <span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 6 }} />

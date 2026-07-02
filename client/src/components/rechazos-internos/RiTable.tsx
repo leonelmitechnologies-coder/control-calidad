@@ -26,37 +26,6 @@ interface RiTableProps {
   isLoading?: boolean;
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function SignatureBadge({ signed }: { signed: boolean }) {
-  if (signed) {
-    return (
-      <span className="badge badge-aprobado inline-flex items-center gap-1">
-        <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
-        Sí
-      </span>
-    );
-  }
-  return (
-    <span className="badge badge-rechazada inline-flex items-center gap-1">
-      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-      </svg>
-      No
-    </span>
-  );
-}
-
-function EstatusBadge({ estatus }: { estatus: string }) {
-  const isOpen = estatus === 'Abierto';
-  return (
-    <span className={isOpen ? 'badge badge-abierta' : 'badge badge-cerrada'}>
-      {estatus}
-    </span>
-  );
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -84,7 +53,7 @@ export default function RiTable({
         <table className="tabla">
           <thead>
             <tr>
-              {Array.from({ length: 13 }).map((_, i) => (
+              {Array.from({ length: 11 }).map((_, i) => (
                 <th key={i}>
                   <div className="h-3 w-16 animate-pulse" style={{ background: '#d0d0d0' }} />
                 </th>
@@ -94,7 +63,7 @@ export default function RiTable({
           <tbody>
             {Array.from({ length: 5 }).map((_, i) => (
               <tr key={i} className="animate-pulse">
-                {Array.from({ length: 13 }).map((_, j) => (
+                {Array.from({ length: 11 }).map((_, j) => (
                   <td key={j}>
                     <div className="h-3 w-20 animate-pulse" style={{ background: '#e8e8e8' }} />
                   </td>
@@ -142,8 +111,6 @@ export default function RiTable({
               <th className="whitespace-nowrap">{t('rechazos_internos.table.origen')}</th>
               <th className="whitespace-nowrap">{t('rechazos_internos.table.inspector')}</th>
               <th className="centrado whitespace-nowrap">{t('rechazos_internos.table.fotos')}</th>
-              <th className="centrado whitespace-nowrap">{t('rechazos_internos.table.firma')}</th>
-              <th className="whitespace-nowrap">{t('rechazos_internos.table.status')}</th>
               <th className="whitespace-nowrap">Acciones</th>
             </tr>
           </thead>
@@ -151,7 +118,6 @@ export default function RiTable({
           {/* Body */}
           <tbody>
             {data.map((ri, idx) => {
-              const isSigned = !!(ri.firma_digital || ri.firma_filename);
               const imgCount = typeof ri.cnt_images === 'number' ? ri.cnt_images : (ri.images?.length ?? 0);
 
               return (
@@ -222,16 +188,6 @@ export default function RiTable({
                     ) : (
                       <span style={{ color: '#bbb', fontSize: 11 }}>—</span>
                     )}
-                  </td>
-
-                  {/* Firma badge */}
-                  <td className="centrado whitespace-nowrap">
-                    <SignatureBadge signed={isSigned} />
-                  </td>
-
-                  {/* Estatus */}
-                  <td className="whitespace-nowrap">
-                    <EstatusBadge estatus={ri.estatus ?? 'Abierto'} />
                   </td>
 
                   {/* Actions */}

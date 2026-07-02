@@ -31,9 +31,7 @@ interface SkuAutocompleteProps {
   disabled?: boolean;
 }
 
-interface SkuApiResponse {
-  data: SkuRecord[];
-}
+type SkuApiResponse = SkuRecord[] | { data: SkuRecord[] };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -77,7 +75,7 @@ export default function SkuAutocomplete({
     setLoading(true);
     try {
       const res = await apiGet<SkuApiResponse>('/api/catalogo-sku', { q: trimmed });
-      const rows = (res?.data ?? []).slice(0, 10);
+      const rows = (Array.isArray(res) ? res : (res?.data ?? [])).slice(0, 25);
       cache.current.set(trimmed, rows);
       setResults(rows);
       setOpen(true);
@@ -211,7 +209,7 @@ export default function SkuAutocomplete({
             background: '#fff',
             border: '1px solid #e2e2e2',
             borderTop: 'none',
-            maxHeight: 200,
+            maxHeight: 260,
             overflowY: 'auto',
             margin: 0,
             padding: 0,
@@ -223,6 +221,7 @@ export default function SkuAutocomplete({
         >
           {results.length === 0 ? (
             <li
+              key="no-results"
               style={{
                 padding: '8px 12px',
                 fontSize: 13,
@@ -236,7 +235,7 @@ export default function SkuAutocomplete({
           ) : (
             results.map((record, idx) => (
               <li
-                key={record.id}
+                key={record.sku}
                 role="option"
                 aria-selected={idx === focusIdx}
                 onMouseDown={(e) => {

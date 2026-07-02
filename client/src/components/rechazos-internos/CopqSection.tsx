@@ -110,7 +110,6 @@ export default function CopqSection({
   }
 
   const isLocked = !values.manual_override;
-  const mappingEntry = getCopqMapping(values.defecto);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -140,39 +139,12 @@ export default function CopqSection({
         {errors.defecto && <span className="form-error">{errors.defecto}</span>}
       </div>
 
-      {/* COPQ Mapping info — only shown when a defecto is selected */}
-      {mappingEntry && (
-        <div style={{ background: '#f4f6f9', border: '1px solid #0d2b4e', padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>
-          <p style={{ fontWeight: 700, color: '#0d2b4e', marginBottom: 4, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {t('rechazos_internos.copq.auto_filled')}
-          </p>
-          <p style={{ color: '#111', margin: 0 }}>
-            <strong>{t('rechazos_internos.form.defecto')}:</strong>{' '}
-            {values.defecto}
-            {' → '}
-            <strong>{t('rechazos_internos.form.actividad_realizar')}:</strong>{' '}
-            {mappingEntry.actividad}
-            {' → '}
-            <strong style={{ color: '#0d2b4e' }}>{formatCurrency(mappingEntry.costo)}</strong>
-          </p>
-          {values.manual_override && (
-            <span style={{ display: 'inline-block', marginTop: 6, background: '#fff3cd', border: '1px solid #ffc107', padding: '2px 8px', fontSize: 11, fontWeight: 700, color: '#856404' }}>
-              {t('rechazos_internos.copq.manual_mode')}
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Actividad Realizar */}
       <div style={{ marginBottom: 12 }}>
         <label>
           {t('rechazos_internos.form.actividad_realizar')}
           <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-          {isLocked && mappingEntry && (
-            <span style={{ fontStyle: 'italic', fontWeight: 400, color: '#aaa', marginLeft: 6 }}>
-              ({t('rechazos_internos.copq.auto_filled')})
-            </span>
-          )}
         </label>
         <textarea
           id="ri-actividad"
@@ -194,11 +166,6 @@ export default function CopqSection({
         <label>
           {t('rechazos_internos.form.costo_no_calidad')}
           <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
-          {isLocked && mappingEntry && (
-            <span style={{ fontStyle: 'italic', fontWeight: 400, color: '#aaa', marginLeft: 6 }}>
-              ({t('rechazos_internos.copq.auto_filled')})
-            </span>
-          )}
         </label>
         <div style={{ position: 'relative' }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: 13 }}>

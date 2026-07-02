@@ -6,6 +6,12 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
+import fs from "node:fs";
+import path from "node:path";
+
+// Use local disk when S3 credentials are not configured
+const USE_LOCAL = !process.env.AWS_ENDPOINT_URL_S3 || !process.env.AWS_ACCESS_KEY_ID;
+const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 
 /**
  * Initialize S3 client for MinIO
@@ -39,7 +45,7 @@ function generateFilename(
 }
 
 /**
- * Upload a file to S3/MinIO
+ * Upload a file to S3/MinIO, or local disk if S3 is not configured.
  */
 export async function uploadFileToS3(
   fileBuffer: Buffer,
@@ -47,10 +53,17 @@ export async function uploadFileToS3(
   folder: string,
   prefix?: string
 ): Promise<string> {
-  try {
-    const filename = generateFilename(originalName, prefix);
-    const key = `${folder}/${filename}`;
+  const filename = generateFilename(originalName, prefix);
 
+  if (USE_LOCAL) {
+    const dir = path.join(LOCAL_UPLOADS_DIR, folder);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, filename), fileBuffer);
+    return `/uploads/${folder}/${filename}`;
+  }
+
+  try {
+    const key = `${folder}/${filename}`;
     await s3Client.send(
       new PutObjectCommand({
         Bucket: BUCKET_NAME,
@@ -59,8 +72,6 @@ export async function uploadFileToS3(
         ContentType: "image/*",
       })
     );
-
-    // Return the public URL
     return `${PUBLIC_URL}/${BUCKET_NAME}/${key}`;
   } catch (error) {
     console.error("[S3] Upload error:", error);
@@ -69,37 +80,21 @@ export async function uploadFileToS3(
 }
 
 /**
- * Upload multiple files to S3/MinIO
+ * Upload multiple files to S3/MinIO, or local disk if S3 is not configured.
  */
 export async function uploadFilesToS3(
   files: Array<{ buffer: Buffer; originalname: string }>,
   folder: string,
   prefix?: string
 ): Promise<string[]> {
-  try {
-    const urls: string[] = [];
+  const urls: string[] = [];
 
-    for (const file of files) {
-      const filename = generateFilename(file.originalname, prefix);
-      const key = `${folder}/${filename}`;
-
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: key,
-          Body: file.buffer,
-          ContentType: "image/*",
-        })
-      );
-
-      urls.push(`${PUBLIC_URL}/${BUCKET_NAME}/${key}`);
-    }
-
-    return urls;
-  } catch (error) {
-    console.error("[S3] Batch upload error:", error);
-    throw error;
+  for (const file of files) {
+    const url = await uploadFileToS3(file.buffer, file.originalname, folder, prefix);
+    urls.push(url);
   }
+
+  return urls;
 }
 
 /**
@@ -150,6 +145,16 @@ export async function getPresignedUrl(
     console.error("[S3] Presigned URL error:", error);
     throw error;
   }
+}
+
+/**
+ * Build a public URL for a stored file (works for both local and S3).
+ */
+export function getFileUrl(folder: string, filename: string): string {
+  if (USE_LOCAL) {
+    return `/uploads/${folder}/${filename}`;
+  }
+  return `${PUBLIC_URL}/${BUCKET_NAME}/${folder}/${filename}`;
 }
 
 /**
