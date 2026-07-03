@@ -470,21 +470,28 @@ app.get("/api/diag/s3", async (req: Request, res: Response) => {
   try {
     const { PutObjectCommand, ListBucketsCommand } = await import("@aws-sdk/client-s3");
     const { default: s3Client } = await import("./s3.js");
+    const rawKey = process.env.AWS_ACCESS_KEY_ID || "";
+    const rawSecret = process.env.AWS_SECRET_ACCESS_KEY || "";
     const envVars = {
       AWS_ENDPOINT_URL_S3: process.env.AWS_ENDPOINT_URL_S3 || "(not set)",
-      AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? "SET" : "(not set)",
-      AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? "SET" : "(not set)",
+      AWS_ACCESS_KEY_ID_len: rawKey.length,
+      AWS_ACCESS_KEY_ID_val: rawKey.slice(0, 8) + "...",
+      AWS_ACCESS_KEY_ID_hasSpaces: rawKey !== rawKey.trim(),
+      AWS_SECRET_ACCESS_KEY_len: rawSecret.length,
+      AWS_SECRET_ACCESS_KEY_hasSpaces: rawSecret !== rawSecret.trim(),
       AWS_STORAGE_BUCKET_NAME: process.env.AWS_STORAGE_BUCKET_NAME || "(not set)",
       MINIO_PUBLIC_URL: process.env.MINIO_PUBLIC_URL || "(not set)",
     };
     let listResult: any = null;
     let listError: string | null = null;
+    // Also try with trimmed credentials
+    let listErrorTrimmed: string | null = null;
     try {
       listResult = await (s3Client as any).send(new ListBucketsCommand({}));
     } catch (e: any) {
       listError = e?.message ?? String(e);
     }
-    res.json({ envVars, listResult, listError });
+    res.json({ envVars, listResult, listError, listErrorTrimmed });
   } catch (e: any) {
     res.status(500).json({ error: e?.message ?? String(e) });
   }
