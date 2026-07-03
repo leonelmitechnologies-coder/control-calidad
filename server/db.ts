@@ -178,6 +178,14 @@ export async function initDB() {
     `);
     await pool.query(`ALTER TABLE ri_images ADD COLUMN IF NOT EXISTS url VARCHAR(500)`);
     await pool.query(`ALTER TABLE ri_images ADD COLUMN IF NOT EXISTS data_b64 TEXT`);
+    await pool.query(`ALTER TABLE re_images ADD COLUMN IF NOT EXISTS url VARCHAR(500)`);
+    await pool.query(`ALTER TABLE re_images ADD COLUMN IF NOT EXISTS data_b64 TEXT`);
+    await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_url VARCHAR(500)`);
+    await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_data_b64 TEXT`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_url VARCHAR(500)`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_data_b64 TEXT`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_url VARCHAR(500)`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_data_b64 TEXT`);
 
     // Create catalogo_sku table
     await pool.query(`

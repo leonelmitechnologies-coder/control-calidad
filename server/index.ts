@@ -663,7 +663,10 @@ app.get("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
       ...reMain[0],
       problem_descriptions: problemDescriptions,
       corrective_actions: correctiveActions,
-      images,
+      images: images.map((img) => ({
+        ...img,
+        url: img.url || s3.getFileUrl("rechazos-externos", img.filename),
+      })),
     });
   } catch (err) {
     console.error("[API] GET /api/rechazos-externos/:id error:", err);
@@ -866,23 +869,34 @@ app.post(
       const uploadedUrls: string[] = [];
 
       for (const file of files) {
-        const url = await s3.uploadFileToS3(
-          file.buffer,
-          file.originalname,
-          "rechazos-externos",
-          `re-${reId}`
-        );
+        let finalUrl: string;
+        let dataB64: string | null = null;
+        let filename: string;
 
-        // Extract filename from URL
-        const filename = url.split("/").pop() || file.originalname;
+        try {
+          const s3Url = await s3.uploadToS3Only(file.buffer, file.originalname, "rechazos-externos", `re-${reId}`);
+          filename = s3Url.split("/").pop() || file.originalname;
+          finalUrl = s3Url;
+        } catch (_s3Err) {
+          const ext = file.originalname.split(".").pop() || "jpg";
+          filename = `re-${reId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          dataB64 = file.buffer.toString("base64");
+          finalUrl = "db:pending";
+        }
 
-        // Store in database
-        await db.insert(schema.reImages).values({
+        const inserted = await db.insert(schema.reImages).values({
           rechazoId: reId,
           filename,
-        });
+          url: finalUrl === "db:pending" ? "/api/re/image/0" : finalUrl,
+          dataB64,
+        }).returning({ id: schema.reImages.id });
 
-        uploadedUrls.push(url);
+        if (finalUrl === "db:pending" && inserted[0]) {
+          finalUrl = `/api/re/image/${inserted[0].id}`;
+          await db.update(schema.reImages).set({ url: finalUrl }).where(eq(schema.reImages.id, inserted[0].id));
+        }
+
+        uploadedUrls.push(finalUrl);
       }
 
       res.json({ images: uploadedUrls });
@@ -892,6 +906,24 @@ app.post(
     }
   }
 );
+
+// GET /api/re/image/:imgId — serve RE image stored in DB
+app.get("/api/re/image/:imgId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const [img] = await db
+      .select({ filename: schema.reImages.filename, dataB64: schema.reImages.dataB64 })
+      .from(schema.reImages)
+      .where(eq(schema.reImages.id, parseInt(req.params.imgId)));
+    if (!img || !img.dataB64) return res.status(404).json({ error: "Image not found" });
+    const ext = (img.filename.split(".").pop() || "jpg").toLowerCase();
+    const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Cache-Control", "private, max-age=86400");
+    res.send(Buffer.from(img.dataB64, "base64"));
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // DELETE /api/rechazos-externos/:id/images/:imageId - Delete image
 app.delete(
@@ -1043,8 +1075,10 @@ app.get("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: Res
       return res.status(404).json({ error: "Rechazo no encontrado" });
     }
 
+    const ri = riMain[0];
     res.json({
-      ...riMain[0],
+      ...ri,
+      firma_url: ri.firmaUrl || (ri.firmaFilename ? s3.getFileUrl("rechazos-internos", ri.firmaFilename) : null),
       images: images.map((img) => ({
         ...img,
         url: img.url || s3.getFileUrl("rechazos-internos", img.filename),
@@ -1240,28 +1274,51 @@ app.post(
       }
 
       // Upload new firma
-      const url = await s3.uploadFileToS3(
-        file.buffer,
-        file.originalname,
-        "rechazos-internos",
-        `firma-${riId}`
-      );
+      let firmaUrl: string;
+      let firmaDataB64: string | null = null;
+      let firmaFilename: string;
 
-      const filename = url.split("/").pop() || file.originalname;
+      try {
+        const s3Url = await s3.uploadToS3Only(file.buffer, file.originalname, "rechazos-internos", `firma-${riId}`);
+        firmaFilename = s3Url.split("/").pop() || file.originalname;
+        firmaUrl = s3Url;
+      } catch (_s3Err) {
+        const ext = file.originalname.split(".").pop() || "jpg";
+        firmaFilename = `firma-${riId}-${Date.now()}.${ext}`;
+        firmaDataB64 = file.buffer.toString("base64");
+        firmaUrl = `/api/ri/firma-image/${riId}`;
+      }
 
-      // Update database
       await db
         .update(schema.rechazosInternos)
-        .set({ firmaFilename: filename })
+        .set({ firmaFilename, firmaUrl, firmaDataB64 })
         .where(eq(schema.rechazosInternos.id, riId));
 
-      res.json({ firma: url });
+      res.json({ firma: firmaUrl });
     } catch (err) {
       console.error("[API] POST /api/rechazos-internos/:id/firma error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   }
 );
+
+// GET /api/ri/firma-image/:riId — serve RI signature stored in DB
+app.get("/api/ri/firma-image/:riId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const [ri] = await db
+      .select({ firmaFilename: schema.rechazosInternos.firmaFilename, firmaDataB64: schema.rechazosInternos.firmaDataB64 })
+      .from(schema.rechazosInternos)
+      .where(eq(schema.rechazosInternos.id, parseInt(req.params.riId)));
+    if (!ri || !ri.firmaDataB64) return res.status(404).json({ error: "Firma not found" });
+    const ext = (ri.firmaFilename.split(".").pop() || "jpg").toLowerCase();
+    const mime = ext === "png" ? "image/png" : "image/jpeg";
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Cache-Control", "private, max-age=86400");
+    res.send(Buffer.from(ri.firmaDataB64, "base64"));
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // GET /api/ri/image/:imgId — serve image stored in DB (base64 column)
 app.get("/api/ri/image/:imgId", requireAuth, async (req: Request, res: Response) => {
@@ -1400,7 +1457,12 @@ app.get("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Registro no encontrado" });
     }
 
-    res.json(result[0]);
+    const aql = result[0];
+    res.json({
+      ...aql,
+      foto_lpn_url: aql.fotoLpnUrl || (aql.fotoLpnFilename ? s3.getFileUrl("aql", aql.fotoLpnFilename) : null),
+      foto_pantalla_url: aql.fotoPantallaUrl || (aql.fotoPantallaFilename ? s3.getFileUrl("aql", aql.fotoPantallaFilename) : null),
+    });
   } catch (err) {
     console.error("[API] GET /api/aql/:id error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -1566,21 +1628,27 @@ app.post(
         await s3.deleteFileFromS3(`aql/${current[0].fotoLpnFilename}`);
       }
 
-      const url = await s3.uploadFileToS3(
-        file.buffer,
-        file.originalname,
-        "aql",
-        `lpn-${aqlId}`
-      );
+      let fotoLpnUrl: string;
+      let fotoLpnDataB64: string | null = null;
+      let fotoLpnFilename: string;
 
-      const filename = url.split("/").pop() || file.originalname;
+      try {
+        const s3Url = await s3.uploadToS3Only(file.buffer, file.originalname, "aql", `lpn-${aqlId}`);
+        fotoLpnFilename = s3Url.split("/").pop() || file.originalname;
+        fotoLpnUrl = s3Url;
+      } catch (_s3Err) {
+        const ext = file.originalname.split(".").pop() || "jpg";
+        fotoLpnFilename = `lpn-${aqlId}-${Date.now()}.${ext}`;
+        fotoLpnDataB64 = file.buffer.toString("base64");
+        fotoLpnUrl = `/api/aql/image/lpn/${aqlId}`;
+      }
 
       await db
         .update(schema.aqlRegistros)
-        .set({ fotoLpnFilename: filename })
+        .set({ fotoLpnFilename, fotoLpnUrl, fotoLpnDataB64 })
         .where(eq(schema.aqlRegistros.id, aqlId));
 
-      res.json({ foto_lpn: url });
+      res.json({ foto_lpn: fotoLpnUrl });
     } catch (err) {
       console.error("[API] POST /api/aql/:id/foto-lpn error:", err);
       res.status(500).json({ error: "Internal server error" });
@@ -1613,27 +1681,69 @@ app.post(
         await s3.deleteFileFromS3(`aql/${current[0].fotoPantallaFilename}`);
       }
 
-      const url = await s3.uploadFileToS3(
-        file.buffer,
-        file.originalname,
-        "aql",
-        `pantalla-${aqlId}`
-      );
+      let fotoPantallaUrl: string;
+      let fotoPantallaDataB64: string | null = null;
+      let fotoPantallaFilename: string;
 
-      const filename = url.split("/").pop() || file.originalname;
+      try {
+        const s3Url = await s3.uploadToS3Only(file.buffer, file.originalname, "aql", `pantalla-${aqlId}`);
+        fotoPantallaFilename = s3Url.split("/").pop() || file.originalname;
+        fotoPantallaUrl = s3Url;
+      } catch (_s3Err) {
+        const ext = file.originalname.split(".").pop() || "jpg";
+        fotoPantallaFilename = `pantalla-${aqlId}-${Date.now()}.${ext}`;
+        fotoPantallaDataB64 = file.buffer.toString("base64");
+        fotoPantallaUrl = `/api/aql/image/pantalla/${aqlId}`;
+      }
 
       await db
         .update(schema.aqlRegistros)
-        .set({ fotoPantallaFilename: filename })
+        .set({ fotoPantallaFilename, fotoPantallaUrl, fotoPantallaDataB64 })
         .where(eq(schema.aqlRegistros.id, aqlId));
 
-      res.json({ foto_pantalla: url });
+      res.json({ foto_pantalla: fotoPantallaUrl });
     } catch (err) {
       console.error("[API] POST /api/aql/:id/foto-pantalla error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   }
 );
+
+// GET /api/aql/image/lpn/:aqlId — serve LPN photo stored in DB
+app.get("/api/aql/image/lpn/:aqlId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const [aql] = await db
+      .select({ fotoLpnFilename: schema.aqlRegistros.fotoLpnFilename, fotoLpnDataB64: schema.aqlRegistros.fotoLpnDataB64 })
+      .from(schema.aqlRegistros)
+      .where(eq(schema.aqlRegistros.id, parseInt(req.params.aqlId)));
+    if (!aql || !aql.fotoLpnDataB64) return res.status(404).json({ error: "Image not found" });
+    const ext = (aql.fotoLpnFilename.split(".").pop() || "jpg").toLowerCase();
+    const mime = ext === "png" ? "image/png" : "image/jpeg";
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Cache-Control", "private, max-age=86400");
+    res.send(Buffer.from(aql.fotoLpnDataB64, "base64"));
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/aql/image/pantalla/:aqlId — serve screen photo stored in DB
+app.get("/api/aql/image/pantalla/:aqlId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const [aql] = await db
+      .select({ fotoPantallaFilename: schema.aqlRegistros.fotoPantallaFilename, fotoPantallaDataB64: schema.aqlRegistros.fotoPantallaDataB64 })
+      .from(schema.aqlRegistros)
+      .where(eq(schema.aqlRegistros.id, parseInt(req.params.aqlId)));
+    if (!aql || !aql.fotoPantallaDataB64) return res.status(404).json({ error: "Image not found" });
+    const ext = (aql.fotoPantallaFilename.split(".").pop() || "jpg").toLowerCase();
+    const mime = ext === "png" ? "image/png" : "image/jpeg";
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Cache-Control", "private, max-age=86400");
+    res.send(Buffer.from(aql.fotoPantallaDataB64, "base64"));
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // DELETE /api/aql/:id - Delete AQL record
 app.delete("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
