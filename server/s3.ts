@@ -19,6 +19,7 @@ const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 const s3Client = new S3Client({
   region: process.env.AWS_DEFAULT_REGION || "us-east-1",
   endpoint: process.env.AWS_ENDPOINT_URL_S3,
+  forcePathStyle: true, // required for MinIO
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
