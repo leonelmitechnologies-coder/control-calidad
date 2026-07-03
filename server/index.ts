@@ -462,6 +462,34 @@ app.delete("/api/recepciones/:id", requireAuth, async (req: Request, res: Respon
 
 // ── CATÁLOGO SKU (Lookup) ──────────────────────────────────────
 
+// GET /api/diag/s3 — test S3 connection (token protected)
+app.get("/api/diag/s3", async (req: Request, res: Response) => {
+  if (req.headers["x-seed-token"] !== "mi-sku-seed-2026-qc") {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  try {
+    const { PutObjectCommand, ListBucketsCommand } = await import("@aws-sdk/client-s3");
+    const { default: s3Client } = await import("./s3.js");
+    const envVars = {
+      AWS_ENDPOINT_URL_S3: process.env.AWS_ENDPOINT_URL_S3 || "(not set)",
+      AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? "SET" : "(not set)",
+      AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? "SET" : "(not set)",
+      AWS_STORAGE_BUCKET_NAME: process.env.AWS_STORAGE_BUCKET_NAME || "(not set)",
+      MINIO_PUBLIC_URL: process.env.MINIO_PUBLIC_URL || "(not set)",
+    };
+    let listResult: any = null;
+    let listError: string | null = null;
+    try {
+      listResult = await (s3Client as any).send(new ListBucketsCommand({}));
+    } catch (e: any) {
+      listError = e?.message ?? String(e);
+    }
+    res.json({ envVars, listResult, listError });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message ?? String(e) });
+  }
+});
+
 // POST /api/catalogo-sku/seed — bulk insert SKU records (token protected)
 app.post("/api/catalogo-sku/seed", async (req: Request, res: Response) => {
   const token = req.headers["x-seed-token"];
