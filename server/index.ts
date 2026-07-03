@@ -491,7 +491,32 @@ app.get("/api/diag/s3", async (req: Request, res: Response) => {
     } catch (e: any) {
       listError = e?.message ?? String(e);
     }
-    res.json({ envVars, listResult, listError, listErrorTrimmed });
+    // Check uploads directory
+    const fs = await import("fs");
+    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    let uploadDirExists = false;
+    let uploadFiles: string[] = [];
+    try {
+      uploadDirExists = fs.existsSync(uploadDir);
+      if (uploadDirExists) {
+        const riDir = path.join(uploadDir, "rechazos-internos");
+        if (fs.existsSync(riDir)) {
+          uploadFiles = fs.readdirSync(riDir).slice(0, 10);
+        }
+      }
+    } catch (e: any) { /* ignore */ }
+
+    // Test write
+    let canWrite = false;
+    try {
+      const testPath = path.join(uploadDir, "diag-test.txt");
+      fs.mkdirSync(uploadDir, { recursive: true });
+      fs.writeFileSync(testPath, "ok");
+      fs.unlinkSync(testPath);
+      canWrite = true;
+    } catch (e: any) { /* ignore */ }
+
+    res.json({ envVars, listResult, listError, listErrorTrimmed, cwd: process.cwd(), uploadDirExists, canWrite, uploadFiles });
   } catch (e: any) {
     res.status(500).json({ error: e?.message ?? String(e) });
   }
