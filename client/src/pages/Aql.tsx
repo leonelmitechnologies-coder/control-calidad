@@ -37,6 +37,8 @@ interface AqlRecord {
   registrado_por?: string;
   foto_lpn_filename?: string;
   foto_pantalla_filename?: string;
+  foto_lpn_url?: string;
+  foto_pantalla_url?: string;
   checklist?: ChecklistItem[];
 }
 
@@ -141,8 +143,8 @@ function FormModal({ record, onClose, onSaved }: FormModalProps) {
   const [sku,           setSku]           = useState(record?.sku ?? '');
   const [marca,         setMarca]         = useState(record?.marca ?? '');
   const [modelo,        setModelo]        = useState(record?.modelo ?? '');
-  const [pulgada,       setPulgada]       = useState(record?.pulgada ?? '');
-  const [descripcion,   setDescripcion]   = useState(record?.descripcion ?? '');
+  const [pulgada,       setPulgada]       = useState(record?.descripcion ?? '');
+  const [descripcion,   setDescripcion]   = useState(record?.pulgada ?? '');
   const [lote,          setLote]          = useState(record?.lote ?? '');
   const [muestra,       setMuestra]       = useState(record?.muestra_total != null ? String(record.muestra_total) : '');
   const [defectos,      setDefectos]      = useState(record?.defectos_encontrados != null ? String(record.defectos_encontrados) : '0');
@@ -170,8 +172,8 @@ function FormModal({ record, onClose, onSaved }: FormModalProps) {
 
   const [fotoLpn,           setFotoLpn]           = useState<File | null>(null);
   const [fotoPantalla,      setFotoPantalla]       = useState<File | null>(null);
-  const [lpnExistente,      setLpnExistente]       = useState(record?.foto_lpn_filename ? `${API_BASE_URL}/uploads/aql/${record.foto_lpn_filename}` : '');
-  const [pantallaExistente, setPantallaExistente]  = useState(record?.foto_pantalla_filename ? `${API_BASE_URL}/uploads/aql/${record.foto_pantalla_filename}` : '');
+  const [lpnExistente,      setLpnExistente]       = useState(record?.foto_lpn_url ?? '');
+  const [pantallaExistente, setPantallaExistente]  = useState(record?.foto_pantalla_url ?? '');
 
   const fotosListas = !!(fotoLpn || lpnExistente) && !!(fotoPantalla || pantallaExistente);
 
@@ -179,8 +181,9 @@ function FormModal({ record, onClose, onSaved }: FormModalProps) {
     setSku(data.sku);
     if (data.marca)       setMarca(data.marca);
     if (data.modelo)      setModelo(data.modelo);
-    if (data.pulgada)     setPulgada(data.pulgada);
-    if (data.descripcion) setDescripcion(data.descripcion);
+    // BD tiene pulgada/descripcion invertidas: la columna "descripcion" guarda la pulgada real y viceversa
+    if (data.descripcion) setPulgada(data.descripcion);
+    if (data.pulgada)     setDescripcion(data.pulgada);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -196,8 +199,9 @@ function FormModal({ record, onClose, onSaved }: FormModalProps) {
         sku:                  sku.trim(),
         marca:                marca.trim(),
         modelo:               modelo.trim(),
-        pulgada:              pulgada.trim(),
-        descripcion:          descripcion.trim(),
+        // Invertimos al guardar para mantener formato de BD (descripcion col = pulgada, pulgada col = descripcion)
+        pulgada:              descripcion.trim(),
+        descripcion:          pulgada.trim(),
         lote:                 lote.trim(),
         muestra_total:        parseInt(muestra),
         defectos_encontrados: parseInt(defectos) || 0,
@@ -454,17 +458,17 @@ function DetalleModal({ record, onClose, onEdit, onDeleted }: DetalleModalProps)
 
             <div>
               <div className="seccion-titulo">Fotografías</div>
-              {record.foto_lpn_filename || record.foto_pantalla_filename ? (
+              {record.foto_lpn_url || record.foto_pantalla_url ? (
                 <div className="flex gap-4 flex-wrap" style={{ marginTop: '8px' }}>
-                  {record.foto_lpn_filename && (
+                  {record.foto_lpn_url && (
                     <div style={{ textAlign: 'center' }}>
-                      <img src={`${API_BASE_URL}/uploads/aql/${record.foto_lpn_filename}`} alt="LPN" style={{ height: '96px', width: 'auto', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightbox(`${API_BASE_URL}/uploads/aql/${record.foto_lpn_filename}`)} />
+                      <img src={record.foto_lpn_url} alt="LPN" style={{ height: '96px', width: 'auto', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightbox(record.foto_lpn_url!)} />
                       <small style={{ display: 'block', fontSize: '11px', color: '#aaa', marginTop: '4px' }}>LPN</small>
                     </div>
                   )}
-                  {record.foto_pantalla_filename && (
+                  {record.foto_pantalla_url && (
                     <div style={{ textAlign: 'center' }}>
-                      <img src={`${API_BASE_URL}/uploads/aql/${record.foto_pantalla_filename}`} alt="Pantalla" style={{ height: '96px', width: 'auto', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightbox(`${API_BASE_URL}/uploads/aql/${record.foto_pantalla_filename}`)} />
+                      <img src={record.foto_pantalla_url} alt="Pantalla" style={{ height: '96px', width: 'auto', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightbox(record.foto_pantalla_url!)} />
                       <small style={{ display: 'block', fontSize: '11px', color: '#aaa', marginTop: '4px' }}>Pantalla</small>
                     </div>
                   )}
@@ -594,7 +598,7 @@ export default function Aql() {
               <tbody>
                 {records.map((r, i) => {
                   const aceptado  = r.estado_aql === 'Aceptado';
-                  const tieneFotos = !!(r.foto_lpn_filename && r.foto_pantalla_filename);
+                  const tieneFotos = !!(r.foto_lpn_url && r.foto_pantalla_url);
                   return (
                     <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => setDetailRec(r)}>
                       <td style={{ color: '#aaa' }}>{(page - 1) * PAGE_SIZE + i + 1}</td>

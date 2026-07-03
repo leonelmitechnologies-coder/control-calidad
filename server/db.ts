@@ -186,6 +186,12 @@ export async function initDB() {
     await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_data_b64 TEXT`);
     await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_url VARCHAR(500)`);
     await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_data_b64 TEXT`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS order_id VARCHAR(100) NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS muestra_total INTEGER`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS defectos_encontrados INTEGER NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS lote VARCHAR(100) NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS observaciones TEXT NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS checklist_json TEXT`);
 
     // Create catalogo_sku table
     await pool.query(`

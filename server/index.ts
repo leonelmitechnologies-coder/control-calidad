@@ -1427,15 +1427,58 @@ app.delete("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: 
 
 // ── AQL ────────────────────────────────────────────────────────
 
-// GET /api/aql - List AQL registros
+// GET /api/aql - List AQL registros (paginado, filtrado, con conteos)
 app.get("/api/aql", requireAuth, async (req: Request, res: Response) => {
   try {
-    const result = await db
-      .select()
-      .from(schema.aqlRegistros)
-      .orderBy(desc(schema.aqlRegistros.fechaRegistro), desc(schema.aqlRegistros.createdAt));
+    const page     = Math.max(1, parseInt(String(req.query.page  || "1")));
+    const limit    = Math.max(1, Math.min(100, parseInt(String(req.query.limit || "20"))));
+    const offset   = (page - 1) * limit;
+    const estado   = String(req.query.estado || "").trim();
+    const search   = String(req.query.search || "").trim();
 
-    res.json(result);
+    const conditions: string[] = [];
+    const params: any[]        = [];
+    let idx = 1;
+
+    if (estado && estado !== "Todas") {
+      conditions.push(`estado_aql = $${idx++}`);
+      params.push(estado);
+    }
+    if (search) {
+      conditions.push(`(order_id ILIKE $${idx} OR license_plate ILIKE $${idx} OR sku ILIKE $${idx} OR lote ILIKE $${idx})`);
+      params.push(`%${search}%`);
+      idx++;
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const [countRes, dataRes, countsRes] = await Promise.all([
+      pool.query(`SELECT COUNT(*) FROM aql_registros ${where}`, params),
+      pool.query(
+        `SELECT * FROM aql_registros ${where} ORDER BY fecha_registro DESC, created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...params, limit, offset]
+      ),
+      pool.query(
+        `SELECT estado_aql, COUNT(*) AS cnt FROM aql_registros GROUP BY estado_aql`
+      ),
+    ]);
+
+    const total = parseInt(countRes.rows[0].count);
+    const cMap  = Object.fromEntries(countsRes.rows.map((r: any) => [r.estado_aql, parseInt(r.cnt)]));
+    const counts = {
+      todas:     total,
+      aceptado:  cMap["Aceptado"]  || 0,
+      rechazado: cMap["Rechazado"] || 0,
+    };
+
+    const data = dataRes.rows.map((r: any) => ({
+      ...r,
+      checklist: r.checklist_json ? (() => { try { return JSON.parse(r.checklist_json); } catch { return []; } })() : [],
+      foto_lpn_url:      r.foto_lpn_url      || (r.foto_lpn_filename      ? s3.getFileUrl("aql", r.foto_lpn_filename)      : null),
+      foto_pantalla_url: r.foto_pantalla_url || (r.foto_pantalla_filename ? s3.getFileUrl("aql", r.foto_pantalla_filename) : null),
+    }));
+
+    res.json({ data, total, page, pageSize: limit, counts });
   } catch (err) {
     console.error("[API] GET /api/aql error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -1460,7 +1503,8 @@ app.get("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
     const aql = result[0];
     res.json({
       ...aql,
-      foto_lpn_url: aql.fotoLpnUrl || (aql.fotoLpnFilename ? s3.getFileUrl("aql", aql.fotoLpnFilename) : null),
+      checklist: aql.checklistJson ? (() => { try { return JSON.parse(aql.checklistJson as string); } catch { return []; } })() : [],
+      foto_lpn_url:      aql.fotoLpnUrl      || (aql.fotoLpnFilename      ? s3.getFileUrl("aql", aql.fotoLpnFilename)      : null),
       foto_pantalla_url: aql.fotoPantallaUrl || (aql.fotoPantallaFilename ? s3.getFileUrl("aql", aql.fotoPantallaFilename) : null),
     });
   } catch (err) {
@@ -1473,58 +1517,32 @@ app.get("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
 app.post("/api/aql", requireAuth, async (req: Request, res: Response) => {
   try {
     const {
-      fecha_registro,
-      license_plate,
-      clasificacion,
-      sku,
-      marca,
-      modelo,
-      pulgada,
-      descripcion,
-      accesorios_presentes,
-      estado_accesorios,
-      accesorios_defectos,
-      estado_bolsa,
-      bolsa_defectos,
-      estado_audio,
-      audio_defectos,
-      estado_video,
-      video_defectos,
-      estado_fisico_pantalla,
-      fisico_pantalla_defectos,
-      estado_limpieza,
-      limpieza_defectos,
-      estado_aql,
-      inspector,
+      fecha_registro, order_id, sku, marca, modelo, pulgada, descripcion,
+      lote, muestra_total, defectos_encontrados, observaciones, checklist, inspector,
     } = req.body;
+
+    const defectos   = parseInt(defectos_encontrados) || 0;
+    const estadoAql  = defectos === 0 ? "Aceptado" : "Rechazado";
 
     const result = await db
       .insert(schema.aqlRegistros)
       .values({
-        fechaRegistro: fecha_registro,
-        licensePlate: license_plate,
-        clasificacion: clasificacion || "",
-        sku: sku || "",
-        marca: marca || "",
-        modelo: modelo || "",
-        pulgada: pulgada || "",
-        descripcion: descripcion || "",
-        accesoriosPresentes: accesorios_presentes || "",
-        estadoAccesorios: estado_accesorios || "",
-        accesoriosDefectos: accesorios_defectos || "",
-        estadoBolsa: estado_bolsa || "",
-        bolsaDefectos: bolsa_defectos || "",
-        estadoAudio: estado_audio || "",
-        audioDefectos: audio_defectos || "",
-        estadoVideo: estado_video || "",
-        videoDefectos: video_defectos || "",
-        estadoFisicoPantalla: estado_fisico_pantalla || "",
-        fisicoPantallaDefectos: fisico_pantalla_defectos || "",
-        estadoLimpieza: estado_limpieza || "",
-        limpiezaDefectos: limpieza_defectos || "",
-        estadoAql: estado_aql || "",
-        inspector: inspector || req.user?.name || "",
-        registradoPor: req.user?.name || "",
+        fechaRegistro:        fecha_registro,
+        licensePlate:         order_id || "",
+        orderId:              order_id || "",
+        sku:                  sku || "",
+        marca:                marca || "",
+        modelo:               modelo || "",
+        pulgada:              pulgada || "",
+        descripcion:          descripcion || "",
+        lote:                 lote || "",
+        muestraTotal:         muestra_total ? parseInt(muestra_total) : null,
+        defectosEncontrados:  defectos,
+        observaciones:        observaciones || "",
+        checklistJson:        checklist ? JSON.stringify(checklist) : null,
+        estadoAql,
+        inspector:            inspector || req.user?.name || "",
+        registradoPor:        req.user?.name || "",
       })
       .returning();
 
@@ -1540,57 +1558,31 @@ app.put("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const {
-      fecha_registro,
-      license_plate,
-      clasificacion,
-      sku,
-      marca,
-      modelo,
-      pulgada,
-      descripcion,
-      accesorios_presentes,
-      estado_accesorios,
-      accesorios_defectos,
-      estado_bolsa,
-      bolsa_defectos,
-      estado_audio,
-      audio_defectos,
-      estado_video,
-      video_defectos,
-      estado_fisico_pantalla,
-      fisico_pantalla_defectos,
-      estado_limpieza,
-      limpieza_defectos,
-      estado_aql,
-      inspector,
+      fecha_registro, order_id, sku, marca, modelo, pulgada, descripcion,
+      lote, muestra_total, defectos_encontrados, observaciones, checklist, inspector,
     } = req.body;
+
+    const defectos  = parseInt(defectos_encontrados) || 0;
+    const estadoAql = defectos === 0 ? "Aceptado" : "Rechazado";
 
     const result = await db
       .update(schema.aqlRegistros)
       .set({
-        fechaRegistro: fecha_registro,
-        licensePlate: license_plate,
-        clasificacion: clasificacion || "",
-        sku: sku || "",
-        marca: marca || "",
-        modelo: modelo || "",
-        pulgada: pulgada || "",
-        descripcion: descripcion || "",
-        accesoriosPresentes: accesorios_presentes || "",
-        estadoAccesorios: estado_accesorios || "",
-        accesoriosDefectos: accesorios_defectos || "",
-        estadoBolsa: estado_bolsa || "",
-        bolsaDefectos: bolsa_defectos || "",
-        estadoAudio: estado_audio || "",
-        audioDefectos: audio_defectos || "",
-        estadoVideo: estado_video || "",
-        videoDefectos: video_defectos || "",
-        estadoFisicoPantalla: estado_fisico_pantalla || "",
-        fisicoPantallaDefectos: fisico_pantalla_defectos || "",
-        estadoLimpieza: estado_limpieza || "",
-        limpiezaDefectos: limpieza_defectos || "",
-        estadoAql: estado_aql || "",
-        inspector: inspector || "",
+        fechaRegistro:        fecha_registro,
+        licensePlate:         order_id || "",
+        orderId:              order_id || "",
+        sku:                  sku || "",
+        marca:                marca || "",
+        modelo:               modelo || "",
+        pulgada:              pulgada || "",
+        descripcion:          descripcion || "",
+        lote:                 lote || "",
+        muestraTotal:         muestra_total ? parseInt(muestra_total) : null,
+        defectosEncontrados:  defectos,
+        observaciones:        observaciones || "",
+        checklistJson:        checklist ? JSON.stringify(checklist) : null,
+        estadoAql,
+        inspector:            inspector || "",
       })
       .where(eq(schema.aqlRegistros.id, parseInt(id)))
       .returning();
