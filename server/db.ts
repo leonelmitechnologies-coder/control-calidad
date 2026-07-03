@@ -176,6 +176,7 @@ export async function initDB() {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    await pool.query(`ALTER TABLE ri_images ADD COLUMN IF NOT EXISTS url VARCHAR(500)`);
 
     // Create catalogo_sku table
     await pool.query(`

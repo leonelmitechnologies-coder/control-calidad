@@ -75,8 +75,11 @@ export async function uploadFileToS3(
     );
     return `${PUBLIC_URL}/${BUCKET_NAME}/${key}`;
   } catch (error) {
-    console.error("[S3] Upload error:", error);
-    throw error;
+    console.error("[S3] Upload failed, falling back to local disk:", (error as Error).message);
+    const dir = path.join(LOCAL_UPLOADS_DIR, folder);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, filename), fileBuffer);
+    return `/uploads/${folder}/${filename}`;
   }
 }
 

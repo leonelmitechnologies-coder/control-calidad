@@ -1022,7 +1022,7 @@ app.get("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: Res
       ...riMain[0],
       images: images.map((img) => ({
         ...img,
-        url: s3.getFileUrl("rechazos-internos", img.filename),
+        url: img.url || s3.getFileUrl("rechazos-internos", img.filename),
       })),
     });
   } catch (err) {
@@ -1150,6 +1150,7 @@ app.post(
         await db.insert(schema.riImages).values({
           rechazoId: riId,
           filename,
+          url,
         });
 
         uploadedUrls.push(url);
