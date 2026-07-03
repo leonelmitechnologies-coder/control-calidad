@@ -1163,22 +1163,46 @@ app.post(
       const uploadedUrls: string[] = [];
 
       for (const file of files) {
-        const url = await s3.uploadFileToS3(
-          file.buffer,
-          file.originalname,
-          "rechazos-internos",
-          `ri-${riId}`
-        );
+        let finalUrl: string;
+        let dataB64: string | null = null;
+        let filename: string;
 
-        const filename = url.split("/").pop() || file.originalname;
+        try {
+          // Try S3 first
+          const s3Url = await s3.uploadToS3Only(
+            file.buffer,
+            file.originalname,
+            "rechazos-internos",
+            `ri-${riId}`
+          );
+          filename = s3Url.split("/").pop() || file.originalname;
+          finalUrl = s3Url;
+        } catch (_s3Err) {
+          // S3 failed — store image in DB as base64
+          const ext = file.originalname.split(".").pop() || "jpg";
+          const ts = Date.now();
+          const rand = Math.random().toString(36).slice(2, 8);
+          filename = `ri-${riId}-${ts}-${rand}.${ext}`;
+          dataB64 = file.buffer.toString("base64");
+          finalUrl = "db:pending"; // placeholder, updated after insert
+        }
 
-        await db.insert(schema.riImages).values({
+        const inserted = await db.insert(schema.riImages).values({
           rechazoId: riId,
           filename,
-          url,
-        });
+          url: finalUrl === "db:pending" ? "/api/ri/image/0" : finalUrl,
+          dataB64,
+        }).returning({ id: schema.riImages.id });
 
-        uploadedUrls.push(url);
+        if (finalUrl === "db:pending" && inserted[0]) {
+          const imgId = inserted[0].id;
+          finalUrl = `/api/ri/image/${imgId}`;
+          await db.update(schema.riImages)
+            .set({ url: finalUrl })
+            .where(eq(schema.riImages.id, imgId));
+        }
+
+        uploadedUrls.push(finalUrl);
       }
 
       res.json({ images: uploadedUrls });
@@ -1238,6 +1262,31 @@ app.post(
     }
   }
 );
+
+// GET /api/ri/image/:imgId — serve image stored in DB (base64 column)
+app.get("/api/ri/image/:imgId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { imgId } = req.params;
+    const [img] = await db
+      .select({ filename: schema.riImages.filename, dataB64: schema.riImages.dataB64 })
+      .from(schema.riImages)
+      .where(eq(schema.riImages.id, parseInt(imgId)));
+
+    if (!img || !img.dataB64) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+
+    const buf = Buffer.from(img.dataB64, "base64");
+    const ext = (img.filename.split(".").pop() || "jpg").toLowerCase();
+    const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Cache-Control", "private, max-age=86400");
+    res.send(buf);
+  } catch (err) {
+    console.error("[API] GET /api/ri/image/:imgId error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // DELETE /api/rechazos-internos/:id/images/:imgId - Delete image
 app.delete(

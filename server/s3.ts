@@ -84,6 +84,31 @@ export async function uploadFileToS3(
 }
 
 /**
+ * Upload to S3 only — throws on failure (no local fallback).
+ * Used when the caller handles the fallback itself (e.g., DB storage).
+ */
+export async function uploadToS3Only(
+  fileBuffer: Buffer,
+  originalName: string,
+  folder: string,
+  prefix?: string
+): Promise<string> {
+  if (USE_LOCAL) throw new Error("S3 not configured");
+
+  const filename = generateFilename(originalName, prefix);
+  const key = `${folder}/${filename}`;
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: fileBuffer,
+      ContentType: "image/*",
+    })
+  );
+  return `${PUBLIC_URL}/${BUCKET_NAME}/${key}`;
+}
+
+/**
  * Upload multiple files to S3/MinIO, or local disk if S3 is not configured.
  */
 export async function uploadFilesToS3(

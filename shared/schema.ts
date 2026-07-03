@@ -134,6 +134,7 @@ export const riImages = pgTable(
     rechazoId: integer("rechazo_id").notNull(),
     filename: varchar("filename", { length: 255 }).notNull(),
     url: varchar("url", { length: 500 }),
+    dataB64: text("data_b64"),
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => ({
