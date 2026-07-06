@@ -689,6 +689,172 @@ app.get("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
   }
 });
 
+// GET /api/rechazos-externos/:id/pdf - Generate NCR PDF with Puppeteer
+app.get("/api/rechazos-externos/:id/pdf", requireAuth, async (req: Request, res: Response) => {
+  let browser: any;
+  try {
+    const reId = parseInt(req.params.id);
+    const [mainRes, probsRes, accsRes, imgsRes] = await Promise.all([
+      pool.query(`SELECT * FROM rechazos_externos WHERE id = $1`, [reId]),
+      pool.query(`SELECT * FROM re_problem_descriptions WHERE rechazo_id = $1 ORDER BY orden`, [reId]),
+      pool.query(`SELECT * FROM re_corrective_actions WHERE rechazo_id = $1 ORDER BY departamento, orden`, [reId]),
+      pool.query(`SELECT id, filename, url, data_b64 FROM re_images WHERE rechazo_id = $1 ORDER BY id`, [reId]),
+    ]);
+
+    if (mainRes.rows.length === 0) return res.status(404).json({ error: "Registro no encontrado" });
+
+    const re    = mainRes.rows[0];
+    const probs = probsRes.rows;
+    const accs  = accsRes.rows;
+
+    // Build dept → actions map
+    const depts: Record<string, string[]> = {};
+    accs.forEach((a: any) => { if (!depts[a.departamento]) depts[a.departamento] = []; depts[a.departamento].push(a.accion); });
+
+    // Logo as base64
+    const { default: fsSync } = await import("fs");
+    const logoPath = path.join(process.cwd(), "public", "QC_logo_sin_fondo.png");
+    const logoB64 = fsSync.existsSync(logoPath)
+      ? `data:image/png;base64,${fsSync.readFileSync(logoPath).toString("base64")}`
+      : "";
+
+    // Images as base64 — prefer data_b64 stored in DB, fall back to url
+    const imgsB64: string[] = [];
+    for (const img of imgsRes.rows) {
+      if (img.data_b64) {
+        const ext = path.extname(img.filename).slice(1).toLowerCase() || "jpeg";
+        const mime = ext === "jpg" ? "jpeg" : ext;
+        imgsB64.push(`data:image/${mime};base64,${img.data_b64}`);
+      } else if (img.url) {
+        imgsB64.push(img.url);
+      }
+    }
+
+    const esc   = (s: any) => String(s ?? "—").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const fmtTs = (ts: any) => ts ? new Date(ts).toLocaleString("en-US", { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit", hour12:true }) : "—";
+    const fmtDate = (d: any) => d ? String(d).slice(0, 10) : "—";
+    const fmtMins = (m: any) => { if (m == null) return "—"; const h = Math.floor(m/60), min = m%60; return `${h}h ${min}m`; };
+    const fmtPrice = (p: any) => p != null ? "$" + parseFloat(p).toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 }) : "—";
+    const di = (label: string, val: any) => `<div class="di"><label>${label}</label><span>${esc(val)}</span></div>`;
+    const today = new Date().toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+
+    const photosHtml = imgsB64.length ? `
+      <div class="section">
+        <div class="sec-title">Photographic Evidence</div>
+        <div class="photo-box">
+          <div class="photos-wrap">${imgsB64.map(src => `<div class="photo-item"><img src="${src}"></div>`).join("")}</div>
+          <p class="photo-cap">${esc(re.license_plate)} — Visual evidence</p>
+        </div>
+      </div>` : "";
+
+    const probsHtml = probs.length ? `
+      <div class="section">
+        <div class="sec-title">Problem Description</div>
+        ${probs.map((p: any, i: number) => `<div class="prob-item"><div class="prob-num">${i+1}</div><div class="prob-text">${esc(p.descripcion)}</div></div>`).join("")}
+      </div>` : "";
+
+    const accsHtml = Object.keys(depts).length ? `
+      <div class="section">
+        <div class="sec-title">Corrective Actions</div>
+        ${Object.entries(depts).map(([dept, acts]) => `
+          <div class="dept-block">
+            <div class="dept-hdr">${esc(dept)}</div>
+            ${acts.map((a, i) => `<div class="act-item"><div class="act-num">${i+1}</div><div class="act-text">${esc(a)}</div></div>`).join("")}
+          </div>`).join("")}
+      </div>` : "";
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#222;background:#fff}
+.header{display:flex;justify-content:space-between;align-items:center;padding:16px 28px 14px;border-bottom:2px solid #0d2b4e}
+.header-right{text-align:right;font-size:10px;color:#555;line-height:1.7}
+.title-block{background:#111;color:#fff;padding:16px 28px;margin-bottom:20px}
+.title-block h1{font-size:19px;font-weight:700;letter-spacing:0.5px}
+.title-block p{font-size:11px;margin-top:5px;color:rgba(255,255,255,.6)}
+.section{padding:0 28px;margin-bottom:20px}
+.sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0d2b4e;border-bottom:2px solid #0d2b4e;padding-bottom:5px;margin-bottom:12px}
+.data-box{border-left:3px solid #0d2b4e;padding:12px 16px;background:#f8f9fb}
+.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 32px}
+.di label{display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:2px}
+.di span{font-size:11px;color:#222;font-weight:500}
+.photo-box{border:1px solid #ddd;padding:14px}
+.photos-wrap{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.photo-item img{max-width:260px;max-height:200px;object-fit:contain;display:block}
+.photo-cap{font-size:9px;color:#777;font-style:italic;margin-top:10px;text-align:center}
+.prob-item{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start}
+.prob-num{width:22px;height:22px;background:#111;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.prob-text{font-size:11px;line-height:1.6}
+.dept-block{margin-bottom:14px}
+.dept-hdr{background:#111;color:#fff;padding:7px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.act-item{display:flex;gap:10px;margin-bottom:7px;padding:0 6px;align-items:flex-start}
+.act-num{width:18px;height:18px;background:#444;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;border-radius:2px;margin-top:1px}
+.act-text{font-size:11px;line-height:1.6}
+.footer{padding:10px 28px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:9px;color:#aaa;margin-top:8px}
+</style></head><body>
+<div class="header">
+  ${logoB64 ? `<img src="${logoB64}" style="height:40px">` : "<div></div>"}
+  <div class="header-right">ISO 9001:2015<br>Non-Conformance Report</div>
+</div>
+<div class="title-block">
+  <h1>NON-CONFORMANCE REPORT</h1>
+  <p>License Plate: ${esc(re.license_plate)}</p>
+</div>
+<div class="section">
+  <div class="sec-title">Product Information</div>
+  <div class="data-box">
+    <div class="data-grid">
+      ${di("Return Order", re.return_order)}
+      ${di("Sales Channel", re.sales_channel)}
+      ${di("License Plate", re.license_plate)}
+      ${di("SKU", re.sku)}
+      ${di("Classification", re.classification)}
+      ${di("Brand", re.brand)}
+      ${di("Inches", re.inches)}
+      <div class="di"><label>Sale Price</label><span>${fmtPrice(re.sale_price)}</span></div>
+    </div>
+  </div>
+</div>
+${photosHtml}
+<div class="section">
+  <div class="sec-title">Processing Data</div>
+  <div class="data-box">
+    <div class="data-grid">
+      <div class="di"><label>Plant Entry</label><span>${fmtTs(re.plant_entry)}</span></div>
+      <div class="di"><label>Plant Exit</label><span>${fmtTs(re.plant_exit)}</span></div>
+      <div class="di"><label>Total Time in Plant</label><span>${fmtMins(re.total_time_minutes)}</span></div>
+      ${di("Processed By", re.processed_by)}
+      ${di("Outbound Order", re.outbound_order)}
+      <div class="di"><label>Registration Date</label><span>${fmtDate(re.registration_date)}</span></div>
+    </div>
+  </div>
+</div>
+${probsHtml}
+${accsHtml}
+<div class="footer">
+  <span>License Plate: ${esc(re.license_plate)}</span>
+  <span>Outbound Order: ${esc(re.outbound_order)}</span>
+  <span>Generated: ${today}</span>
+</div>
+</body></html>`;
+
+    const puppeteer = await import("puppeteer");
+    browser = await puppeteer.default.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "load" });
+    const pdf = await page.pdf({ format: "A4", printBackground: true, margin: { top: "0", right: "0", bottom: "0", left: "0" } });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="NCR-${re.license_plate}.pdf"`);
+    res.send(Buffer.from(pdf));
+  } catch (err: any) {
+    console.error("[API] GET /api/rechazos-externos/:id/pdf error:", err.message);
+    res.status(500).json({ error: err.message });
+  } finally {
+    if (browser) await browser.close();
+  }
+});
+
 // POST /api/rechazos-externos - Create external reject (with transaction)
 app.post("/api/rechazos-externos", requireAuth, async (req: Request, res: Response) => {
   const client = await getClient();
