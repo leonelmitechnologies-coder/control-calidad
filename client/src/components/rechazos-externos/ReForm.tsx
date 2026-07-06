@@ -129,8 +129,8 @@ export default function ReForm({
     if (isEditing && data) {
       const probs = data.problem_descriptions ?? [];
       setForm({
-        return_order:       data.return_order,
-        license_plate:      data.license_plate,
+        return_order:       data.return_order    || '',
+        license_plate:      data.license_plate   || '',
         classification:     data.classification || '',
         inches:             data.inches || '',
         sales_channel:      data.sales_channel || '',
