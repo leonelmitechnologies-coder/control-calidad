@@ -661,41 +661,24 @@ app.get("/api/rechazos-externos", requireAuth, async (req: Request, res: Respons
 // GET /api/rechazos-externos/:id - Get external reject with related data
 app.get("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const reId = parseInt(id);
+    const reId = parseInt(req.params.id);
 
-    const reMain = await db
-      .select()
-      .from(schema.rechazosExternos)
-      .where(eq(schema.rechazosExternos.id, reId))
-      .limit(1);
+    const [mainRes, probsRes, actionsRes, imagesRes] = await Promise.all([
+      pool.query(`SELECT * FROM rechazos_externos WHERE id = $1`, [reId]),
+      pool.query(`SELECT * FROM re_problem_descriptions WHERE rechazo_id = $1 ORDER BY orden`, [reId]),
+      pool.query(`SELECT * FROM re_corrective_actions WHERE rechazo_id = $1 ORDER BY orden`, [reId]),
+      pool.query(`SELECT * FROM re_images WHERE rechazo_id = $1`, [reId]),
+    ]);
 
-    if (reMain.length === 0) {
+    if (mainRes.rows.length === 0) {
       return res.status(404).json({ error: "Rechazo no encontrado" });
     }
 
-    const [problemDescriptions, correctiveActions, images] = await Promise.all([
-      db
-        .select()
-        .from(schema.reProblemDescriptions)
-        .where(eq(schema.reProblemDescriptions.rechazoId, reId))
-        .orderBy(schema.reProblemDescriptions.orden),
-      db
-        .select()
-        .from(schema.reCorrectiveActions)
-        .where(eq(schema.reCorrectiveActions.rechazoId, reId))
-        .orderBy(schema.reCorrectiveActions.orden),
-      db
-        .select()
-        .from(schema.reImages)
-        .where(eq(schema.reImages.rechazoId, reId)),
-    ]);
-
     res.json({
-      ...reMain[0],
-      problem_descriptions: problemDescriptions,
-      corrective_actions: correctiveActions,
-      images: images.map((img) => ({
+      ...mainRes.rows[0],
+      problem_descriptions: probsRes.rows,
+      corrective_actions:   actionsRes.rows,
+      images: imagesRes.rows.map((img: any) => ({
         ...img,
         url: img.url || s3.getFileUrl("rechazos-externos", img.filename),
       })),
