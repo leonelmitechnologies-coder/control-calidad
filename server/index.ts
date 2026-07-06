@@ -873,6 +873,8 @@ app.post("/api/rechazos-externos", requireAuth, async (req: Request, res: Respon
       sales_channel,
       sku,
       brand,
+      modelo,
+      descripcion,
       plant_entry,
       plant_exit,
       outbound_order,
@@ -896,12 +898,13 @@ app.post("/api/rechazos-externos", requireAuth, async (req: Request, res: Respon
     const reResult = await client.query(
       `INSERT INTO rechazos_externos
         (return_order, license_plate, classification, inches, sales_channel, sku, brand,
+         modelo, descripcion,
          plant_entry, plant_exit, total_time_minutes, outbound_order, processed_by,
          registration_date, sale_price, registrado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
        RETURNING id, return_order, license_plate, classification, inches, sales_channel, sku, brand,
-                 plant_entry, plant_exit, total_time_minutes, outbound_order, processed_by,
-                 registration_date, sale_price`,
+                 modelo, descripcion, plant_entry, plant_exit, total_time_minutes, outbound_order,
+                 processed_by, registration_date, sale_price`,
       [
         return_order,
         license_plate,
@@ -910,6 +913,8 @@ app.post("/api/rechazos-externos", requireAuth, async (req: Request, res: Respon
         sales_channel || "",
         sku || "",
         brand || "",
+        modelo || "",
+        descripcion || "",
         plant_entry,
         plant_exit || null,
         totalTimeMinutes,
@@ -972,6 +977,8 @@ app.put("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
       sales_channel,
       sku,
       brand,
+      modelo,
+      descripcion,
       plant_entry,
       plant_exit,
       outbound_order,
@@ -995,9 +1002,10 @@ app.put("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
     const updateResult = await client.query(
       `UPDATE rechazos_externos
        SET return_order=$1, license_plate=$2, classification=$3, inches=$4, sales_channel=$5, sku=$6,
-           brand=$7, plant_entry=$8, plant_exit=$9, total_time_minutes=$10, outbound_order=$11,
-           processed_by=$12, registration_date=$13, sale_price=$14
-       WHERE id=$15
+           brand=$7, modelo=$8, descripcion=$9, plant_entry=$10, plant_exit=$11,
+           total_time_minutes=$12, outbound_order=$13, processed_by=$14,
+           registration_date=$15, sale_price=$16
+       WHERE id=$17
        RETURNING *`,
       [
         return_order,
@@ -1007,6 +1015,8 @@ app.put("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
         sales_channel || "",
         sku || "",
         brand || "",
+        modelo || "",
+        descripcion || "",
         plant_entry,
         plant_exit || null,
         totalTimeMinutes,

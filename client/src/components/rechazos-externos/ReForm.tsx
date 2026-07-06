@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import type { RechazosExterno } from '../../types';
+import type { RechazosExterno, SkuRecord } from '../../types';
+import SkuAutocomplete from '../SkuAutocomplete';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,8 @@ export interface ReFormData {
   sales_channel:      string;
   sku:                string;
   brand:              string;
+  modelo:             string;
+  descripcion:        string;
   outbound_order:     string;
   plant_entry:        string;
   plant_exit:         string;
@@ -48,6 +51,8 @@ function makeBlank(): ReFormData {
     sales_channel:      '',
     sku:                '',
     brand:              '',
+    modelo:             '',
+    descripcion:        '',
     outbound_order:     '',
     plant_entry:        now,
     plant_exit:         now,
@@ -136,6 +141,8 @@ export default function ReForm({
         sales_channel:      data.sales_channel || '',
         sku:                data.sku || '',
         brand:              data.brand || '',
+        modelo:             data.modelo      || '',
+        descripcion:        data.descripcion || '',
         outbound_order:     data.outbound_order || '',
         plant_entry:        data.plant_entry ? new Date(data.plant_entry).toISOString().slice(0, 16) : '',
         plant_exit:         data.plant_exit  ? new Date(data.plant_exit).toISOString().slice(0, 16)  : '',
@@ -205,6 +212,19 @@ export default function ReForm({
       return next;
     });
   }, [touched]);
+
+  // ── SKU autocomplete ───────────────────────────────────────────────────────
+
+  const handleSkuSelect = useCallback((record: SkuRecord) => {
+    setForm((f) => ({
+      ...f,
+      sku:         record.sku,
+      brand:       record.marca        ?? '',
+      inches:      record.descripcion  ?? '',  // catalogo_sku: columnas pulgada/descripcion invertidas
+      modelo:      record.modelo       ?? '',
+      descripcion: record.pulgada      ?? '',  // catalogo_sku: columnas pulgada/descripcion invertidas
+    }));
+  }, []);
 
   // ── Corrective action handlers ─────────────────────────────────────────────
 
@@ -346,16 +366,36 @@ export default function ReForm({
                   placeholder="Ej. Walmart" />
               </div>
 
-              <div className="form-group">
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                 <label>SKU</label>
-                <input type="text" value={form.sku}
-                  onChange={(e) => set('sku', e.target.value)} />
+                <SkuAutocomplete
+                  value={form.sku}
+                  onChange={(text) => set('sku', text)}
+                  onSelect={handleSkuSelect}
+                  disabled={isSaving}
+                  placeholder="Código de producto"
+                />
               </div>
 
               <div className="form-group">
                 <label>Brand</label>
                 <input type="text" value={form.brand}
                   onChange={(e) => set('brand', e.target.value)} />
+              </div>
+
+              <div className="form-group">
+                <label>Modelo</label>
+                <input type="text" value={form.modelo}
+                  onChange={(e) => set('modelo', e.target.value)}
+                  placeholder="Ej. UN55TU8000" />
+              </div>
+
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label>Descripción</label>
+                <textarea value={form.descripcion}
+                  onChange={(e) => set('descripcion', e.target.value)}
+                  rows={2}
+                  placeholder="Descripción del producto" />
               </div>
 
               <div className="form-group">
