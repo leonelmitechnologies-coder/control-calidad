@@ -811,6 +811,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#222;background
       ${di("Classification", re.classification)}
       ${di("Brand", re.brand)}
       ${di("Inches", re.inches)}
+      ${di("Modelo", re.modelo)}
+      ${di("Descripción", re.descripcion)}
       <div class="di"><label>Sale Price</label><span>${fmtPrice(re.sale_price)}</span></div>
     </div>
   </div>

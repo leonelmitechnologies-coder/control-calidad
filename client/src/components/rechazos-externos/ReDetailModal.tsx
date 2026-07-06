@@ -103,7 +103,9 @@ export default function ReDetailModal({
             <DetailField label="Sales Channel"    value={data.sales_channel || '—'} />
             <DetailField label="SKU"              value={data.sku || '—'} />
             <DetailField label="Brand"            value={data.brand || '—'} />
+            <DetailField label="Modelo"           value={data.modelo      || '—'} />
             <DetailField label="Outbound Order"   value={data.outbound_order || '—'} />
+            <DetailField label="Descripción"      value={data.descripcion  || '—'} />
             <DetailField label="Plant Entry"      value={data.plant_entry ? formatDateTime(data.plant_entry) : '—'} />
             <DetailField label="Plant Exit"       value={data.plant_exit  ? formatDateTime(data.plant_exit)  : '—'} />
             <DetailField label="Total Time in Plant" value={formatTime(data.total_time_minutes)} />
