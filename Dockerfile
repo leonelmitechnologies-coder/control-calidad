@@ -29,8 +29,13 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/package-lock.json ./package-lock.json
 COPY --from=builder /app/public ./public
 
-# Patch Alpine system packages (OpenSSL CVEs: libcrypto3, libssl3)
-RUN apk upgrade --no-cache
+# Patch Alpine system packages and install Chromium for Puppeteer PDF generation
+RUN apk upgrade --no-cache && \
+    apk add --no-cache chromium
+
+# Tell Puppeteer to use system Chromium instead of downloading its own
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Install only production dependencies
 RUN npm ci --omit=dev
