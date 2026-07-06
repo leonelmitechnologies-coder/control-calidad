@@ -55,10 +55,16 @@ const STATUS_TABS: TabDef[] = [
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
+  const { headers: callerHeaders, ...restInit } = init ?? {};
   const res = await fetch(url, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
+    ...restInit,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(callerHeaders instanceof Headers
+        ? Object.fromEntries(callerHeaders.entries())
+        : (callerHeaders as Record<string, string> | undefined)),
+    },
   });
   if (!res.ok) {
     let message = `HTTP ${res.status}`;

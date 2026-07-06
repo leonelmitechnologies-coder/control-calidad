@@ -730,14 +730,25 @@ app.post("/api/rechazos-externos", requireAuth, async (req: Request, res: Respon
       corrective_actions,
     } = req.body;
 
+    // Compute total_time_minutes server-side so it is consistent with stored timestamps
+    let totalTimeMinutes: number | null = null;
+    if (plant_entry && plant_exit) {
+      const diffMs = new Date(plant_exit).getTime() - new Date(plant_entry).getTime();
+      if (!isNaN(diffMs) && diffMs >= 0) {
+        totalTimeMinutes = Math.round(diffMs / 60000);
+      }
+    }
+
     // Insert main rechazo_externo
     const reResult = await client.query(
       `INSERT INTO rechazos_externos
         (return_order, license_plate, classification, inches, sales_channel, sku, brand,
-         plant_entry, plant_exit, outbound_order, processed_by, registration_date, sale_price, registrado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+         plant_entry, plant_exit, total_time_minutes, outbound_order, processed_by,
+         registration_date, sale_price, registrado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING id, return_order, license_plate, classification, inches, sales_channel, sku, brand,
-                 plant_entry, plant_exit, outbound_order, processed_by, registration_date, sale_price`,
+                 plant_entry, plant_exit, total_time_minutes, outbound_order, processed_by,
+                 registration_date, sale_price`,
       [
         return_order,
         license_plate,
@@ -748,10 +759,11 @@ app.post("/api/rechazos-externos", requireAuth, async (req: Request, res: Respon
         brand || "",
         plant_entry,
         plant_exit || null,
+        totalTimeMinutes,
         outbound_order || "",
         processed_by || "",
         registration_date || null,
-        sale_price || null,
+        sale_price != null && sale_price !== "" ? sale_price : null,
         req.user?.name || "",
       ]
     );
@@ -817,13 +829,22 @@ app.put("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
       corrective_actions,
     } = req.body;
 
+    // Compute total_time_minutes server-side so it stays consistent with plant_entry/plant_exit
+    let totalTimeMinutes: number | null = null;
+    if (plant_entry && plant_exit) {
+      const diffMs = new Date(plant_exit).getTime() - new Date(plant_entry).getTime();
+      if (!isNaN(diffMs) && diffMs >= 0) {
+        totalTimeMinutes = Math.round(diffMs / 60000);
+      }
+    }
+
     // Update main record
     const updateResult = await client.query(
       `UPDATE rechazos_externos
        SET return_order=$1, license_plate=$2, classification=$3, inches=$4, sales_channel=$5, sku=$6,
-           brand=$7, plant_entry=$8, plant_exit=$9, outbound_order=$10, processed_by=$11,
-           registration_date=$12, sale_price=$13
-       WHERE id=$14
+           brand=$7, plant_entry=$8, plant_exit=$9, total_time_minutes=$10, outbound_order=$11,
+           processed_by=$12, registration_date=$13, sale_price=$14
+       WHERE id=$15
        RETURNING *`,
       [
         return_order,
@@ -835,10 +856,11 @@ app.put("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
         brand || "",
         plant_entry,
         plant_exit || null,
+        totalTimeMinutes,
         outbound_order || "",
         processed_by || "",
         registration_date || null,
-        sale_price || null,
+        sale_price != null && sale_price !== "" ? sale_price : null,
         reId,
       ]
     );
