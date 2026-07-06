@@ -570,7 +570,7 @@ export default function ReForm({
                 style={{
                   display:       'block',
                   border:        '2px dashed #cccccc',
-                  padding:       '20px 16px',
+                  padding:       '16px',
                   textAlign:     'center',
                   cursor:        isSaving ? 'not-allowed' : 'pointer',
                   fontSize:      11,
@@ -581,9 +581,33 @@ export default function ReForm({
                 }}
               >
                 {files.length > 0
-                  ? `${files.length} imagen(es) seleccionada(s) — haz clic para cambiar`
+                  ? 'Haz clic para agregar más imágenes'
                   : 'Haz clic para agregar imágenes (JPG, PNG, WEBP — MAX 10MB c/u)'}
               </label>
+              {files.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                  {files.map((f, i) => {
+                    const url = URL.createObjectURL(f);
+                    return (
+                      <div key={i} style={{ position: 'relative' }}>
+                        <img
+                          src={url}
+                          alt={f.name}
+                          onLoad={() => URL.revokeObjectURL(url)}
+                          style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
+                          style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', border: 'none', background: '#e53e3e', color: '#fff', cursor: 'pointer', fontSize: 10, lineHeight: '18px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {isEditing && data?.images && data.images.length > 0 && (
                 <p style={{ fontSize: 12, color: '#777', fontStyle: 'italic', marginTop: 8 }}>
                   Este registro ya tiene {data.images.length} imagen(es). Las nuevas se agregarán.

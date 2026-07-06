@@ -182,16 +182,11 @@ export async function initDB() {
     await pool.query(`ALTER TABLE re_images ADD COLUMN IF NOT EXISTS data_b64 TEXT`);
     await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_url VARCHAR(500)`);
     await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_data_b64 TEXT`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_url VARCHAR(500)`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_data_b64 TEXT`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_url VARCHAR(500)`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_data_b64 TEXT`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS order_id VARCHAR(100) NOT NULL DEFAULT ''`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS muestra_total INTEGER`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS defectos_encontrados INTEGER NOT NULL DEFAULT 0`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS lote VARCHAR(100) NOT NULL DEFAULT ''`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS observaciones TEXT NOT NULL DEFAULT ''`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS checklist_json TEXT`);
+    // Migrations for rechazos_externos
+    await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS estatus VARCHAR(20) NOT NULL DEFAULT 'Pendiente'`);
+    await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS modelo VARCHAR(100) NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS pulgada VARCHAR(20) NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS descripcion TEXT NOT NULL DEFAULT ''`);
 
     // Create catalogo_sku table
     await pool.query(`
@@ -238,6 +233,17 @@ export async function initDB() {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    // Migrations for aql_registros (idempotent — must come after CREATE TABLE above)
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_url VARCHAR(500)`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_data_b64 TEXT`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_url VARCHAR(500)`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_data_b64 TEXT`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS order_id VARCHAR(100) NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS muestra_total INTEGER`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS defectos_encontrados INTEGER NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS lote VARCHAR(100) NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS observaciones TEXT NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS checklist_json TEXT`);
 
     // Create capas table
     await pool.query(`

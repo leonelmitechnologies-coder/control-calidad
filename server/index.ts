@@ -602,24 +602,56 @@ app.get("/api/catalogo-sku/:sku", async (req: Request, res: Response) => {
 
 // ── RECHAZOS EXTERNOS ──────────────────────────────────────────
 
-// GET /api/rechazos-externos - List external rejects with counts
+// GET /api/rechazos-externos - List with pagination, estatus filter and search
 app.get("/api/rechazos-externos", requireAuth, async (req: Request, res: Response) => {
   try {
-    const result = await pool.query(`
-      SELECT
-        re.*,
-        COUNT(DISTINCT rpd.id) as cnt_problemas,
-        COUNT(DISTINCT rca.id) as cnt_acciones,
-        COUNT(DISTINCT c.id) as cnt_capas
-      FROM rechazos_externos re
-      LEFT JOIN re_problem_descriptions rpd ON rpd.rechazo_id = re.id
-      LEFT JOIN re_corrective_actions rca ON rca.rechazo_id = re.id
-      LEFT JOIN capas c ON c.origen_tipo = 're' AND c.origen_id = re.id
-      GROUP BY re.id
-      ORDER BY re.created_at DESC
-    `);
+    const page    = Math.max(1, parseInt(String(req.query.page  || "1")));
+    const limit   = Math.max(1, Math.min(100, parseInt(String(req.query.limit || "20"))));
+    const offset  = (page - 1) * limit;
+    const estatus = String(req.query.estatus || "").trim();
+    const search  = String(req.query.search  || "").trim();
 
-    res.json(result.rows);
+    const conditions: string[] = [];
+    const params: any[]        = [];
+    let idx = 1;
+
+    if (estatus) {
+      conditions.push(`re.estatus = $${idx++}`);
+      params.push(estatus);
+    }
+    if (search) {
+      conditions.push(`(re.return_order ILIKE $${idx} OR re.license_plate ILIKE $${idx} OR re.classification ILIKE $${idx})`);
+      params.push(`%${search}%`);
+      idx++;
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const [countRes, dataRes] = await Promise.all([
+      pool.query(`SELECT COUNT(*) FROM rechazos_externos re ${where}`, params),
+      pool.query(
+        `SELECT re.*,
+                COUNT(DISTINCT rpd.id)  AS cnt_problemas,
+                COUNT(DISTINCT rca.id)  AS cnt_acciones,
+                COUNT(DISTINCT rim.id)  AS cnt_images
+         FROM rechazos_externos re
+         LEFT JOIN re_problem_descriptions rpd ON rpd.rechazo_id = re.id
+         LEFT JOIN re_corrective_actions   rca ON rca.rechazo_id = re.id
+         LEFT JOIN re_images               rim ON rim.rechazo_id = re.id
+         ${where}
+         GROUP BY re.id
+         ORDER BY re.created_at DESC
+         LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...params, limit, offset]
+      ),
+    ]);
+
+    res.json({
+      data:  dataRes.rows,
+      total: parseInt(countRes.rows[0].count),
+      page,
+      limit,
+    });
   } catch (err) {
     console.error("[API] GET /api/rechazos-externos error:", err);
     res.status(500).json({ error: "Internal server error" });

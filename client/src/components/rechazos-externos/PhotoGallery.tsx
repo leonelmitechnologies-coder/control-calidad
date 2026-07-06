@@ -88,7 +88,7 @@ function Lightbox({ images, startIndex, onClose }: LightboxProps) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 300,
+        zIndex: 1200,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
