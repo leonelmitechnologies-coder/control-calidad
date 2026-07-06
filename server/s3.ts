@@ -127,9 +127,25 @@ export async function uploadFilesToS3(
 }
 
 /**
- * Delete a file from S3/MinIO
+ * Delete a file from S3/MinIO, or from local disk if S3 is not configured.
+ * Never throws — logs errors but lets the caller continue.
  */
 export async function deleteFileFromS3(key: string): Promise<void> {
+  if (USE_LOCAL) {
+    // In local mode, attempt to remove the physical file; ignore if missing.
+    try {
+      // key is expected as "folder/filename" or a full local path starting with /uploads/
+      const relativePath = key.startsWith("/uploads/") ? key.slice("/uploads/".length) : key;
+      const filePath = path.join(LOCAL_UPLOADS_DIR, relativePath);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (localErr) {
+      console.error("[S3/local] Delete error:", (localErr as Error).message);
+    }
+    return;
+  }
+
   try {
     // Extract the key from the full URL if needed
     const actualKey = key.includes("/")
@@ -144,7 +160,7 @@ export async function deleteFileFromS3(key: string): Promise<void> {
     );
   } catch (error) {
     console.error("[S3] Delete error:", error);
-    throw error;
+    // Do not re-throw — a missing or already-deleted file should not abort a cascade delete.
   }
 }
 

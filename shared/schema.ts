@@ -75,6 +75,11 @@ export const rechazosExternos = pgTable("rechazos_externos", {
   processedBy: varchar("processed_by", { length: 200 }).notNull().default(""),
   registrationDate: date("registration_date"),
   salePrice: decimal("sale_price", { precision: 10, scale: 2 }),
+  // Columns added via migration — must match db.ts ALTER TABLE statements
+  estatus: varchar("estatus", { length: 20 }).notNull().default("Pendiente"),
+  modelo: varchar("modelo", { length: 100 }).notNull().default(""),
+  pulgada: varchar("pulgada", { length: 20 }).notNull().default(""),
+  descripcion: text("descripcion").notNull().default(""),
   registradoPor: varchar("registrado_por", { length: 100 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
