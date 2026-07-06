@@ -37,19 +37,6 @@ import type { RechazosExterno, ReListResponse } from '../types';
 const PAGE_SIZE            = 20;
 const SEARCH_DEBOUNCE_MS   = 500;
 
-type StatusTab = '' | 'Aceptado' | 'Pendiente' | 'Rechazado';
-
-interface TabDef {
-  value: StatusTab;
-  labelKey: string;
-}
-
-const STATUS_TABS: TabDef[] = [
-  { value: '',           labelKey: 'rechazos_externos.status_tabs.todas'     },
-  { value: 'Aceptado',   labelKey: 'rechazos_externos.status_tabs.aceptado'  },
-  { value: 'Pendiente',  labelKey: 'rechazos_externos.status_tabs.pendiente' },
-  { value: 'Rechazado',  labelKey: 'rechazos_externos.status_tabs.rechazado' },
-];
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -99,37 +86,16 @@ async function uploadImages(id: number, files: File[]): Promise<void> {
 
 // ── List URL + query key builder ──────────────────────────────────────────────
 
-function buildListUrl(page: number, estatus: StatusTab, search: string): string {
+function buildListUrl(page: number, search: string): string {
   const p = new URLSearchParams();
   p.set('page',  String(page));
   p.set('limit', String(PAGE_SIZE));
-  if (estatus)      p.set('estatus', estatus);
   if (search.trim()) p.set('search', search.trim());
   return `/api/rechazos-externos?${p.toString()}`;
 }
 
-function buildListKey(page: number, estatus: StatusTab, search: string) {
-  return ['rechazos-externos', 'list', page, estatus, search] as const;
-}
-
-// ── Tab counts hook ───────────────────────────────────────────────────────────
-
-function useTabCounts(allData: ReListResponse | undefined) {
-  const fetchCount = (estatus: string) =>
-    apiFetch<ReListResponse>(
-      `/api/rechazos-externos?page=1&limit=1${estatus ? `&estatus=${estatus}` : ''}`,
-    );
-
-  const aceptadoQ  = useQuery<ReListResponse>({ queryKey: ['rechazos-externos', 'count', 'Aceptado'],  queryFn: () => fetchCount('Aceptado'),  staleTime: 30000 });
-  const pendienteQ = useQuery<ReListResponse>({ queryKey: ['rechazos-externos', 'count', 'Pendiente'], queryFn: () => fetchCount('Pendiente'), staleTime: 30000 });
-  const rechazadoQ = useQuery<ReListResponse>({ queryKey: ['rechazos-externos', 'count', 'Rechazado'], queryFn: () => fetchCount('Rechazado'), staleTime: 30000 });
-
-  return {
-    '':          allData?.total ?? 0,
-    Aceptado:    aceptadoQ.data?.total  ?? 0,
-    Pendiente:   pendienteQ.data?.total ?? 0,
-    Rechazado:   rechazadoQ.data?.total ?? 0,
-  } as Record<StatusTab, number>;
+function buildListKey(page: number, search: string) {
+  return ['rechazos-externos', 'list', page, search] as const;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -141,7 +107,6 @@ export default function RechazosExternos() {
   const qc      = useQueryClient();
 
   // ── Filter state ──────────────────────────────────────────────────────────
-  const [activeTab,       setActiveTab]       = useState<StatusTab>('');
   const [searchInput,     setSearchInput]     = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -156,14 +121,9 @@ export default function RechazosExternos() {
     }, SEARCH_DEBOUNCE_MS);
   }, []);
 
-  const handleTabChange = useCallback((tab: StatusTab) => {
-    setActiveTab(tab);
-    setPage(1);
-  }, []);
-
   // ── Data fetching ─────────────────────────────────────────────────────────
-  const listUrl = buildListUrl(page, activeTab, debouncedSearch);
-  const listKey = buildListKey(page, activeTab, debouncedSearch);
+  const listUrl = buildListUrl(page, debouncedSearch);
+  const listKey = buildListKey(page, debouncedSearch);
 
   const listQuery = useQuery<ReListResponse>({
     queryKey: listKey,
@@ -171,8 +131,6 @@ export default function RechazosExternos() {
     staleTime: 60000,
     placeholderData: (prev) => prev,
   });
-
-  const tabCounts = useTabCounts(activeTab === '' ? listQuery.data : undefined);
 
   // ── Modal state ───────────────────────────────────────────────────────────
   const [formOpen,     setFormOpen]     = useState(false);
@@ -386,47 +344,6 @@ export default function RechazosExternos() {
         >
           + {t('rechazos_externos.add')}
         </button>
-      </div>
-
-      {/* Status filter tabs */}
-      <div style={{ borderBottom: '2px solid #e2e2e2', display: 'flex', gap: 0 }}>
-        {STATUS_TABS.map((tab) => {
-          const isActive = activeTab === tab.value;
-          const count    = tabCounts[tab.value];
-          return (
-            <button
-              key={tab.value || 'todas'}
-              type="button"
-              onClick={() => handleTabChange(tab.value)}
-              style={{
-                padding: '8px 16px',
-                fontSize: 13,
-                fontWeight: 500,
-                background: 'none',
-                border: 'none',
-                borderBottom: isActive ? '2px solid #0d2b4e' : '2px solid transparent',
-                marginBottom: -2,
-                color: isActive ? '#0d2b4e' : '#666',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              {t(tab.labelKey)}
-              <span style={{
-                background: isActive ? '#0d2b4e' : '#e2e2e2',
-                color: isActive ? '#fff' : '#555',
-                borderRadius: 10,
-                padding: '1px 7px',
-                fontSize: 11,
-                fontWeight: 600,
-              }}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
       </div>
 
       {/* Search bar */}
