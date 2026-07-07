@@ -121,6 +121,114 @@ function SearchableSelect({ value, options, onChange, placeholder = 'Escribe o s
   );
 }
 
+// ── MultiSelect ───────────────────────────────────────────────────────────────
+
+interface MultiSelectProps {
+  value:       string;   // comma-separated string stored in DB
+  options:     readonly string[];
+  onChange:    (v: string) => void;
+  placeholder?: string;
+  hasError?:   boolean;
+  disabled?:   boolean;
+}
+
+function MultiSelect({ value, options, onChange, placeholder = 'Selecciona una o más opciones...', hasError, disabled }: MultiSelectProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef    = useRef<HTMLDivElement>(null);
+
+  const selected = value ? value.split(', ').filter(Boolean) : [];
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  function toggle(opt: string) {
+    const next = selected.includes(opt)
+      ? selected.filter((s) => s !== opt)
+      : [...selected, opt];
+    onChange(next.join(', '));
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      {/* Display area */}
+      <div
+        onClick={() => { if (!disabled) setOpen((o) => !o); }}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          minHeight: 36, padding: '5px 10px', flexWrap: 'wrap', gap: 4,
+          border: `1px solid ${hasError ? '#c0392b' : open ? '#0d2b4e' : '#ccc'}`,
+          background: disabled ? '#f4f6f9' : '#fff',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          transition: 'border-color 0.15s',
+        }}
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, flex: 1 }}>
+          {selected.length === 0 ? (
+            <span style={{ fontSize: 13, color: '#aaa' }}>{placeholder}</span>
+          ) : (
+            selected.map((s) => (
+              <span key={s} style={{
+                fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                background: '#e8eef6', color: '#0d2b4e', borderRadius: 3,
+              }}>
+                {s}
+              </span>
+            ))
+          )}
+        </div>
+        <span style={{ color: '#999', fontSize: 10, marginLeft: 4, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          position: 'absolute', zIndex: 999, left: 0, right: 0, top: '100%',
+          background: '#fff', border: '1px solid #ccc', borderTop: 'none',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.12)', maxHeight: 240, overflowY: 'auto',
+        }}>
+          {options.map((opt) => {
+            const checked = selected.includes(opt);
+            return (
+              <div
+                key={opt}
+                onMouseDown={(e) => { e.preventDefault(); toggle(opt); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '9px 14px', cursor: 'pointer', fontSize: 13,
+                  background: checked ? '#f0f4fa' : '#fff',
+                  borderBottom: '1px solid #f5f5f5',
+                  color: checked ? '#0d2b4e' : '#333',
+                  fontWeight: checked ? 700 : 400,
+                }}
+                onMouseEnter={(e) => { if (!checked) (e.currentTarget as HTMLDivElement).style.background = '#f8f9fa'; }}
+                onMouseLeave={(e) => { if (!checked) (e.currentTarget as HTMLDivElement).style.background = '#fff'; }}
+              >
+                <div style={{
+                  width: 16, height: 16, border: `2px solid ${checked ? '#0d2b4e' : '#ccc'}`,
+                  borderRadius: 3, background: checked ? '#0d2b4e' : '#fff',
+                  flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.12s',
+                }}>
+                  {checked && <span style={{ color: '#fff', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                </div>
+                {opt}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface CorrectiveAction {
@@ -542,17 +650,13 @@ export default function ReForm({
 
               <div className="form-group full">
                 <label>Processed By <span style={{ color: '#c0392b' }}>*</span></label>
-                <select
+                <MultiSelect
                   value={form.processed_by}
-                  onChange={(e) => set('processed_by', e.target.value)}
+                  options={DEPARTAMENTOS_RE}
+                  onChange={(v) => set('processed_by', v)}
+                  hasError={!!errors.processed_by}
                   disabled={isSaving}
-                  style={errors.processed_by ? { borderColor: '#c0392b' } : undefined}
-                >
-                  <option value="">Selecciona un área...</option>
-                  {DEPARTAMENTOS_RE.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
+                />
                 {errors.processed_by && <span className="form-error">{errors.processed_by}</span>}
               </div>
 
