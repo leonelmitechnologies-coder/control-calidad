@@ -15,6 +15,8 @@ interface LayoutProps {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',            href: '/' },
+  { label: 'Dashboard B2C',        href: '/dashboard-b2c' },
+  { label: 'Dashboard B2B',        href: '/dashboard-b2b' },
   { label: 'No Conformidades',     href: '/nc' },
   { label: 'Recepciones',          href: '/recepciones' },
   { label: 'Rechazos Externos',    href: '/rechazos-ext' },
@@ -40,6 +42,8 @@ const ROUTE_TITLES: Record<string, string> = {
   '/organigrama-qc':      'Organigrama QC',
   '/calendario':          'Calendario',
   '/usuarios':            'Usuarios',
+  '/dashboard-b2c':       'Dashboard B2C',
+  '/dashboard-b2b':       'Dashboard B2B',
   '/manual':              'Manual de Usuario',
 };
 

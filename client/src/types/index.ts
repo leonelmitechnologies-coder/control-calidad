@@ -264,6 +264,33 @@ export interface LsListResponse {
   limit: number;
 }
 
+// ── B2C Dashboard ──
+
+export interface B2COrderItem {
+  WebSKU:             string;
+  MitSKUShip:         string;
+  LPN:                string;
+  Clasificacion:      string;
+  DescripcionProducto: string;
+}
+
+export interface B2COrder {
+  OrderEntryID:            number;
+  OrderID:                 string;
+  FechaIngreso:            string;
+  ShipDate:                string | null;
+  AccountName:             string;
+  ShipBy:                  string;
+  CustomerShippingName:    string;
+  Items:                   B2COrderItem[];
+  Qty:                     number;
+  CanalVenta:              string;
+  Status:                  string;
+  Tracking:                string;
+  Shipment_ID:             string;
+  LocationName:            string;
+}
+
 // ── API generic envelope ──
 
 export interface ApiEnvelope<T> {

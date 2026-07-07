@@ -24,6 +24,8 @@ import OrganigramaQc from './pages/OrganigramaQc';
 import Calendario from './pages/Calendario';
 import Usuarios from './pages/Usuarios';
 import Manual from './pages/Manual';
+import B2CDashboard from './pages/B2CDashboard';
+import B2BDashboard from './pages/B2BDashboard';
 import Login from './pages/Login';
 
 // Create TanStack Query client
@@ -146,6 +148,22 @@ export default function App() {
                 {() => (
                   <Layout>
                     <Usuarios />
+                  </Layout>
+                )}
+              </Route>
+
+              <Route path="/dashboard-b2c">
+                {() => (
+                  <Layout>
+                    <B2CDashboard />
+                  </Layout>
+                )}
+              </Route>
+
+              <Route path="/dashboard-b2b">
+                {() => (
+                  <Layout>
+                    <B2BDashboard />
                   </Layout>
                 )}
               </Route>
