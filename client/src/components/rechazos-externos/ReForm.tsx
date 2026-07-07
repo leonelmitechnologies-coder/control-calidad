@@ -10,6 +10,117 @@ const DEPARTAMENTOS_RE = [
   'OPEN CELL', 'ALMACEN', 'SHIPPING B2C', 'SHIPPING B2B',
 ] as const;
 
+const CLASSIFICATION_OPTIONS = [
+  'GRA', 'GRB', 'GRC', 'ICB', 'ICC', 'ICD', 'ICX',
+  'BOX', 'DMA', 'DMT', 'POC', 'PEN', 'PNP',
+];
+
+// ── SearchableSelect ──────────────────────────────────────────────────────────
+
+interface SearchableSelectProps {
+  value:       string;
+  options:     string[];
+  onChange:    (v: string) => void;
+  placeholder?: string;
+  hasError?:   boolean;
+  disabled?:   boolean;
+}
+
+function SearchableSelect({ value, options, onChange, placeholder = 'Escribe o selecciona...', hasError, disabled }: SearchableSelectProps) {
+  const [open,  setOpen]  = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filtered = options.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
+
+  useEffect(() => {
+    if (!open) { setQuery(''); return; }
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  function select(opt: string) {
+    onChange(opt);
+    setOpen(false);
+    setQuery('');
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      {/* Display input */}
+      <div
+        onClick={() => { if (!disabled) setOpen((o) => !o); }}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '7px 10px', border: `1px solid ${hasError ? '#c0392b' : open ? '#0d2b4e' : '#ccc'}`,
+          background: disabled ? '#f4f6f9' : '#fff', cursor: disabled ? 'not-allowed' : 'pointer',
+          fontSize: 13, color: value ? '#222' : '#aaa', userSelect: 'none',
+          transition: 'border-color 0.15s',
+        }}
+      >
+        <span>{value || placeholder}</span>
+        <span style={{ color: '#999', fontSize: 10, marginLeft: 6 }}>{open ? '▲' : '▼'}</span>
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          position: 'absolute', zIndex: 999, left: 0, right: 0, top: '100%',
+          background: '#fff', border: '1px solid #ccc', borderTop: 'none',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.12)', maxHeight: 220, display: 'flex', flexDirection: 'column',
+        }}>
+          {/* Search input */}
+          <div style={{ padding: '6px 8px', borderBottom: '1px solid #eee' }}>
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setOpen(false);
+                if (e.key === 'Enter' && filtered.length === 1) select(filtered[0]);
+              }}
+              placeholder="Escribe o selecciona..."
+              style={{
+                width: '100%', border: '1px solid #e0e0e0', padding: '5px 8px',
+                fontSize: 12, outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+          {/* Options list */}
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: '10px 12px', fontSize: 12, color: '#aaa', fontStyle: 'italic' }}>Sin resultados</div>
+            ) : (
+              filtered.map((opt) => (
+                <div
+                  key={opt}
+                  onMouseDown={() => select(opt)}
+                  style={{
+                    padding: '9px 14px', fontSize: 13, cursor: 'pointer',
+                    background: opt === value ? '#f0f4fa' : '#fff',
+                    color: opt === value ? '#0d2b4e' : '#333',
+                    fontWeight: opt === value ? 700 : 400,
+                    borderBottom: '1px solid #f5f5f5',
+                  }}
+                  onMouseEnter={(e) => { if (opt !== value) (e.currentTarget as HTMLDivElement).style.background = '#f8f9fa'; }}
+                  onMouseLeave={(e) => { if (opt !== value) (e.currentTarget as HTMLDivElement).style.background = '#fff'; }}
+                >
+                  {opt}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface CorrectiveAction {
@@ -345,10 +456,13 @@ export default function ReForm({
 
               <div className="form-group">
                 <label>Classification <span style={{ color: '#c0392b' }}>*</span></label>
-                <input type="text" value={form.classification}
-                  onChange={(e) => set('classification', e.target.value)}
-                  placeholder="Ej. GRB"
-                  style={errors.classification ? { borderColor: '#c0392b' } : undefined} />
+                <SearchableSelect
+                  value={form.classification}
+                  options={CLASSIFICATION_OPTIONS}
+                  onChange={(v) => set('classification', v)}
+                  hasError={!!errors.classification}
+                  disabled={isSaving}
+                />
                 {errors.classification && <span className="form-error">{errors.classification}</span>}
               </div>
 
@@ -428,10 +542,17 @@ export default function ReForm({
 
               <div className="form-group full">
                 <label>Processed By <span style={{ color: '#c0392b' }}>*</span></label>
-                <input type="text" value={form.processed_by}
+                <select
+                  value={form.processed_by}
                   onChange={(e) => set('processed_by', e.target.value)}
-                  placeholder="Ej. FFT Area and Open Cell Area"
-                  style={errors.processed_by ? { borderColor: '#c0392b' } : undefined} />
+                  disabled={isSaving}
+                  style={errors.processed_by ? { borderColor: '#c0392b' } : undefined}
+                >
+                  <option value="">Selecciona un área...</option>
+                  {DEPARTAMENTOS_RE.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
                 {errors.processed_by && <span className="form-error">{errors.processed_by}</span>}
               </div>
 
