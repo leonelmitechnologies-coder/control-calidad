@@ -11,6 +11,8 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useQuery } from '@tanstack/react-query';
+import { MultiSelectDropdown } from '../components/common/MultiSelectDropdown';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LabelList, Legend,
@@ -49,6 +51,59 @@ interface B2BOrder {
   billingAddress:string;
   items:         B2BItem[];
 }
+
+// ── API Types & Mapping ───────────────────────────────────────────────────────
+
+interface ApiItem {
+  SKU: string; LPN: string; ItemDescription: string;
+  QtyOrdered: number; Rate: number; Amount: number; QtyDelivered: number;
+}
+interface ApiOrder {
+  OrderID: number; CustomerName: string; Total: number; Paid: number;
+  Status: string; Location: string; EnteredDate: string; EnteredBy: string;
+  InvoiceDate: string; DueDate: string; CurrencyCode: string | null;
+  SalesRep1Name: string; SalesRep2Name: string; BillingAddress: string;
+  UnitsOrdered: number; UnitsDelivered: number; Items: ApiItem[];
+}
+
+function mapApiOrder(o: ApiOrder): B2BOrder {
+  const fmt = (iso: string) => iso ? new Date(iso).toLocaleString('es-MX') : '';
+  return {
+    orderId:        String(o.OrderID),
+    customer:       o.CustomerName,
+    total:          o.Total,
+    paid:           o.Paid,
+    balance:        o.Total - o.Paid,
+    status:         o.Status,
+    location:       o.Location,
+    unitsOrdered:   o.UnitsOrdered,
+    unitsDelivered: o.UnitsDelivered,
+    unitsRemaining: Math.max(0, o.UnitsOrdered - o.UnitsDelivered),
+    notFound:       0,
+    invoiceDate:    fmt(o.InvoiceDate),
+    dueDate:        fmt(o.DueDate),
+    enteredBy:      o.EnteredBy || '',
+    enteredDate:    fmt(o.EnteredDate),
+    salesRep1:      o.SalesRep1Name,
+    salesRep2:      o.SalesRep2Name,
+    billingAddress: o.BillingAddress,
+    items: (o.Items ?? []).map(it => ({
+      sku:          it.SKU,
+      lpn:          it.LPN || '',
+      description:  it.ItemDescription || '',
+      qtyOrdered:   it.QtyOrdered,
+      qtyDelivered: it.QtyDelivered,
+      price:        it.Rate || 0,
+      subtotal:     it.Amount || 0,
+    })),
+  };
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  Complete: '#27ae60', Cancelled: '#c0392b', Processing: '#2980b9',
+  Pending: '#c0711a', 'In Transit': '#8e44ad', Partial: '#d68910',
+};
+const LOC_COLORS = ['#0d2b4e', '#2980b9', '#27ae60', '#c0711a', '#8e44ad', '#d68910'];
 
 // ── Inspección QC ─────────────────────────────────────────────────────────────
 
@@ -109,182 +164,6 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }
 function statusCfg(s: string) {
   return STATUS_CONFIG[s] ?? { color: '#555', bg: '#f0f0f0', label: s };
 }
-
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-
-const MOCK_ORDERS: B2BOrder[] = [
-  {
-    orderId: '19006503', customer: 'Biocleantech CARLOS CID(91229)',
-    total: 0, paid: 0, balance: 0, status: 'Complete', location: 'MTY-MAXX',
-    unitsOrdered: 375, unitsDelivered: 375, unitsRemaining: 0, notFound: 0,
-    invoiceDate: '2026-06-23 00:23', dueDate: '2026-06-23 00:23',
-    enteredBy: 'mario.carreon@mitechnologiesinc.com.mx', enteredDate: '2026-06-22 18:23',
-    salesRep1: 'Not Assigned', salesRep2: 'Not Assigned',
-    billingAddress: 'Local delivery',
-    items: [
-      { sku: 'SNTV000282-DMA', lpn: 'MTG12T2387', description: 'Philips 32PFL4664/F7 32" Class 4600 Series HD Smart Roku LED TV', qtyOrdered: 4, qtyDelivered: 4, price: 0, subtotal: 0 },
-      { sku: 'SNTV001764-DMA', lpn: 'MTG8R3X990', description: 'Onn 100012589 32" Class HD (720P) LED Roku Smart TV', qtyOrdered: 5, qtyDelivered: 5, price: 0, subtotal: 0 },
-      { sku: 'SNTV002680-DMA', lpn: 'MTG5K2A111', description: 'Hisense 65R6E4 65" Class R6 Series 4K (2160P) Roku Smart LED TV', qtyOrdered: 2, qtyDelivered: 2, price: 0, subtotal: 0 },
-      { sku: 'SNTV003319-DMA', lpn: 'MTG9P7B443', description: 'Hisense 75R6E4 75" Class R6 Series 4K UHD LED LCD Roku Smart TV', qtyOrdered: 5, qtyDelivered: 5, price: 0, subtotal: 0 },
-      { sku: 'SNTV003592-DMA', lpn: 'MTG2W4C882', description: 'Hisense 43R6E4 43" Class R6 Series 4K Ultra HD (2160P) HDR Roku Smart LED TV', qtyOrdered: 8, qtyDelivered: 8, price: 0, subtotal: 0 },
-    ],
-  },
-  {
-    orderId: '19006445', customer: 'Biocleantech CARLOS CID(91229)',
-    total: 0, paid: 0, balance: 0, status: 'Complete', location: 'MTY-MAXX',
-    unitsOrdered: 30, unitsDelivered: 30, unitsRemaining: 0, notFound: 0,
-    invoiceDate: '2026-06-22 19:26', dueDate: '2026-06-22 19:26',
-    enteredBy: 'mario.carreon@mitechnologiesinc.com.mx', enteredDate: '2026-06-22 13:26',
-    salesRep1: 'Not Assigned', salesRep2: 'Not Assigned',
-    billingAddress: 'Av. Industriales 441, Monterrey, NL',
-    items: [
-      { sku: 'SNTV004210-DMA', lpn: 'MTG3L6D221', description: 'Samsung 55" QLED 4K UHD Smart TV QN55Q60C', qtyOrdered: 15, qtyDelivered: 15, price: 0, subtotal: 0 },
-      { sku: 'SNTV004211-DMA', lpn: 'MTG7R9E554', description: 'Samsung 65" QLED 4K UHD Smart TV QN65Q60C', qtyOrdered: 15, qtyDelivered: 15, price: 0, subtotal: 0 },
-    ],
-  },
-  {
-    orderId: '19006494', customer: 'Biocleantech CARLOS CID(91229)',
-    total: 0, paid: 0, balance: 0, status: 'Complete', location: 'MTY-MAXX',
-    unitsOrdered: 393, unitsDelivered: 393, unitsRemaining: 0, notFound: 0,
-    invoiceDate: '2026-06-22 16:01', dueDate: '2026-06-22 16:01',
-    enteredBy: 'antonio.martinez@mitechnologiesinc.com', enteredDate: '2026-06-22 16:01',
-    salesRep1: 'Not Assigned', salesRep2: 'Not Assigned',
-    billingAddress: 'Local delivery',
-    items: [
-      { sku: 'SNTV003827-DMA', lpn: 'MTG4P2F667', description: 'Philips 32PFL6452/F7 32" Class 6400 Series (720P) Smart Roku Borderless LED TV', qtyOrdered: 23, qtyDelivered: 23, price: 0, subtotal: 0 },
-      { sku: 'SNTV003592-FRM', lpn: 'MTG1W4C883', description: 'Hisense 43R6E4 43" Class R6 Series 4K Ultra HD HDR Smart LED TV (Refurb)', qtyOrdered: 370, qtyDelivered: 370, price: 0, subtotal: 0 },
-    ],
-  },
-  {
-    orderId: '19005516', customer: 'West Program TRG CID(48804)',
-    total: 48, paid: 0, balance: -48, status: 'Partial', location: 'MTY-MAXX',
-    unitsOrdered: 48, unitsDelivered: 0, unitsRemaining: 48, notFound: 0,
-    invoiceDate: '2026-06-19 13:54', dueDate: '2026-07-19 14:01',
-    enteredBy: 'antonio.martinez@mitechnologiesinc.com', enteredDate: '2026-06-19 07:00',
-    salesRep1: 'Carlos Mendez', salesRep2: 'Not Assigned',
-    billingAddress: 'Blvd. Puerta de Hierro 4965, Zapopan, JAL',
-    items: [
-      { sku: 'SNTV005100-DMA', lpn: '', description: 'LG 55" Class NanoCell 4K Smart TV 55NANO75', qtyOrdered: 24, qtyDelivered: 0, price: 1, subtotal: 24 },
-      { sku: 'SNTV005101-DMA', lpn: '', description: 'LG 65" Class NanoCell 4K Smart TV 65NANO75', qtyOrdered: 24, qtyDelivered: 0, price: 1, subtotal: 24 },
-    ],
-  },
-  {
-    orderId: '19005082', customer: 'Francisco Juan Carbajal García CID(116193)',
-    total: 0, paid: 0, balance: 0, status: 'Complete', location: 'MTY-MAXX',
-    unitsOrdered: 562, unitsDelivered: 562, unitsRemaining: 0, notFound: 0,
-    invoiceDate: '2026-06-18 09:23', dueDate: '2026-06-18 09:23',
-    enteredBy: 'mario.carreon@mitechnologiesinc.com.mx', enteredDate: '2026-06-18 03:23',
-    salesRep1: 'Not Assigned', salesRep2: 'Not Assigned',
-    billingAddress: 'Calle Cedros 412, CDMX, CP 03100',
-    items: [
-      { sku: 'SNTV001900-DMA', lpn: 'MTG6T3G990', description: 'Vizio 40" Class D-Series FHD LED Smart TV D40f-J09', qtyOrdered: 100, qtyDelivered: 100, price: 0, subtotal: 0 },
-      { sku: 'SNTV002100-DMA', lpn: 'MTG8Q5H221', description: 'Vizio 50" Class V-Series 4K UHD LED Smart TV V505-J09', qtyOrdered: 250, qtyDelivered: 250, price: 0, subtotal: 0 },
-      { sku: 'SNTV002200-DMA', lpn: 'MTG2R7I443', description: 'Vizio 55" Class V-Series 4K UHD LED Smart TV V555-J01', qtyOrdered: 212, qtyDelivered: 212, price: 0, subtotal: 0 },
-    ],
-  },
-  {
-    orderId: '19004803', customer: 'Hugo Shiavon CID(96283)',
-    total: 820.62, paid: 0, balance: -820.62, status: 'Pending', location: 'MTY-MAXX',
-    unitsOrdered: 94, unitsDelivered: 0, unitsRemaining: 94, notFound: 0,
-    invoiceDate: '2026-06-17 15:14', dueDate: '2026-07-17 15:12',
-    enteredBy: 'jesus.rodriguez@mitechnologiesinc.com', enteredDate: '2026-06-17 08:18',
-    salesRep1: 'Maria Fernandez', salesRep2: 'Not Assigned',
-    billingAddress: 'Río Amazonas 88, Guadalajara, JAL',
-    items: [
-      { sku: 'SNTV006300-DMA', lpn: '', description: 'TCL 55" Class 4-Series 4K UHD HDR Smart Roku TV 55S455', qtyOrdered: 50, qtyDelivered: 0, price: 8.7, subtotal: 435 },
-      { sku: 'SNTV006301-DMA', lpn: '', description: 'TCL 65" Class 4-Series 4K UHD HDR Smart Roku TV 65S455', qtyOrdered: 44, qtyDelivered: 0, price: 8.77, subtotal: 385.88 },
-    ],
-  },
-  {
-    orderId: '19002353', customer: 'Hugo Shiavon CID(96283)',
-    total: 4365, paid: 0, balance: -4365, status: 'Processing', location: 'MTY-MAXX',
-    unitsOrdered: 500, unitsDelivered: 0, unitsRemaining: 500, notFound: 0,
-    invoiceDate: '2026-06-10 19:00', dueDate: '2026-07-10 19:03',
-    enteredBy: 'jesus.rodriguez@mitechnologiesinc.com', enteredDate: '2026-06-10 12:16',
-    salesRep1: 'Maria Fernandez', salesRep2: 'Roberto Salas',
-    billingAddress: 'Río Amazonas 88, Guadalajara, JAL',
-    items: [
-      { sku: 'SNTV007100-DMA', lpn: '', description: 'Sony 55" Class BRAVIA XR X90J 4K HDR Full Array LED TV XR55X90J', qtyOrdered: 200, qtyDelivered: 0, price: 8.73, subtotal: 1746 },
-      { sku: 'SNTV007101-DMA', lpn: '', description: 'Sony 65" Class BRAVIA XR X90J 4K HDR Full Array LED TV XR65X90J', qtyOrdered: 200, qtyDelivered: 0, price: 10.33, subtotal: 2065.5 },
-      { sku: 'SNTV007102-DMA', lpn: '', description: 'Sony 75" Class BRAVIA XR X90J 4K HDR Full Array LED TV XR75X90J', qtyOrdered: 100, qtyDelivered: 0, price: 5.535, subtotal: 553.5 },
-    ],
-  },
-  {
-    orderId: '19009577', customer: 'West Program TRG CID(48804)',
-    total: 933, paid: 0, balance: 0, status: 'Cancelled', location: 'MTY-MAXX',
-    unitsOrdered: 933, unitsDelivered: 0, unitsRemaining: 933, notFound: 0,
-    invoiceDate: '2026-07-02 17:47', dueDate: '2026-08-01 17:48',
-    enteredBy: 'pedro.zamudio@mitechnologiesinc.com.mx', enteredDate: '2026-07-02 04:51',
-    salesRep1: 'Not Assigned', salesRep2: 'Not Assigned',
-    billingAddress: 'Av. Paseo Royal Country 4596, Zapopan, JAL',
-    items: [
-      { sku: 'SNTV009100-DMA', lpn: '', description: 'Insignia 32" Class F20 Series Smart HD 720p Fire TV NS-32F201NA23', qtyOrdered: 500, qtyDelivered: 0, price: 1, subtotal: 500 },
-      { sku: 'SNTV009101-DMA', lpn: '', description: 'Insignia 43" Class F30 Series 4K UHD Smart Fire TV NS-43F301NA23', qtyOrdered: 433, qtyDelivered: 0, price: 1, subtotal: 433 },
-    ],
-  },
-  {
-    orderId: '19010001', customer: 'Electrónica MX CID(72341)',
-    total: 1250, paid: 500, balance: -750, status: 'In Transit', location: 'MTY-MAXX',
-    unitsOrdered: 80, unitsDelivered: 80, unitsRemaining: 0, notFound: 2,
-    invoiceDate: '2026-07-04 10:00', dueDate: '2026-07-15 10:00',
-    enteredBy: 'mario.carreon@mitechnologiesinc.com.mx', enteredDate: '2026-07-04 09:00',
-    salesRep1: 'Carlos Mendez', salesRep2: 'Not Assigned',
-    billingAddress: 'Insurgentes Sur 1457, CDMX, CP 03900',
-    items: [
-      { sku: 'SNTV010100-DMA', lpn: 'MTG4T8J901', description: 'Roku Express 4K+ Streaming Media Player HD/4K/HDR', qtyOrdered: 40, qtyDelivered: 40, price: 15, subtotal: 600 },
-      { sku: 'SNTV010101-DMA', lpn: 'MTG6Q2K234', description: 'Roku Streaming Stick 4K 2021 Streaming Device 4K/HDR/Dolby Vision', qtyOrdered: 40, qtyDelivered: 40, price: 16.25, subtotal: 650 },
-    ],
-  },
-  {
-    orderId: '19010055', customer: 'Distribuidora Norte CID(88901)',
-    total: 3200, paid: 3200, balance: 0, status: 'Complete', location: 'MTY-MAXX',
-    unitsOrdered: 160, unitsDelivered: 160, unitsRemaining: 0, notFound: 0,
-    invoiceDate: '2026-07-05 08:30', dueDate: '2026-07-05 08:30',
-    enteredBy: 'antonio.martinez@mitechnologiesinc.com', enteredDate: '2026-07-04 22:30',
-    salesRep1: 'Roberto Salas', salesRep2: 'Not Assigned',
-    billingAddress: 'Blvd. Díaz Ordaz 150, Monterrey, NL',
-    items: [
-      { sku: 'SNTV011200-DMA', lpn: 'MTG9S5L567', description: 'Amazon Fire TV Stick 4K Max Streaming Device (2023)', qtyOrdered: 80, qtyDelivered: 80, price: 20, subtotal: 1600 },
-      { sku: 'SNTV011201-DMA', lpn: 'MTG3X1M890', description: 'Amazon Fire TV Stick Lite with Alexa Voice Remote Lite', qtyOrdered: 80, qtyDelivered: 80, price: 20, subtotal: 1600 },
-    ],
-  },
-];
-
-// ── Chart mock data ───────────────────────────────────────────────────────────
-
-const CHART_DAILY = [
-  { dia: 'Jun 10', ordenes: 1, unidades: 500 },
-  { dia: 'Jun 17', ordenes: 1, unidades: 94 },
-  { dia: 'Jun 18', ordenes: 1, unidades: 562 },
-  { dia: 'Jun 19', ordenes: 1, unidades: 48 },
-  { dia: 'Jun 22', ordenes: 2, unidades: 423 },
-  { dia: 'Jun 23', ordenes: 1, unidades: 375 },
-  { dia: 'Jul 02', ordenes: 1, unidades: 933 },
-  { dia: 'Jul 04', ordenes: 1, unidades: 80 },
-  { dia: 'Jul 05', ordenes: 1, unidades: 160 },
-];
-
-const CHART_CLIENTE = [
-  { cliente: 'Biocleantech',     unidades: 798 },
-  { cliente: 'West Program',     unidades: 981 },
-  { cliente: 'Hugo Shiavon',     unidades: 594 },
-  { cliente: 'F.J. Carbajal',    unidades: 562 },
-  { cliente: 'Electrónica MX',   unidades: 80 },
-  { cliente: 'Dist. Norte',      unidades: 160 },
-];
-
-const CHART_STATUS = [
-  { name: 'Complete',   value: 5, color: '#27ae60' },
-  { name: 'Cancelled',  value: 1, color: '#c0392b' },
-  { name: 'Processing', value: 1, color: '#2980b9' },
-  { name: 'Pending',    value: 1, color: '#c0711a' },
-  { name: 'In Transit', value: 1, color: '#8e44ad' },
-  { name: 'Partial',    value: 1, color: '#d68910' },
-];
-
-const CHART_LOCATION = [
-  { name: 'MTY-MAXX', value: 10, color: '#0d2b4e' },
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -629,8 +508,11 @@ export default function B2BDashboard() {
   const [tab, setTab] = useState<'resumen' | 'detalle'>('resumen');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterCustomer, setFilterCustomer] = useState('');
+  const [filterStatus,        setFilterStatus]        = useState('');
+  const [filterCustomer,      setFilterCustomer]      = useState('');
+  const [filterVendedor,      setFilterVendedor]      = useState('');
+  const [filterSKU,           setFilterSKU]           = useState<string[]>([]);
+  const [filterClasificacion, setFilterClasificacion] = useState('');
   const [page, setPage] = useState(1);
   const [detailOrder, setDetailOrder] = useState<B2BOrder | null>(null);
   const [inspeccionOrder, setInspeccionOrder] = useState<B2BOrder | null>(null);
@@ -638,21 +520,48 @@ export default function B2BDashboard() {
 
   const PER_PAGE = 10;
 
+  // Date range for API — usar fecha local para evitar desfase UTC
+  const localDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const todayStr     = localDate(new Date());
+  const thirtyAgoStr = localDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+  const [apiFrom, setApiFrom] = useState(thirtyAgoStr);
+  const [apiTo,   setApiTo]   = useState(todayStr);
+
+  const { data: rawOrders = [], isLoading, isError } = useQuery<ApiOrder[]>({
+    queryKey: ['b2b-orders', apiFrom, apiTo],
+    queryFn: () => fetch(`/api/b2b-orders?startDate=${apiFrom}&endDate=${apiTo}`)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const orders = useMemo(() => rawOrders.map(mapApiOrder), [rawOrders]);
+
   useEffect(() => {
     const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  useEffect(() => { setPage(1); }, [filterStatus, filterCustomer]);
+  useEffect(() => { setPage(1); }, [filterStatus, filterCustomer, filterVendedor, filterSKU, filterClasificacion]);
 
-  const customers = useMemo(() => Array.from(new Set(MOCK_ORDERS.map((o) => o.customer.split(' CID')[0]))).sort(), []);
-  const statuses  = useMemo(() => Array.from(new Set(MOCK_ORDERS.map((o) => o.status))).sort(), []);
+  const customers       = useMemo(() => Array.from(new Set(orders.map((o) => o.customer.split(' CID')[0]))).sort(), [orders]);
+  const statuses        = useMemo(() => Array.from(new Set(orders.map((o) => o.status))).sort(), [orders]);
+  const vendedores      = useMemo(() => Array.from(new Set(orders.map((o) => o.salesRep1).filter(Boolean))).sort(), [orders]);
+  const skus            = useMemo(() => Array.from(new Set(orders.flatMap((o) => o.items.map((i) => i.sku)))).sort(), [orders]);
+  const clasificaciones = useMemo(() => {
+    const skuClasif = (sku: string) => sku.includes('-') ? sku.split('-').pop()! : '';
+    return Array.from(new Set(orders.flatMap((o) => o.items.map((i) => skuClasif(i.sku))).filter(Boolean))).sort();
+  }, [orders]);
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.toLowerCase();
-    return MOCK_ORDERS.filter((o) => {
-      if (filterStatus && o.status !== filterStatus) return false;
-      if (filterCustomer && !o.customer.includes(filterCustomer)) return false;
+    const skuClasif = (sku: string) => sku.includes('-') ? sku.split('-').pop()! : '';
+    return orders.filter((o) => {
+      if (filterStatus        && o.status    !== filterStatus)   return false;
+      if (filterCustomer      && !o.customer.includes(filterCustomer)) return false;
+      if (filterVendedor      && o.salesRep1 !== filterVendedor) return false;
+      if (filterClasificacion && !o.items.some((i) => skuClasif(i.sku) === filterClasificacion)) return false;
+      if (filterSKU.length > 0 && !o.items.some((i) => filterSKU.includes(i.sku))) return false;
       if (!q) return true;
       return (
         o.orderId.includes(q) ||
@@ -663,7 +572,46 @@ export default function B2BDashboard() {
         o.items.some((it) => it.sku.toLowerCase().includes(q) || it.description.toLowerCase().includes(q))
       );
     });
-  }, [debouncedSearch, filterStatus, filterCustomer]);
+  }, [debouncedSearch, filterStatus, filterCustomer, filterVendedor, filterSKU, filterClasificacion, orders]);
+
+  // Chart data derived from all orders in the date range
+  const chartPorDia = useMemo(() => {
+    const byDay = new Map<string, { ordenes: number; unidades: number }>();
+    for (const o of rawOrders) {
+      if (!o.EnteredDate) continue;
+      const d = new Date(o.EnteredDate);
+      const dia = d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' });
+      const prev = byDay.get(dia) ?? { ordenes: 0, unidades: 0 };
+      byDay.set(dia, { ordenes: prev.ordenes + 1, unidades: prev.unidades + (o.UnitsOrdered || 0) });
+    }
+    return Array.from(byDay.entries()).map(([dia, v]) => ({ dia, ...v })).slice(-15);
+  }, [rawOrders]);
+
+  const chartPorCliente = useMemo(() => {
+    const by = new Map<string, number>();
+    for (const o of rawOrders) {
+      const name = (o.CustomerName || '').split(' CID')[0];
+      by.set(name, (by.get(name) ?? 0) + (o.UnitsOrdered || 0));
+    }
+    return Array.from(by.entries())
+      .map(([cliente, unidades]) => ({ cliente, unidades }))
+      .sort((a, b) => b.unidades - a.unidades).slice(0, 8);
+  }, [rawOrders]);
+
+  const chartStatus = useMemo(() => {
+    const by = new Map<string, number>();
+    for (const o of rawOrders) { by.set(o.Status, (by.get(o.Status) ?? 0) + 1); }
+    return Array.from(by.entries()).map(([name, value]) => ({ name, value, color: STATUS_COLORS[name] ?? '#555' }));
+  }, [rawOrders]);
+
+  const chartLocation = useMemo(() => {
+    const by = new Map<string, number>();
+    for (const o of rawOrders) {
+      const loc = o.Location || 'Sin ubicación';
+      by.set(loc, (by.get(loc) ?? 0) + 1);
+    }
+    return Array.from(by.entries()).map(([name, value], i) => ({ name, value, color: LOC_COLORS[i % LOC_COLORS.length] }));
+  }, [rawOrders]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -685,6 +633,15 @@ export default function B2BDashboard() {
   return (
     <div style={{ fontFamily: 'inherit' }}>
 
+      {/* Loading / error banner */}
+      {(isLoading || isError) && (
+        <div style={{ marginBottom: 12, padding: '8px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+          background: isError ? '#fde8e8' : '#e8f2fb', color: isError ? '#c0392b' : '#2980b9',
+          border: `1px solid ${isError ? '#c0392b' : '#2980b9'}` }}>
+          {isError ? '⚠ Error al cargar datos de BinManager' : '⏳ Cargando órdenes B2B...'}
+        </div>
+      )}
+
       {/* KPIs */}
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
         <KpiCard label="Total Órdenes"     value={totalOrdenes}          sub={`${filtered.length} en vista`}    accent="#0d2b4e" />
@@ -703,6 +660,11 @@ export default function B2BDashboard() {
 
         {/* Filtros siempre visibles */}
         <div style={{ padding: '14px 18px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
+          <input type="date" value={apiFrom} onChange={(e) => { setApiFrom(e.target.value); setPage(1); }}
+            style={{ padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }} />
+          <span style={{ fontSize: 12, color: '#aaa' }}>–</span>
+          <input type="date" value={apiTo} onChange={(e) => { setApiTo(e.target.value); setPage(1); }}
+            style={{ padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }} />
           <input
             value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por orden, cliente, SKU, descripción..."
@@ -712,17 +674,31 @@ export default function B2BDashboard() {
             }}
           />
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ flex: 1, minWidth: 140, padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }}>
+            style={{ flex: 1, minWidth: 130, padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }}>
             <option value="">Todos los estatus</option>
             {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={filterCustomer} onChange={(e) => setFilterCustomer(e.target.value)}
-            style={{ flex: 1, minWidth: 160, padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }}>
+            style={{ flex: 1, minWidth: 150, padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }}>
             <option value="">Todos los clientes</option>
             {customers.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          {(filterStatus || filterCustomer || search) && (
-            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterCustomer(''); }}
+          <select value={filterVendedor} onChange={(e) => setFilterVendedor(e.target.value)}
+            style={{ flex: 1, minWidth: 140, padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }}>
+            <option value="">Todos los vendedores</option>
+            {vendedores.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+          <select value={filterClasificacion} onChange={(e) => setFilterClasificacion(e.target.value)}
+            style={{ flex: 1, minWidth: 130, padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }}>
+            <option value="">Todas las clasif.</option>
+            {clasificaciones.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <MultiSelectDropdown
+            options={skus} value={filterSKU} onChange={setFilterSKU}
+            placeholder="Filtrar por SKU..."
+          />
+          {(filterStatus || filterCustomer || filterVendedor || filterSKU.length > 0 || filterClasificacion || search) && (
+            <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterCustomer(''); setFilterVendedor(''); setFilterSKU([]); setFilterClasificacion(''); }}
               style={{ padding: '7px 14px', borderRadius: 5, border: '1px solid #ddd', background: '#fff', fontSize: 13, cursor: 'pointer', color: '#c0392b' }}>
               Limpiar
             </button>
@@ -741,7 +717,7 @@ export default function B2BDashboard() {
             <div style={{ background: '#fff', borderRadius: 8, padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
               <p style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 700, color: '#0d2b4e' }}>Órdenes y Unidades por Día</p>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={CHART_DAILY} margin={{ top: 16, right: 10, left: -10, bottom: 0 }}>
+                <BarChart data={chartPorDia} margin={{ top: 16, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="dia" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} />
@@ -759,7 +735,7 @@ export default function B2BDashboard() {
             <div style={{ background: '#fff', borderRadius: 8, padding: '18px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
               <p style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 700, color: '#0d2b4e' }}>Unidades por Cliente</p>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={CHART_CLIENTE} layout="vertical" margin={{ top: 4, right: 50, left: 0, bottom: 0 }}>
+                <BarChart data={chartPorCliente} layout="vertical" margin={{ top: 4, right: 50, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="cliente" tick={{ fontSize: 10 }} width={90} />
@@ -780,14 +756,14 @@ export default function B2BDashboard() {
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
                   <Pie
-                    data={CHART_STATUS} cx="50%" cy="48%" innerRadius={55} outerRadius={80}
+                    data={chartStatus} cx="50%" cy="48%" innerRadius={55} outerRadius={80}
                     dataKey="value"
                     label={({ value, percent }: { value: number; percent?: number }) =>
                       `${value} (${((percent ?? 0) * 100).toFixed(0)}%)`
                     }
                     labelLine={true}
                   >
-                    {CHART_STATUS.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    {chartStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Tooltip formatter={(v) => [`${v} órdenes`]} />
                   <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
@@ -800,14 +776,14 @@ export default function B2BDashboard() {
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
                   <Pie
-                    data={CHART_LOCATION} cx="50%" cy="48%" innerRadius={55} outerRadius={80}
+                    data={chartLocation} cx="50%" cy="48%" innerRadius={55} outerRadius={80}
                     dataKey="value"
                     label={({ value, percent }: { value: number; percent?: number }) =>
                       `${value} (${((percent ?? 0) * 100).toFixed(0)}%)`
                     }
                     labelLine={true}
                   >
-                    {CHART_LOCATION.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    {chartLocation.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Tooltip formatter={(v) => [`${v} órdenes`]} />
                   <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
@@ -821,10 +797,10 @@ export default function B2BDashboard() {
             <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: '#0d2b4e' }}>Resumen de Fulfillment</p>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
               {[
-                { l: 'Units Ordered',   v: MOCK_ORDERS.reduce((a, o) => a + o.unitsOrdered,   0), c: '#0d2b4e' },
-                { l: 'Units Delivered', v: MOCK_ORDERS.reduce((a, o) => a + o.unitsDelivered, 0), c: '#27ae60' },
-                { l: 'Units Remaining', v: MOCK_ORDERS.reduce((a, o) => a + o.unitsRemaining, 0), c: '#c0392b' },
-                { l: 'Not Found',       v: MOCK_ORDERS.reduce((a, o) => a + o.notFound,       0), c: '#c0711a' },
+                { l: 'Units Ordered',   v: orders.reduce((a, o) => a + o.unitsOrdered,   0), c: '#0d2b4e' },
+                { l: 'Units Delivered', v: orders.reduce((a, o) => a + o.unitsDelivered, 0), c: '#27ae60' },
+                { l: 'Units Remaining', v: orders.reduce((a, o) => a + o.unitsRemaining, 0), c: '#c0392b' },
+                { l: 'Not Found',       v: orders.reduce((a, o) => a + o.notFound,       0), c: '#c0711a' },
               ].map(({ l, v, c }) => (
                 <div key={l} style={{ flex: 1, minWidth: 140, textAlign: 'center', padding: '16px 8px', background: '#f8f9fa', borderRadius: 8 }}>
                   <p style={{ margin: '0 0 4px', fontSize: 28, fontWeight: 700, color: c }}>{v.toLocaleString()}</p>

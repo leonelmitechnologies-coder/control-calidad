@@ -267,11 +267,12 @@ export interface LsListResponse {
 // ── B2C Dashboard ──
 
 export interface B2COrderItem {
-  WebSKU:             string;
-  MitSKUShip:         string;
-  LPN:                string;
-  Clasificacion:      string;
+  WebSKU:              string;
+  MitSKU:              string;
+  LPN:                 string;
+  Clasificacion:       string;
   DescripcionProducto: string;
+  Qty:                 number;
 }
 
 export interface B2COrder {

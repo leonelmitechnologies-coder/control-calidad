@@ -11,6 +11,8 @@
 
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useQuery } from '@tanstack/react-query';
+import { MultiSelectDropdown } from '../components/common/MultiSelectDropdown';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LabelList,
@@ -298,182 +300,43 @@ function InspeccionModal({
   );
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-const MOCK_ORDERS: B2COrder[] = [
-  {
-    OrderEntryID: 452110, OrderID: '19009870', FechaIngreso: '2026-07-01T08:30:00',
-    ShipDate: '2026-07-05', AccountName: 'Walmart', ShipBy: 'victor.leyva',
-    CustomerShippingName: 'FedEx', Qty: 3, CanalVenta: 'B2C', Status: 'Shipped',
-    Tracking: 'FX123456789', Shipment_ID: 'SHP-001', LocationName: 'TIJ-WH01',
-    Items: [
-      { WebSKU: 'WMT-TV-55-A', MitSKUShip: 'MIT-TV-55', LPN: 'LPN-2026-0001', Clasificacion: 'Electrónica', DescripcionProducto: 'Smart TV 55" 4K UHD' },
-      { WebSKU: 'WMT-TV-55-B', MitSKUShip: 'MIT-TV-55', LPN: 'LPN-2026-0002', Clasificacion: 'Electrónica', DescripcionProducto: 'Smart TV 55" 4K UHD' },
-      { WebSKU: 'WMT-AC-RMT', MitSKUShip: 'MIT-RMT-01', LPN: 'LPN-2026-0003', Clasificacion: 'Accesorio', DescripcionProducto: 'Control Remoto Universal' },
-    ],
-  },
-  {
-    OrderEntryID: 452111, OrderID: '19009871', FechaIngreso: '2026-07-01T09:15:00',
-    ShipDate: '2026-07-05', AccountName: 'Amazon', ShipBy: 'jose.garcia',
-    CustomerShippingName: 'UPS', Qty: 2, CanalVenta: 'Marketplace', Status: 'Shipped',
-    Tracking: 'UPS987654321', Shipment_ID: 'SHP-002', LocationName: 'TIJ-WH01',
-    Items: [
-      { WebSKU: 'AMZ-LAP-15-001', MitSKUShip: 'MIT-LAP-15', LPN: 'LPN-2026-0004', Clasificacion: 'Cómputo', DescripcionProducto: 'Laptop 15.6" Intel Core i5' },
-      { WebSKU: 'AMZ-LAP-15-002', MitSKUShip: 'MIT-LAP-15', LPN: 'LPN-2026-0005', Clasificacion: 'Cómputo', DescripcionProducto: 'Laptop 15.6" Intel Core i5' },
-    ],
-  },
-  {
-    OrderEntryID: 452112, OrderID: '19009872', FechaIngreso: '2026-07-01T10:00:00',
-    ShipDate: null, AccountName: 'Target', ShipBy: 'maria.lopez',
-    CustomerShippingName: 'DHL', Qty: 5, CanalVenta: 'Retail', Status: 'Pending',
-    Tracking: '', Shipment_ID: 'SHP-003', LocationName: 'TIJ-WH02',
-    Items: [
-      { WebSKU: 'TGT-BT-SPK-01', MitSKUShip: 'MIT-SPK-01', LPN: 'LPN-2026-0006', Clasificacion: 'Audio', DescripcionProducto: 'Bocina Bluetooth Portátil 20W' },
-      { WebSKU: 'TGT-BT-SPK-02', MitSKUShip: 'MIT-SPK-01', LPN: 'LPN-2026-0007', Clasificacion: 'Audio', DescripcionProducto: 'Bocina Bluetooth Portátil 20W' },
-      { WebSKU: 'TGT-BT-SPK-03', MitSKUShip: 'MIT-SPK-01', LPN: 'LPN-2026-0008', Clasificacion: 'Audio', DescripcionProducto: 'Bocina Bluetooth Portátil 20W' },
-      { WebSKU: 'TGT-BT-SPK-04', MitSKUShip: 'MIT-SPK-01', LPN: 'LPN-2026-0009', Clasificacion: 'Audio', DescripcionProducto: 'Bocina Bluetooth Portátil 20W' },
-      { WebSKU: 'TGT-BT-SPK-05', MitSKUShip: 'MIT-SPK-01', LPN: 'LPN-2026-0010', Clasificacion: 'Audio', DescripcionProducto: 'Bocina Bluetooth Portátil 20W' },
-    ],
-  },
-  {
-    OrderEntryID: 452113, OrderID: '19009873', FechaIngreso: '2026-07-02T07:45:00',
-    ShipDate: '2026-07-06', AccountName: 'Costco', ShipBy: 'carlos.torres',
-    CustomerShippingName: 'FedEx', Qty: 10, CanalVenta: 'B2C', Status: 'Delivered',
-    Tracking: 'FX555444333', Shipment_ID: 'SHP-004', LocationName: 'TIJ-WH01',
-    Items: [
-      { WebSKU: 'CST-MWV-001', MitSKUShip: 'MIT-MWV-01', LPN: 'LPN-2026-0011', Clasificacion: 'Hogar', DescripcionProducto: 'Microondas 1.1 pies³ 1000W' },
-      { WebSKU: 'CST-MWV-002', MitSKUShip: 'MIT-MWV-01', LPN: 'LPN-2026-0012', Clasificacion: 'Hogar', DescripcionProducto: 'Microondas 1.1 pies³ 1000W' },
-    ],
-  },
-  {
-    OrderEntryID: 452114, OrderID: '19009874', FechaIngreso: '2026-07-02T08:00:00',
-    ShipDate: null, AccountName: 'Best Buy', ShipBy: 'victor.leyva',
-    CustomerShippingName: 'USPS', Qty: 1, CanalVenta: 'Marketplace', Status: 'Processing',
-    Tracking: '', Shipment_ID: 'SHP-005', LocationName: 'TIJ-WH02',
-    Items: [
-      { WebSKU: 'BBY-GMS-001', MitSKUShip: 'MIT-GMS-01', LPN: 'LPN-2026-0013', Clasificacion: 'Gaming', DescripcionProducto: 'Consola de Videojuegos Next-Gen' },
-    ],
-  },
-  {
-    OrderEntryID: 452115, OrderID: '19009875', FechaIngreso: '2026-07-02T09:30:00',
-    ShipDate: '2026-07-04', AccountName: 'Walmart', ShipBy: 'jose.garcia',
-    CustomerShippingName: 'Amazon Logistics', Qty: 4, CanalVenta: 'B2C', Status: 'Shipped',
-    Tracking: 'AMZL112233445', Shipment_ID: 'SHP-006', LocationName: 'TIJ-WH01',
-    Items: [
-      { WebSKU: 'WMT-TAB-10-01', MitSKUShip: 'MIT-TAB-10', LPN: 'LPN-2026-0014', Clasificacion: 'Cómputo', DescripcionProducto: 'Tablet 10.1" Android 64GB' },
-      { WebSKU: 'WMT-TAB-10-02', MitSKUShip: 'MIT-TAB-10', LPN: 'LPN-2026-0015', Clasificacion: 'Cómputo', DescripcionProducto: 'Tablet 10.1" Android 64GB' },
-      { WebSKU: 'WMT-TAB-10-03', MitSKUShip: 'MIT-TAB-10', LPN: 'LPN-2026-0016', Clasificacion: 'Cómputo', DescripcionProducto: 'Tablet 10.1" Android 64GB' },
-      { WebSKU: 'WMT-TAB-10-04', MitSKUShip: 'MIT-TAB-10', LPN: 'LPN-2026-0017', Clasificacion: 'Cómputo', DescripcionProducto: 'Tablet 10.1" Android 64GB' },
-    ],
-  },
-  {
-    OrderEntryID: 452116, OrderID: '19009876', FechaIngreso: '2026-07-03T08:15:00',
-    ShipDate: '2026-07-06', AccountName: 'Home Depot', ShipBy: 'maria.lopez',
-    CustomerShippingName: 'UPS', Qty: 6, CanalVenta: 'Retail', Status: 'Shipped',
-    Tracking: 'UPS778899001', Shipment_ID: 'SHP-007', LocationName: 'TIJ-WH01',
-    Items: [
-      { WebSKU: 'HD-VC-001', MitSKUShip: 'MIT-VC-01', LPN: 'LPN-2026-0018', Clasificacion: 'Hogar', DescripcionProducto: 'Aspiradora Robot Inteligente' },
-      { WebSKU: 'HD-VC-002', MitSKUShip: 'MIT-VC-01', LPN: 'LPN-2026-0019', Clasificacion: 'Hogar', DescripcionProducto: 'Aspiradora Robot Inteligente' },
-    ],
-  },
-  {
-    OrderEntryID: 452117, OrderID: '19009877', FechaIngreso: '2026-07-03T10:00:00',
-    ShipDate: null, AccountName: 'Amazon', ShipBy: 'carlos.torres',
-    CustomerShippingName: 'DHL', Qty: 2, CanalVenta: 'Marketplace', Status: 'Cancelled',
-    Tracking: '', Shipment_ID: 'SHP-008', LocationName: 'TIJ-WH02',
-    Items: [
-      { WebSKU: 'AMZ-HP-001', MitSKUShip: 'MIT-HP-01', LPN: 'LPN-2026-0020', Clasificacion: 'Cómputo', DescripcionProducto: 'Impresora Multifuncional Inalámbrica' },
-      { WebSKU: 'AMZ-HP-002', MitSKUShip: 'MIT-HP-01', LPN: 'LPN-2026-0021', Clasificacion: 'Cómputo', DescripcionProducto: 'Impresora Multifuncional Inalámbrica' },
-    ],
-  },
-  {
-    OrderEntryID: 452118, OrderID: '19009878', FechaIngreso: '2026-07-04T07:30:00',
-    ShipDate: '2026-07-06', AccountName: 'Target', ShipBy: 'victor.leyva',
-    CustomerShippingName: 'FedEx', Qty: 8, CanalVenta: 'B2C', Status: 'Delivered',
-    Tracking: 'FX999888777', Shipment_ID: 'SHP-009', LocationName: 'TIJ-WH01',
-    Items: [
-      { WebSKU: 'TGT-CAM-4K-01', MitSKUShip: 'MIT-CAM-4K', LPN: 'LPN-2026-0022', Clasificacion: 'Fotografía', DescripcionProducto: 'Cámara de Seguridad 4K Exterior' },
-    ],
-  },
-  {
-    OrderEntryID: 452119, OrderID: '19009879', FechaIngreso: '2026-07-04T09:00:00',
-    ShipDate: null, AccountName: 'Costco', ShipBy: 'jose.garcia',
-    CustomerShippingName: 'USPS', Qty: 3, CanalVenta: 'Retail', Status: 'Pending',
-    Tracking: '', Shipment_ID: 'SHP-010', LocationName: 'TIJ-WH02',
-    Items: [
-      { WebSKU: 'CST-AIR-001', MitSKUShip: 'MIT-AIR-01', LPN: 'LPN-2026-0023', Clasificacion: 'Hogar', DescripcionProducto: 'Purificador de Aire HEPA 400m²' },
-      { WebSKU: 'CST-AIR-002', MitSKUShip: 'MIT-AIR-01', LPN: 'LPN-2026-0024', Clasificacion: 'Hogar', DescripcionProducto: 'Purificador de Aire HEPA 400m²' },
-      { WebSKU: 'CST-AIR-003', MitSKUShip: 'MIT-AIR-01', LPN: 'LPN-2026-0025', Clasificacion: 'Hogar', DescripcionProducto: 'Purificador de Aire HEPA 400m²' },
-    ],
-  },
-  {
-    OrderEntryID: 452120, OrderID: '19009880', FechaIngreso: '2026-07-05T08:00:00',
-    ShipDate: '2026-07-06', AccountName: 'Best Buy', ShipBy: 'maria.lopez',
-    CustomerShippingName: 'FedEx', Qty: 1, CanalVenta: 'Marketplace', Status: 'Shipped',
-    Tracking: 'FX111222333', Shipment_ID: 'SHP-011', LocationName: 'TIJ-WH01',
-    Items: [
-      { WebSKU: 'BBY-TV-65-001', MitSKUShip: 'MIT-TV-65', LPN: 'LPN-2026-0026', Clasificacion: 'Electrónica', DescripcionProducto: 'Smart TV 65" QLED 8K' },
-    ],
-  },
-  {
-    OrderEntryID: 452121, OrderID: '19009881', FechaIngreso: '2026-07-05T09:45:00',
-    ShipDate: null, AccountName: 'Walmart', ShipBy: 'carlos.torres',
-    CustomerShippingName: 'UPS', Qty: 7, CanalVenta: 'B2C', Status: 'Processing',
-    Tracking: '', Shipment_ID: 'SHP-012', LocationName: 'TIJ-WH02',
-    Items: [
-      { WebSKU: 'WMT-HDS-001', MitSKUShip: 'MIT-HDS-01', LPN: 'LPN-2026-0027', Clasificacion: 'Audio', DescripcionProducto: 'Audífonos Inalámbricos Noise Cancelling' },
-      { WebSKU: 'WMT-HDS-002', MitSKUShip: 'MIT-HDS-01', LPN: 'LPN-2026-0028', Clasificacion: 'Audio', DescripcionProducto: 'Audífonos Inalámbricos Noise Cancelling' },
-    ],
-  },
-];
+async function fetchB2COrders(startDate: string, endDate: string): Promise<B2COrder[]> {
+  const params = new URLSearchParams({ startDate, endDate });
+  const res = await fetch(`/api/b2c-orders?${params}`);
+  if (!res.ok) throw new Error('Error al cargar órdenes B2C');
+  return res.json();
+}
+
+// ── Chart palette helpers ─────────────────────────────────────────────────────
+
+const CHART_COLORS = ['#0d2b4e','#2980b9','#27ae60','#c0711a','#8e44ad','#c0392b','#16a085','#d68910'];
 
 const PAGE_SIZE = 10;
-
-// ── Chart mock data (independent from table mock) ─────────────────────────────
-
-const CHART_POR_DIA = [
-  { dia: '30 Jun', ordenes: 8,  unidades: 22 },
-  { dia: '01 Jul', ordenes: 12, unidades: 38 },
-  { dia: '02 Jul', ordenes: 7,  unidades: 19 },
-  { dia: '03 Jul', ordenes: 15, unidades: 45 },
-  { dia: '04 Jul', ordenes: 10, unidades: 31 },
-  { dia: '05 Jul', ordenes: 18, unidades: 54 },
-  { dia: '06 Jul', ordenes: 9,  unidades: 27 },
-];
-
-const CHART_POR_CLIENTE = [
-  { cliente: 'Walmart',   unidades: 48 },
-  { cliente: 'Amazon',    unidades: 36 },
-  { cliente: 'Target',    unidades: 29 },
-  { cliente: 'Costco',    unidades: 22 },
-  { cliente: 'Best Buy',  unidades: 17 },
-  { cliente: 'Home Depot',unidades: 14 },
-];
-
-const CHART_ESTATUS = [
-  { name: 'Enviado',     value: 42, color: '#27ae60' },
-  { name: 'Entregado',   value: 28, color: '#0d2b4e' },
-  { name: 'En Proceso',  value: 15, color: '#c0711a' },
-  { name: 'Pendiente',   value: 10, color: '#b09000' },
-  { name: 'Cancelado',   value: 5,  color: '#c0392b' },
-];
-
-const CHART_CANAL = [
-  { name: 'B2C',         value: 45, color: '#0d2b4e' },
-  { name: 'Marketplace', value: 30, color: '#2e6da4' },
-  { name: 'Retail',      value: 18, color: '#5a9fd4' },
-  { name: 'Wholesale',   value: 7,  color: '#a8cce8' },
-];
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; border: string; label: string }> = {
-  Shipped:    { bg: '#e8f5ee', color: '#27ae60', border: '#27ae60', label: 'Enviado' },
-  Delivered:  { bg: '#e8f0f9', color: '#0d2b4e', border: '#0d2b4e', label: 'Entregado' },
-  Processing: { bg: '#fdf2e8', color: '#c0711a', border: '#c0711a', label: 'En Proceso' },
-  Pending:    { bg: '#fdf6e8', color: '#8a6a00', border: '#b09000', label: 'Pendiente' },
-  Cancelled:  { bg: '#fde8e8', color: '#c0392b', border: '#c0392b', label: 'Cancelado' },
+  'Received OE':    { bg: '#dbeafe', color: '#1d4ed8', border: '#93c5fd', label: 'Recibido'        },
+  'Pending':        { bg: '#fef3c7', color: '#92400e', border: '#fcd34d', label: 'Pendiente'       },
+  'paid':           { bg: '#e0f2fe', color: '#0369a1', border: '#7dd3fc', label: 'Pagado'          },
+  'Unshipped':      { bg: '#fef3c7', color: '#b45309', border: '#fcd34d', label: 'Sin Enviar'      },
+  'ready_to_print': { bg: '#d1fae5', color: '#065f46', border: '#6ee7b7', label: 'Listo p/ Envío' },
+  'Shipped':        { bg: '#ede9fe', color: '#5b21b6', border: '#c4b5fd', label: 'Enviado'         },
+  'shipped':        { bg: '#ede9fe', color: '#5b21b6', border: '#c4b5fd', label: 'Enviado'         },
+  'Delivered':      { bg: '#e8f0f9', color: '#0d2b4e', border: '#93c5fd', label: 'Entregado'       },
+  'delivered':      { bg: '#e8f0f9', color: '#0d2b4e', border: '#93c5fd', label: 'Entregado'       },
+  'cancelled':      { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5', label: 'Cancelado'       },
 };
+
+function detectMarketplace(accountName: string): 'ml' | 'amazon' | 'walmart' | '' {
+  const lower = (accountName ?? '').toLowerCase();
+  if (lower.includes('ml') || lower.includes('mercado') || lower.includes('libre') || lower.includes('berojov') || lower.includes('blow') || lower.includes('lutema') || lower.includes('apantallate') || lower.includes('autobot mx') || lower.includes('remotes')) return 'ml';
+  if (lower.includes('amazon') || lower.includes('fba')) return 'amazon';
+  if (lower.includes('walmart')) return 'walmart';
+  return '';
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -490,6 +353,20 @@ function fmtDateTime(str: string | null | undefined): string {
   if (isNaN(d.getTime())) return str;
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
     + ' ' + d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtRelative(str: string | null | undefined): string {
+  if (!str) return '—';
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return str;
+  const diffMs = Date.now() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  const hrs  = Math.floor(mins / 60);
+  const days = Math.floor(hrs / 24);
+  if (mins < 1)  return 'Justo ahora';
+  if (mins < 60) return `Hace ${mins} min`;
+  if (hrs  < 24) return `Hace ${hrs} hora${hrs !== 1 ? 's' : ''}`;
+  return `Hace ${days} día${days !== 1 ? 's' : ''}`;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -615,7 +492,7 @@ function DetailModal({ order, onClose }: { order: B2COrder; onClose: () => void 
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: '#0d2b4e', color: '#fff' }}>
-                  {['LPN', 'SKU (Web)', 'SKU (MIT)', 'Clasificación', 'Descripción'].map((h) => (
+                  {['LPN', 'Web SKU', 'MIT SKU', 'Cant.', 'Clasificación', 'Descripción'].map((h) => (
                     <th key={h} style={{ padding: '8px 12px', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -624,8 +501,13 @@ function DetailModal({ order, onClose }: { order: B2COrder; onClose: () => void 
                 {order.Items.map((item, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #e2e2e2', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                     <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 11, color: '#0d2b4e', fontWeight: 600 }}>{item.LPN}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 11 }}>{item.WebSKU}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 11 }}>{item.MitSKUShip}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 11 }}>
+                      <span style={{ background: '#f0f4f9', borderRadius: 3, padding: '1px 6px' }}>{item.WebSKU}</span>
+                    </td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 11 }}>
+                      {item.MitSKU ? <span style={{ background: '#e8f5ee', color: '#065f46', borderRadius: 3, padding: '1px 6px' }}>{item.MitSKU}</span> : '—'}
+                    </td>
+                    <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600 }}>{item.Qty}</td>
                     <td style={{ padding: '8px 12px' }}>{item.Clasificacion}</td>
                     <td style={{ padding: '8px 12px', color: '#444' }}>{item.DescripcionProducto}</td>
                   </tr>
@@ -651,17 +533,21 @@ function DetailModal({ order, onClose }: { order: B2COrder; onClose: () => void 
 
 export default function B2CDashboard() {
   // Filters
-  const [search,      setSearch]      = useState('');
-  const [debouncedSq, setDebouncedSq] = useState('');
-  const [filterStatus,  setFilterStatus]  = useState('');
-  const [filterClient,  setFilterClient]  = useState('');
-  const [filterChannel, setFilterChannel] = useState('');
-  const [filterFrom,    setFilterFrom]    = useState('');
-  const [filterTo,      setFilterTo]      = useState('');
-  const [page,          setPage]          = useState(1);
-  const [detailOrder,   setDetailOrder]   = useState<B2COrder | null>(null);
-  const [activeTab,     setActiveTab]     = useState<'resumen' | 'detalle'>('resumen');
-  const [inspOrder,     setInspOrder]     = useState<B2COrder | null>(null);
+  const [search,           setSearch]           = useState('');
+  const [debouncedSq,      setDebouncedSq]      = useState('');
+  const [filterStatus,        setFilterStatus]        = useState('');
+  const [filterClient,        setFilterClient]        = useState('');
+  const [filterChannel,       setFilterChannel]       = useState('');
+  const [filterVendedor,      setFilterVendedor]      = useState('');
+  const [filterSKU,           setFilterSKU]           = useState<string[]>([]);
+  const [filterClasificacion, setFilterClasificacion] = useState('');
+  const [filterMarketplace,   setFilterMarketplace]   = useState<'ml' | 'amazon' | 'walmart' | ''>('');
+  const [filterFrom,       setFilterFrom]       = useState('');
+  const [filterTo,         setFilterTo]         = useState('');
+  const [page,             setPage]             = useState(1);
+  const [detailOrder,      setDetailOrder]      = useState<B2COrder | null>(null);
+  const [activeTab,        setActiveTab]        = useState<'resumen' | 'detalle'>('resumen');
+  const [inspOrder,        setInspOrder]        = useState<B2COrder | null>(null);
 
   const { save: saveInsp, getLatest, getAll } = useInspecciones();
 
@@ -675,53 +561,147 @@ export default function B2CDashboard() {
   const clearFilters = useCallback(() => {
     setSearch(''); setDebouncedSq('');
     setFilterStatus(''); setFilterClient('');
-    setFilterChannel(''); setFilterFrom(''); setFilterTo('');
+    setFilterChannel(''); setFilterVendedor('');
+    setFilterSKU([]); setFilterClasificacion('');
+    setFilterMarketplace('');
+    setFilterFrom(''); setFilterTo('');
     setPage(1);
   }, []);
 
-  // Unique options from data
-  const clients  = useMemo(() => [...new Set(MOCK_ORDERS.map((o) => o.AccountName))].sort(), []);
-  const channels = useMemo(() => [...new Set(MOCK_ORDERS.map((o) => o.CanalVenta))].sort(), []);
+  // Default date range: last 30 days
+  const defaultFrom = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }, []);
+  const defaultTo = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }, []);
 
-  // Filter logic
+  const apiFrom = filterFrom || defaultFrom;
+  const apiTo   = filterTo   || defaultTo;
+
+  const { data: allOrders = [], isLoading, isError } = useQuery<B2COrder[]>({
+    queryKey: ['b2c-orders', apiFrom, apiTo],
+    queryFn:  () => fetchB2COrders(apiFrom, apiTo),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Unique options from real data
+  const clients         = useMemo(() => [...new Set(allOrders.map((o) => o.AccountName))].sort(), [allOrders]);
+  const channels        = useMemo(() => [...new Set(allOrders.map((o) => o.CanalVenta))].sort(), [allOrders]);
+  const vendedores      = useMemo(() => [...new Set(allOrders.map((o) => o.ShipBy).filter(Boolean))].sort(), [allOrders]);
+  const skus            = useMemo(() => [...new Set(allOrders.flatMap((o) => o.Items.map((i) => i.WebSKU)).filter(Boolean))].sort(), [allOrders]);
+  const clasificaciones = useMemo(() => [...new Set(allOrders.flatMap((o) => o.Items.map((i) => i.Clasificacion)).filter(Boolean))].sort(), [allOrders]);
+
+  // Client-side filters (marketplace, status, client, channel, search)
   const filtered = useMemo(() => {
     const sq = debouncedSq.toLowerCase().trim();
-    return MOCK_ORDERS.filter((o) => {
-      if (filterStatus  && o.Status      !== filterStatus)  return false;
-      if (filterClient  && o.AccountName !== filterClient)  return false;
-      if (filterChannel && o.CanalVenta  !== filterChannel) return false;
-      if (filterFrom) {
-        const from = new Date(filterFrom + 'T00:00:00');
-        const ing  = new Date(o.FechaIngreso);
-        if (ing < from) return false;
-      }
-      if (filterTo) {
-        const to  = new Date(filterTo + 'T23:59:59');
-        const ing = new Date(o.FechaIngreso);
-        if (ing > to) return false;
-      }
+    return allOrders.filter((o) => {
+      if (filterMarketplace    && detectMarketplace(o.AccountName) !== filterMarketplace) return false;
+      if (filterStatus         && o.Status      !== filterStatus)  return false;
+      if (filterClient         && o.AccountName !== filterClient)  return false;
+      if (filterChannel        && o.CanalVenta  !== filterChannel) return false;
+      if (filterVendedor       && o.ShipBy      !== filterVendedor) return false;
+      if (filterClasificacion  && !o.Items.some((i) => i.Clasificacion === filterClasificacion)) return false;
+      if (filterSKU.length > 0 && !o.Items.some((i) => filterSKU.includes(i.WebSKU))) return false;
       if (sq) {
         const hay = [
           o.OrderID, String(o.OrderEntryID), o.AccountName, o.ShipBy,
           o.CustomerShippingName, o.CanalVenta, o.Status, o.Tracking,
-          ...o.Items.flatMap((i) => [i.LPN, i.WebSKU, i.MitSKUShip, i.DescripcionProducto]),
+          ...o.Items.flatMap((i) => [i.LPN, i.WebSKU, i.MitSKU, i.DescripcionProducto]),
         ].join(' ').toLowerCase();
         if (!hay.includes(sq)) return false;
       }
       return true;
     });
-  }, [debouncedSq, filterStatus, filterClient, filterChannel, filterFrom, filterTo]);
+  }, [allOrders, debouncedSq, filterMarketplace, filterStatus, filterClient, filterChannel, filterVendedor, filterSKU, filterClasificacion]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // KPIs from filtered set
-  const kpiTotal     = filtered.length;
-  const kpiShipped   = filtered.filter((o) => o.Status === 'Shipped' || o.Status === 'Delivered').length;
-  const kpiPending   = filtered.filter((o) => o.Status === 'Pending' || o.Status === 'Processing').length;
-  const kpiUnits     = filtered.reduce((s, o) => s + o.Qty, 0);
+  // KPIs (globales sobre todas las órdenes del período, sin filtros de UI)
+  const kpiRecibidas    = allOrders.filter((o) => o.Status === 'Received OE').length;
+  const kpiEnProceso    = allOrders.filter((o) => ['Pending', 'paid', 'Unshipped'].includes(o.Status)).length;
+  const kpiListos       = allOrders.filter((o) => o.Status === 'ready_to_print').length;
+  const kpiEnviados     = allOrders.filter((o) => ['Shipped', 'shipped', 'Delivered', 'delivered'].includes(o.Status)).length;
+  const kpiCancelados   = allOrders.filter((o) => o.Status === 'cancelled').length;
+  const kpiTotalFiltered = filtered.length;
+  const kpiUnits         = filtered.reduce((s, o) => s + o.Qty, 0);
 
-  const hasFilters = filterStatus || filterClient || filterChannel || filterFrom || filterTo || search;
+  // Chart data derived from real orders
+  const chartPorDia = useMemo(() => {
+    const byDay = new Map<string, { ordenes: number; unidades: number }>();
+    filtered.forEach((o) => {
+      const day = (o.FechaIngreso ?? '').slice(0, 10);
+      if (!day) return;
+      const prev = byDay.get(day) ?? { ordenes: 0, unidades: 0 };
+      byDay.set(day, { ordenes: prev.ordenes + 1, unidades: prev.unidades + o.Qty });
+    });
+    return Array.from(byDay.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-14)
+      .map(([dia, v]) => ({ dia: dia.slice(5).replace('-', '/'), ...v }));
+  }, [filtered]);
+
+  const chartPorCliente = useMemo(() => {
+    const m = new Map<string, number>();
+    filtered.forEach((o) => m.set(o.AccountName, (m.get(o.AccountName) ?? 0) + o.Qty));
+    return Array.from(m.entries()).sort(([, a], [, b]) => b - a).slice(0, 8)
+      .map(([cliente, unidades]) => ({ cliente, unidades }));
+  }, [filtered]);
+
+  const chartEstatus = useMemo(() => {
+    const m = new Map<string, number>();
+    filtered.forEach((o) => m.set(o.Status, (m.get(o.Status) ?? 0) + 1));
+    return Array.from(m.entries()).sort(([, a], [, b]) => b - a)
+      .map(([name, value], i) => ({ name, value, color: CHART_COLORS[i % CHART_COLORS.length] }));
+  }, [filtered]);
+
+  const chartCanal = useMemo(() => {
+    const m = new Map<string, number>();
+    filtered.forEach((o) => m.set(o.CanalVenta, (m.get(o.CanalVenta) ?? 0) + 1));
+    return Array.from(m.entries()).sort(([, a], [, b]) => b - a)
+      .map(([name, value], i) => ({ name, value, color: CHART_COLORS[(i + 3) % CHART_COLORS.length] }));
+  }, [filtered]);
+
+  const chartSKU = useMemo(() => {
+    const m = new Map<string, number>();
+    filtered.forEach((o) => o.Items.forEach((i) => {
+      const key = i.MitSKU || i.WebSKU;
+      m.set(key, (m.get(key) ?? 0) + (i.Qty || 1));
+    }));
+    return Array.from(m.entries())
+      .sort(([, a], [, b]) => b - a).slice(0, 12)
+      .map(([sku, unidades]) => ({ sku, unidades }));
+  }, [filtered]);
+
+  const chartClasificacion = useMemo(() => {
+    const m = new Map<string, number>();
+    filtered.forEach((o) => o.Items.forEach((i) => {
+      const key = i.Clasificacion || 'Sin clasificación';
+      m.set(key, (m.get(key) ?? 0) + (i.Qty || 1));
+    }));
+    return Array.from(m.entries())
+      .sort(([, a], [, b]) => b - a)
+      .map(([name, value], i) => ({ name, value, color: CHART_COLORS[i % CHART_COLORS.length] }));
+  }, [filtered]);
+
+  const chartVendedor = useMemo(() => {
+    const m = new Map<string, { ordenes: number; full: string }>();
+    filtered.forEach((o) => {
+      const full = o.ShipBy || 'Sin asignar';
+      const short = full.includes('@') ? full.split('@')[0] : full;
+      const prev = m.get(short) ?? { ordenes: 0, full };
+      m.set(short, { ordenes: prev.ordenes + 1, full });
+    });
+    return Array.from(m.entries())
+      .sort(([, a], [, b]) => b.ordenes - a.ordenes).slice(0, 12)
+      .map(([vendedor, { ordenes, full }]) => ({ vendedor, ordenes, full }));
+  }, [filtered]);
+
+  const hasFilters = filterStatus || filterClient || filterChannel || filterVendedor || filterSKU.length > 0 || filterClasificacion || filterMarketplace || filterFrom || filterTo || search;
 
   // Tab style helper
   const tabStyle = (tab: 'resumen' | 'detalle') => ({
@@ -746,20 +726,54 @@ export default function B2CDashboard() {
             Dashboard B2C
           </h1>
           <p style={{ fontSize: 13, color: '#666', margin: 0 }}>
-            Salidas de material — datos de Bin Manager
-            <span style={{ marginLeft: 10, background: '#fdf6e8', color: '#8a6a00', border: '1px solid #b09000', borderRadius: 3, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
-              PREVIEW — Datos simulados
-            </span>
+            Salidas de material — datos en tiempo real de Bin Manager
+            {isLoading && <span style={{ marginLeft: 10, color: '#2980b9', fontSize: 11, fontWeight: 700 }}>Cargando...</span>}
+            {isError   && <span style={{ marginLeft: 10, color: '#c0392b', fontSize: 11, fontWeight: 700 }}>Error al conectar con BinManager</span>}
           </p>
         </div>
       </div>
 
-      {/* KPI Cards — siempre visibles */}
+      {/* KPI Cards — conteos globales del período */}
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-        <KpiCard label="Total Órdenes"          value={kpiTotal}   sub={`de ${MOCK_ORDERS.length} en el período`} />
-        <KpiCard label="Enviadas / Entregadas"   value={kpiShipped}  color="#27ae60" />
-        <KpiCard label="En Proceso / Pendiente"  value={kpiPending}  color="#c0711a" />
-        <KpiCard label="Total Unidades"          value={kpiUnits}   color="#0d2b4e" />
+        <KpiCard label="Recibidas"       value={kpiRecibidas}     color="#1d4ed8" sub="Received OE" />
+        <KpiCard label="En Proceso"      value={kpiEnProceso}     color="#b45309" sub="Pending · Paid · Unshipped" />
+        <KpiCard label="Listas p/ Envío" value={kpiListos}        color="#065f46" sub="Ready to print" />
+        <KpiCard label="Enviadas"        value={kpiEnviados}      color="#5b21b6" sub="Shipped · Delivered" />
+        <KpiCard label="Canceladas"      value={kpiCancelados}    color="#991b1b" sub="cancelled" />
+        <KpiCard label="Total filtrado"  value={kpiTotalFiltered} sub={`${kpiUnits} unidades`} />
+      </div>
+
+      {/* Marketplace quick filters */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {([
+          { key: 'ml',      label: 'Mercado Libre', bg: '#fff0e0', color: '#F7971E', border: '#F7971E' },
+          { key: 'amazon',  label: 'Amazon',        bg: '#fff8e6', color: '#FF9900', border: '#FF9900' },
+          { key: 'walmart', label: 'Walmart',       bg: '#e6f0ff', color: '#0071dc', border: '#0071dc' },
+        ] as { key: 'ml' | 'amazon' | 'walmart'; label: string; bg: string; color: string; border: string }[]).map(({ key, label, bg, color, border }) => {
+          const active = filterMarketplace === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => { setFilterMarketplace(active ? '' : key); setPage(1); }}
+              style={{
+                padding: '7px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer', borderRadius: 4,
+                border: `2px solid ${active ? border : '#e2e2e2'}`,
+                background: active ? bg : '#fafafa',
+                color: active ? color : '#777',
+                transition: 'all 0.15s',
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+        {filterMarketplace && (
+          <button type="button" onClick={() => { setFilterMarketplace(''); setPage(1); }}
+            style={{ background: 'none', border: 'none', fontSize: 11, color: '#888', cursor: 'pointer', textDecoration: 'underline' }}>
+            Quitar filtro
+          </button>
+        )}
       </div>
 
       {/* Tab bar */}
@@ -809,6 +823,31 @@ export default function B2CDashboard() {
               {channels.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>Vendedor</label>
+            <select value={filterVendedor} onChange={(e) => { setFilterVendedor(e.target.value); setPage(1); }}
+              style={{ width: '100%', fontSize: 13, padding: '6px 8px', border: '1px solid #d0d0d0', borderRadius: 2 }}>
+              <option value="">Todos</option>
+              {vendedores.map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>Clasificación</label>
+            <select value={filterClasificacion} onChange={(e) => { setFilterClasificacion(e.target.value); setPage(1); }}
+              style={{ width: '100%', fontSize: 13, padding: '6px 8px', border: '1px solid #d0d0d0', borderRadius: 2 }}>
+              <option value="">Todas</option>
+              {clasificaciones.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>SKU</label>
+            <MultiSelectDropdown
+              options={skus} value={filterSKU}
+              onChange={(v) => { setFilterSKU(v); setPage(1); }}
+              placeholder="Seleccionar SKU..."
+              style={{ flex: 'unset', minWidth: 'unset' }}
+            />
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1 }}>
@@ -832,7 +871,7 @@ export default function B2CDashboard() {
           <div style={{ background: '#fff', border: '1px solid #e2e2e2', padding: '18px 20px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', marginBottom: 16 }}>Órdenes y Unidades por Día</div>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={CHART_POR_DIA} barGap={4} barSize={14}>
+              <BarChart data={chartPorDia} barGap={4} barSize={14}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="dia" tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} />
@@ -851,7 +890,7 @@ export default function B2CDashboard() {
           <div style={{ background: '#fff', border: '1px solid #e2e2e2', padding: '18px 20px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', marginBottom: 16 }}>Unidades por Cliente</div>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={CHART_POR_CLIENTE} layout="vertical" barSize={14}>
+              <BarChart data={chartPorCliente} layout="vertical" barSize={14}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="cliente" tick={{ fontSize: 11, fill: '#555' }} axisLine={false} tickLine={false} width={80} />
@@ -867,10 +906,10 @@ export default function B2CDashboard() {
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', marginBottom: 16 }}>Distribución por Estatus</div>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
-                <Pie data={CHART_ESTATUS} cx="50%" cy="48%" innerRadius={50} outerRadius={75} paddingAngle={2} dataKey="value"
+                <Pie data={chartEstatus} cx="50%" cy="48%" innerRadius={50} outerRadius={75} paddingAngle={2} dataKey="value"
                   label={({ value, percent }: { value: number; percent?: number }) => `${value} (${((percent ?? 0) * 100).toFixed(0)}%)`}
                   labelLine={{ stroke: '#ccc', strokeWidth: 1 }}>
-                  {CHART_ESTATUS.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  {chartEstatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip formatter={(value) => [`${value} órdenes`]} contentStyle={{ fontSize: 12, border: '1px solid #e2e2e2', borderRadius: 2 }} />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} formatter={(value) => <span style={{ color: '#555' }}>{value}</span>} />
@@ -882,14 +921,72 @@ export default function B2CDashboard() {
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', marginBottom: 16 }}>Distribución por Canal de Venta</div>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
-                <Pie data={CHART_CANAL} cx="50%" cy="48%" innerRadius={50} outerRadius={75} paddingAngle={2} dataKey="value"
+                <Pie data={chartCanal} cx="50%" cy="48%" innerRadius={50} outerRadius={75} paddingAngle={2} dataKey="value"
                   label={({ value, percent }: { value: number; percent?: number }) => `${value} (${((percent ?? 0) * 100).toFixed(0)}%)`}
                   labelLine={{ stroke: '#ccc', strokeWidth: 1 }}>
-                  {CHART_CANAL.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  {chartCanal.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip formatter={(value) => [`${value} órdenes`]} contentStyle={{ fontSize: 12, border: '1px solid #e2e2e2', borderRadius: 2 }} />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} formatter={(value) => <span style={{ color: '#555' }}>{value}</span>} />
               </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Top SKUs — horizontal para que los nombres sean legibles */}
+          <div style={{ background: '#fff', border: '1px solid #e2e2e2', padding: '18px 20px', gridColumn: '1 / -1' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', marginBottom: 16 }}>Top SKUs por Unidades</div>
+            <ResponsiveContainer width="100%" height={Math.max(200, chartSKU.length * 30)}>
+              <BarChart data={chartSKU} layout="vertical" barSize={16}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="sku" tick={{ fontSize: 11, fill: '#333', fontFamily: 'monospace' }} axisLine={false} tickLine={false} width={200} />
+                <Tooltip contentStyle={{ fontSize: 12, border: '1px solid #e2e2e2', borderRadius: 2 }} cursor={{ fill: '#f0f4f9' }} />
+                <Bar dataKey="unidades" name="Unidades" fill="#0d2b4e" radius={[0, 2, 2, 0]}>
+                  <LabelList dataKey="unidades" position="right" style={{ fontSize: 11, fill: '#0d2b4e', fontWeight: 700 }} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Clasificaciones — sin etiquetas inline, solo leyenda */}
+          <div style={{ background: '#fff', border: '1px solid #e2e2e2', padding: '18px 20px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', marginBottom: 16 }}>Unidades por Clasificación</div>
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie data={chartClasificacion} cx="50%" cy="42%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value" label={false}>
+                  {chartClasificacion.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(value, name) => [`${value} uds.`, name]} contentStyle={{ fontSize: 12, border: '1px solid #e2e2e2', borderRadius: 2 }} />
+                <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} formatter={(value) => <span style={{ color: '#444' }}>{value}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Vendedor — usuario corto, email completo en tooltip */}
+          <div style={{ background: '#fff', border: '1px solid #e2e2e2', padding: '18px 20px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', marginBottom: 16 }}>Órdenes por Vendedor</div>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={chartVendedor} layout="vertical" barSize={16}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="vendedor" tick={{ fontSize: 11, fill: '#333' }} axisLine={false} tickLine={false} width={150} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload as { vendedor: string; ordenes: number; full: string };
+                    return (
+                      <div style={{ background: '#fff', border: '1px solid #e2e2e2', padding: '8px 12px', fontSize: 12, borderRadius: 2 }}>
+                        <div style={{ fontWeight: 700, color: '#0d2b4e', marginBottom: 2 }}>{d.full}</div>
+                        <div>{d.ordenes} órdenes</div>
+                      </div>
+                    );
+                  }}
+                  cursor={{ fill: '#f0f4f9' }}
+                />
+                <Bar dataKey="ordenes" name="Órdenes" fill="#2980b9" radius={[0, 2, 2, 0]}>
+                  <LabelList dataKey="ordenes" position="right" style={{ fontSize: 11, fill: '#2980b9', fontWeight: 700 }} />
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
 
@@ -902,9 +999,20 @@ export default function B2CDashboard() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#0d2b4e', color: '#fff' }}>
-                {['# Orden', 'Cliente', 'Vendedor', 'Destino', 'Ingreso', 'Salida', 'Canal', 'Uds.', 'Estatus', 'Inspección QC', ''].map((h) => (
-                  <th key={h} style={{ padding: '10px 12px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: h === 'Uds.' ? 'center' : 'left', whiteSpace: 'nowrap' }}>
-                    {h}
+                {[
+                  { label: 'SiteOrderID',    align: 'left'   },
+                  { label: 'Cuenta / Canal', align: 'left'   },
+                  { label: 'Estado Interno', align: 'left'   },
+                  { label: 'Web SKU',        align: 'left'   },
+                  { label: 'MIT SKU',        align: 'left'   },
+                  { label: 'Uds.',           align: 'center' },
+                  { label: 'Descripción',    align: 'left'   },
+                  { label: 'Fecha',          align: 'left'   },
+                  { label: 'Insp. QC',       align: 'left'   },
+                  { label: '',               align: 'left'   },
+                ].map((h) => (
+                  <th key={h.label} style={{ padding: '10px 12px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: h.align as 'left' | 'center', whiteSpace: 'nowrap' }}>
+                    {h.label}
                   </th>
                 ))}
               </tr>
@@ -916,35 +1024,64 @@ export default function B2CDashboard() {
                     {hasFilters ? 'Sin resultados para los filtros aplicados.' : 'Sin registros.'}
                   </td>
                 </tr>
-              ) : rows.map((order) => (
-                <tr key={order.OrderEntryID} onClick={() => setDetailOrder(order)}
-                  style={{ borderBottom: '1px solid #e2e2e2', cursor: 'pointer' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f4f9')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}>
-                  <td style={{ padding: '10px 12px', fontWeight: 600, color: '#0d2b4e', fontFamily: 'monospace', fontSize: 12 }}>{order.OrderID}</td>
-                  <td style={{ padding: '10px 12px' }}>{order.AccountName}</td>
-                  <td style={{ padding: '10px 12px', color: '#555' }}>{order.ShipBy}</td>
-                  <td style={{ padding: '10px 12px', color: '#555' }}>{order.CustomerShippingName}</td>
-                  <td style={{ padding: '10px 12px', color: '#555', whiteSpace: 'nowrap' }}>{fmtDate(order.FechaIngreso)}</td>
-                  <td style={{ padding: '10px 12px', color: '#555', whiteSpace: 'nowrap' }}>{fmtDate(order.ShipDate)}</td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <span style={{ background: '#f0f4f9', color: '#0d2b4e', borderRadius: 3, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>{order.CanalVenta}</span>
-                  </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>{order.Qty}</td>
-                  <td style={{ padding: '10px 12px' }}><StatusBadge status={order.Status} /></td>
-                  <td style={{ padding: '10px 12px' }} onClick={(e) => e.stopPropagation()}>
-                    <InspeccionBadge
-                      inspeccion={getLatest(order.OrderEntryID)}
-                      onClick={() => setInspOrder(order)}
-                    />
-                  </td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setDetailOrder(order); }} className="btn-accion" style={{ fontSize: 11, fontWeight: 700 }}>
-                      Ver detalle
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              ) : rows.map((order) => {
+                const firstItem = order.Items[0];
+                const webSKU = firstItem?.WebSKU ?? '—';
+                const mitSKU = firstItem?.MitSKU  ?? '—';
+                const desc   = firstItem?.DescripcionProducto ?? '—';
+                const extraItems = order.Items.length > 1 ? order.Items.length - 1 : 0;
+                return (
+                  <tr key={order.OrderEntryID} onClick={() => setDetailOrder(order)}
+                    style={{ borderBottom: '1px solid #e2e2e2', cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f4f9')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = '')}>
+                    <td style={{ padding: '10px 12px' }}>
+                      <div style={{ fontWeight: 700, color: '#0d2b4e', fontFamily: 'monospace', fontSize: 11 }}>{order.OrderID}</div>
+                      <div style={{ fontSize: 10, color: '#aaa', marginTop: 2 }}>ID: {order.OrderEntryID}</div>
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <div style={{ fontWeight: 600, fontSize: 12 }}>{order.AccountName}</div>
+                      {order.CanalVenta && (
+                        <span style={{ background: '#f0f4f9', color: '#0d2b4e', borderRadius: 3, padding: '1px 6px', fontSize: 10, fontWeight: 600 }}>{order.CanalVenta}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <StatusBadge status={order.Status} />
+                      {order.ShipBy && (
+                        <div style={{ fontSize: 10, color: '#888', marginTop: 3 }}>/ {order.ShipBy}</div>
+                      )}
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span style={{ background: '#f0f4f9', color: '#0d2b4e', borderRadius: 3, padding: '2px 7px', fontSize: 11, fontFamily: 'monospace', fontWeight: 600 }}>{webSKU}</span>
+                      {extraItems > 0 && <span style={{ fontSize: 10, color: '#888', marginLeft: 4 }}>+{extraItems}</span>}
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      {mitSKU !== '—' ? (
+                        <span style={{ background: '#e8f5ee', color: '#065f46', borderRadius: 3, padding: '2px 7px', fontSize: 11, fontFamily: 'monospace', fontWeight: 600 }}>{mitSKU}</span>
+                      ) : <span style={{ color: '#ccc' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, fontSize: 14, color: '#0d2b4e' }}>{order.Qty}</td>
+                    <td style={{ padding: '10px 12px', color: '#444', maxWidth: 220 }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }} title={desc}>{desc}</div>
+                    </td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 11, color: '#555', fontWeight: 500 }}>{fmtRelative(order.FechaIngreso)}</div>
+                      <div style={{ fontSize: 10, color: '#aaa', marginTop: 2 }}>{fmtDate(order.FechaIngreso)}</div>
+                    </td>
+                    <td style={{ padding: '10px 12px' }} onClick={(e) => e.stopPropagation()}>
+                      <InspeccionBadge
+                        inspeccion={getLatest(order.OrderEntryID)}
+                        onClick={() => setInspOrder(order)}
+                      />
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setDetailOrder(order); }} className="btn-accion" style={{ fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
