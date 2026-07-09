@@ -1028,11 +1028,13 @@ export function registerRoutes(app: Express) {
     try {
       const bm = await getBMPool();
       const r = await bm.request().query(`
-        SELECT TOP 1 * FROM OM.OrderItems ORDER BY OrderItemsID DESC
+        SELECT COLUMN_NAME, DATA_TYPE
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = 'OM' AND TABLE_NAME = 'OrderItems'
+        ORDER BY ORDINAL_POSITION
       `);
-      const cols = r.recordset.length > 0 ? Object.keys(r.recordset[0]) : [];
-      const sample = r.recordset[0] ?? {};
-      res.json({ columns: cols, sample });
+      const cols = r.recordset.map((c: Record<string, unknown>) => `${c.COLUMN_NAME} (${c.DATA_TYPE})`);
+      res.json({ columns: cols });
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }
