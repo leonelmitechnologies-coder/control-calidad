@@ -688,10 +688,10 @@ export default function B2BDashboard() {
         {/* Filtros siempre visibles */}
         <div style={{ padding: '14px 18px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
           <input type="date" value={apiFrom} onChange={(e) => { setApiFrom(e.target.value); setPage(1); }}
-            style={{ padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }} />
-          <span style={{ fontSize: 12, color: '#aaa' }}>–</span>
+            style={{ padding: '7px 8px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff', width: 140, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: '#aaa', flexShrink: 0 }}>–</span>
           <input type="date" value={apiTo} onChange={(e) => { setApiTo(e.target.value); setPage(1); }}
-            style={{ padding: '7px 10px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff' }} />
+            style={{ padding: '7px 8px', border: '1px solid #ddd', borderRadius: 5, fontSize: 13, background: '#fff', width: 140, flexShrink: 0 }} />
           <input
             value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por orden, cliente, SKU, descripción..."
