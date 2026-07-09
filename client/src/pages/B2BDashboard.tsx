@@ -405,6 +405,13 @@ function DetailModal({
 }) {
   const remBadge = unitsRemBadge(order);
   const scfg = statusCfg(order.status);
+  const [lpnSearch, setLpnSearch] = useState('');
+  const visibleItems = lpnSearch.trim()
+    ? order.items.filter((it) => {
+        const q = lpnSearch.toLowerCase();
+        return it.lpn.toLowerCase().includes(q) || it.sku.toLowerCase().includes(q);
+      })
+    : order.items;
 
   return createPortal(
     <div style={{
@@ -467,9 +474,26 @@ function DetailModal({
           </div>
 
           {/* Items */}
-          <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#0d2b4e' }}>
-            Items ({order.items.length})
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 12 }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0d2b4e' }}>
+              Items ({visibleItems.length}{lpnSearch.trim() ? ` de ${order.items.length}` : ''})
+            </p>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: 13, pointerEvents: 'none' }}>&#128269;</span>
+              <input
+                value={lpnSearch}
+                onChange={(e) => setLpnSearch(e.target.value)}
+                placeholder="Buscar LPN o SKU..."
+                style={{ padding: '6px 10px 6px 28px', border: '1px solid #ddd', borderRadius: 5, fontSize: 12, width: 200 }}
+              />
+              {lpnSearch && (
+                <button onClick={() => setLpnSearch('')}
+                  style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 14, lineHeight: 1 }}>
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
@@ -480,7 +504,10 @@ function DetailModal({
                 </tr>
               </thead>
               <tbody>
-                {order.items.map((item, i) => (
+                {visibleItems.length === 0 && (
+                  <tr><td colSpan={7} style={{ padding: '16px 10px', textAlign: 'center', color: '#aaa', fontSize: 12 }}>Sin resultados para "{lpnSearch}"</td></tr>
+                )}
+                {visibleItems.map((item, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
                     <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 11, color: '#0d2b4e', fontWeight: 600 }}>{item.sku}</td>
                     <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 11, color: '#888' }}>{item.lpn || '—'}</td>
