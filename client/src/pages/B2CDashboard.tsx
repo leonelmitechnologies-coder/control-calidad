@@ -417,6 +417,16 @@ function DetailField({ label, value }: { label: string; value: React.ReactNode }
 }
 
 function DetailModal({ order, onClose }: { order: B2COrder; onClose: () => void }) {
+  const [lpnSearch, setLpnSearch] = useState('');
+  const visibleItems = lpnSearch.trim()
+    ? order.Items.filter((it) => {
+        const q = lpnSearch.toLowerCase();
+        return it.LPN.toLowerCase().includes(q)
+          || it.WebSKU.toLowerCase().includes(q)
+          || (it.MitSKU ?? '').toLowerCase().includes(q);
+      })
+    : order.Items;
+
   return createPortal(
     <div
       role="dialog"
@@ -481,11 +491,28 @@ function DetailModal({ order, onClose }: { order: B2COrder; onClose: () => void 
           </dl>
 
           {/* Items */}
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e', borderBottom: '2px solid #0d2b4e', paddingBottom: 6, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            Productos
-            <span style={{ background: '#0d2b4e', color: '#fff', borderRadius: 10, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
-              {order.Items.length}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #0d2b4e', paddingBottom: 6, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0d2b4e' }}>
+              Productos
+              <span style={{ background: '#0d2b4e', color: '#fff', borderRadius: 10, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
+                {visibleItems.length}{lpnSearch.trim() ? ` / ${order.Items.length}` : ''}
+              </span>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: 13, pointerEvents: 'none' }}>&#128269;</span>
+              <input
+                value={lpnSearch}
+                onChange={(e) => setLpnSearch(e.target.value)}
+                placeholder="Buscar LPN, Web SKU o MIT SKU..."
+                style={{ padding: '5px 28px 5px 28px', border: '1px solid #ddd', borderRadius: 4, fontSize: 12, width: 220 }}
+              />
+              {lpnSearch && (
+                <button onClick={() => setLpnSearch('')}
+                  style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 14, lineHeight: 1 }}>
+                  ×
+                </button>
+              )}
+            </div>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -498,7 +525,10 @@ function DetailModal({ order, onClose }: { order: B2COrder; onClose: () => void 
                 </tr>
               </thead>
               <tbody>
-                {order.Items.map((item, i) => (
+                {visibleItems.length === 0 && (
+                  <tr><td colSpan={6} style={{ padding: '16px 12px', textAlign: 'center', color: '#aaa', fontSize: 12 }}>Sin resultados para "{lpnSearch}"</td></tr>
+                )}
+                {visibleItems.map((item, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #e2e2e2', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                     <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 11, color: '#0d2b4e', fontWeight: 600 }}>{item.LPN}</td>
                     <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 11 }}>
