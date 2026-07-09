@@ -1023,6 +1023,21 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // ── TEMP: BinManager schema introspection ─────────────────────────────────
+  app.get("/api/debug/bm-schema", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const bm = await getBMPool();
+      const r = await bm.request().query(`
+        SELECT TOP 1 * FROM OM.OrderItems ORDER BY OrderItemsID DESC
+      `);
+      const cols = r.recordset.length > 0 ? Object.keys(r.recordset[0]) : [];
+      const sample = r.recordset[0] ?? {};
+      res.json({ columns: cols, sample });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // ── BINMANAGER — B2B DASHBOARD ────────────────────────────────────────────
 
   app.get("/api/b2b-orders", requireAuth, async (req: Request, res: Response) => {
@@ -1099,14 +1114,6 @@ export function registerRoutes(app: Express) {
 
       const orders = ordersResult.recordset;
       if (orders.length === 0) return res.json([]);
-
-      // TEMP: introspect OM.OrderItems columns to find NotFound field
-      const colsResult = await bm.request().query(`
-        SELECT TOP 1 * FROM OM.OrderItems WHERE OrderID = ${orders[0].OrderID}
-      `);
-      if (colsResult.recordset.length > 0) {
-        console.log('[B2B] OM.OrderItems columns:', Object.keys(colsResult.recordset[0]).join(' | '));
-      }
 
       // Query 2: Items grouped by SKU for those orders
       const orderIds = orders.map((o: Record<string, unknown>) => o.OrderID).join(",");
