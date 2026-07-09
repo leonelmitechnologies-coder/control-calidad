@@ -1100,6 +1100,14 @@ export function registerRoutes(app: Express) {
       const orders = ordersResult.recordset;
       if (orders.length === 0) return res.json([]);
 
+      // TEMP: introspect OM.OrderItems columns to find NotFound field
+      const colsResult = await bm.request().query(`
+        SELECT TOP 1 * FROM OM.OrderItems WHERE OrderID = ${orders[0].OrderID}
+      `);
+      if (colsResult.recordset.length > 0) {
+        console.log('[B2B] OM.OrderItems columns:', Object.keys(colsResult.recordset[0]).join(' | '));
+      }
+
       // Query 2: Items grouped by SKU for those orders
       const orderIds = orders.map((o: Record<string, unknown>) => o.OrderID).join(",");
       const itemsResult = await bm.request().query(`
