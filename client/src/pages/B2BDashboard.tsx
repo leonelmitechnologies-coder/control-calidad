@@ -41,7 +41,6 @@ interface B2BOrder {
   unitsOrdered:  number;
   unitsDelivered:number;
   unitsRemaining:number;
-  notFound:      number;
   invoiceDate:   string;
   dueDate:       string;
   enteredBy:     string;
@@ -79,7 +78,6 @@ function mapApiOrder(o: ApiOrder): B2BOrder {
     unitsOrdered:   o.UnitsOrdered,
     unitsDelivered: o.UnitsDelivered,
     unitsRemaining: Math.max(0, o.UnitsOrdered - o.UnitsDelivered),
-    notFound:       0,
     invoiceDate:    fmt(o.InvoiceDate),
     dueDate:        fmt(o.DueDate),
     enteredBy:      o.EnteredBy || '',
@@ -464,7 +462,6 @@ function DetailModal({
               { l: 'Units Ordered',   v: order.unitsOrdered,   c: '#0d2b4e' },
               { l: 'Units Delivered', v: order.unitsDelivered, c: '#27ae60' },
               { l: 'Units Remaining', v: order.unitsRemaining, c: order.unitsRemaining > 0 ? '#c0392b' : '#27ae60' },
-              { l: 'Not Found',       v: order.notFound,       c: order.notFound > 0 ? '#c0711a' : '#aaa' },
             ].map(({ l, v, c }) => (
               <div key={l} style={{ textAlign: 'center', flex: 1, minWidth: 100, padding: '12px 8px', background: '#f8f9fa', borderRadius: 8 }}>
                 <p style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: c }}>{v}</p>
@@ -827,7 +824,6 @@ export default function B2BDashboard() {
                 { l: 'Units Ordered',   v: orders.reduce((a, o) => a + o.unitsOrdered,   0), c: '#0d2b4e' },
                 { l: 'Units Delivered', v: orders.reduce((a, o) => a + o.unitsDelivered, 0), c: '#27ae60' },
                 { l: 'Units Remaining', v: orders.reduce((a, o) => a + o.unitsRemaining, 0), c: '#c0392b' },
-                { l: 'Not Found',       v: orders.reduce((a, o) => a + o.notFound,       0), c: '#c0711a' },
               ].map(({ l, v, c }) => (
                 <div key={l} style={{ flex: 1, minWidth: 140, textAlign: 'center', padding: '16px 8px', background: '#f8f9fa', borderRadius: 8 }}>
                   <p style={{ margin: '0 0 4px', fontSize: 28, fontWeight: 700, color: c }}>{v.toLocaleString()}</p>
