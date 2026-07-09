@@ -1023,23 +1023,6 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // ── TEMP: BinManager schema introspection ─────────────────────────────────
-  app.get("/api/debug/bm-schema", requireAuth, async (_req: Request, res: Response) => {
-    try {
-      const bm = await getBMPool();
-      const r = await bm.request().query(`
-        SELECT COLUMN_NAME, DATA_TYPE
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = 'OM' AND TABLE_NAME = 'OrderItems'
-        ORDER BY ORDINAL_POSITION
-      `);
-      const cols = r.recordset.map((c: Record<string, unknown>) => `${c.COLUMN_NAME} (${c.DATA_TYPE})`);
-      res.json({ columns: cols });
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
   // ── BINMANAGER — B2B DASHBOARD ────────────────────────────────────────────
 
   app.get("/api/b2b-orders", requireAuth, async (req: Request, res: Response) => {
@@ -1087,6 +1070,7 @@ export function registerRoutes(app: Express) {
             ISNULL(ship.BillingAddress, '')                            AS BillingAddress,
             ISNULL(units.UnitsOrdered, 0)                              AS UnitsOrdered,
             ISNULL(delivered.UnitsDelivered, 0)                        AS UnitsDelivered,
+            ISNULL(notfound.NotFound, 0)                               AS NotFound,
             ISNULL(pay_agg.Paid, 0)                                    AS Paid
           FROM OM.Orders o
           LEFT JOIN OM.Customers c ON o.CustomerID = c.CustomerID
@@ -1104,6 +1088,10 @@ export function registerRoutes(app: Express) {
             SELECT OrderID, SUM(Qty) AS UnitsDelivered
             FROM OM.OrderDeliveryDetails GROUP BY OrderID
           ) delivered ON o.OrderID = delivered.OrderID
+          LEFT JOIN (
+            SELECT OrderID, SUM(NotFoundQty) AS NotFound
+            FROM FFM.BatchUserAssignment GROUP BY OrderID
+          ) notfound ON o.OrderID = notfound.OrderID
           LEFT JOIN (
             SELECT OrderID, SUM(Amount * ISNULL(CurrencyValue, 1)) AS Paid
             FROM OM.OrderPayments GROUP BY OrderID
