@@ -559,7 +559,8 @@ export default function B2BDashboard() {
     queryKey: ['b2b-orders', apiFrom, apiTo],
     queryFn: () => fetch(`/api/b2b-orders?startDate=${apiFrom}&endDate=${apiTo}`)
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
   });
 
   const orders = useMemo(() => rawOrders.map(mapApiOrder), [rawOrders]);

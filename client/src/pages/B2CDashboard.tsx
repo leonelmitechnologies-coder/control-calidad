@@ -615,7 +615,8 @@ export default function B2CDashboard() {
   const { data: allOrders = [], isLoading, isError } = useQuery<B2COrder[]>({
     queryKey: ['b2c-orders', apiFrom, apiTo],
     queryFn:  () => fetchB2COrders(apiFrom, apiTo),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
   });
 
   // Unique options from real data
