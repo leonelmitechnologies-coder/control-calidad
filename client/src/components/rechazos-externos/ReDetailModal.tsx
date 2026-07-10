@@ -86,7 +86,7 @@ function generatePdf(data: RechazosExterno) {
     </div>` : '';
 
   const probsHtml = probs.length ? `
-    <div class="section">
+    <div class="section" style="break-before:page;page-break-before:always">
       <div class="sec-title">Problem Description</div>
       ${probs.map((p, i) => `<div class="prob-item"><div class="prob-num">${i + 1}</div><div class="prob-text">${esc(p.descripcion)}</div></div>`).join('')}
     </div>` : '';
@@ -118,7 +118,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#222;background
 .di span{font-size:11px;color:#222;font-weight:500}
 .photo-box{border:1px solid #ddd;padding:14px}
 .photos-wrap{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-.photo-item img{max-width:260px;max-height:200px;object-fit:contain;display:block}
+.photo-item img{max-width:340px;max-height:280px;object-fit:contain;display:block}
 .photo-cap{font-size:9px;color:#777;font-style:italic;margin-top:10px;text-align:center}
 .prob-item{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start;break-inside:avoid;page-break-inside:avoid}
 .prob-num{width:22px;height:22px;background:#111;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
