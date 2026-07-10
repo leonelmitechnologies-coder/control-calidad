@@ -1111,12 +1111,13 @@ export function registerRoutes(app: Express) {
         SELECT
           oi.OrderID,
           oi.SKU,
-          MIN(oi.LPN)              AS LPN,
-          MIN(oi.ItemDescription)  AS ItemDescription,
-          COUNT(oi.OrderItemsID)   AS QtyOrdered,
-          AVG(ISNULL(oi.Rate, 0))  AS Rate,
-          SUM(ISNULL(oi.Amount, 0)) AS Amount,
-          ISNULL(d.Delivered, 0)   AS QtyDelivered
+          MIN(oi.LPN)                                    AS LPN,
+          STRING_AGG(CAST(oi.LPN AS NVARCHAR(MAX)), ', ') AS AllLPNs,
+          MIN(oi.ItemDescription)                        AS ItemDescription,
+          COUNT(oi.OrderItemsID)                         AS QtyOrdered,
+          AVG(ISNULL(oi.Rate, 0))                        AS Rate,
+          SUM(ISNULL(oi.Amount, 0))                      AS Amount,
+          ISNULL(d.Delivered, 0)                         AS QtyDelivered
         FROM OM.OrderItems oi
         LEFT JOIN (
           SELECT OrderID, SKU, SUM(Qty) AS Delivered

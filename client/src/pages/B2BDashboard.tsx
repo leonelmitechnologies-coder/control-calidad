@@ -23,6 +23,7 @@ import {
 interface B2BItem {
   sku:         string;
   lpn:         string;
+  allLpns:     string;
   description: string;
   qtyOrdered:  number;
   qtyDelivered:number;
@@ -55,7 +56,7 @@ interface B2BOrder {
 // ── API Types & Mapping ───────────────────────────────────────────────────────
 
 interface ApiItem {
-  SKU: string; LPN: string; ItemDescription: string;
+  SKU: string; LPN: string; AllLPNs: string; ItemDescription: string;
   QtyOrdered: number; Rate: number; Amount: number; QtyDelivered: number;
 }
 interface ApiOrder {
@@ -90,6 +91,7 @@ function mapApiOrder(o: ApiOrder): B2BOrder {
     items: (o.Items ?? []).map(it => ({
       sku:          it.SKU,
       lpn:          it.LPN || '',
+      allLpns:      it.AllLPNs || it.LPN || '',
       description:  it.ItemDescription || '',
       qtyOrdered:   it.QtyOrdered,
       qtyDelivered: it.QtyDelivered,
@@ -409,7 +411,7 @@ function DetailModal({
   const visibleItems = lpnSearch.trim()
     ? order.items.filter((it) => {
         const q = lpnSearch.toLowerCase();
-        return it.lpn.toLowerCase().includes(q) || it.sku.toLowerCase().includes(q);
+        return it.allLpns.toLowerCase().includes(q) || it.sku.toLowerCase().includes(q);
       })
     : order.items;
 
@@ -597,7 +599,7 @@ export default function B2BDashboard() {
         o.enteredBy.toLowerCase().includes(q) ||
         o.salesRep1.toLowerCase().includes(q) ||
         o.location.toLowerCase().includes(q) ||
-        o.items.some((it) => it.sku.toLowerCase().includes(q) || it.description.toLowerCase().includes(q))
+        o.items.some((it) => it.sku.toLowerCase().includes(q) || it.description.toLowerCase().includes(q) || it.allLpns.toLowerCase().includes(q))
       );
     });
   }, [debouncedSearch, filterStatus, filterCustomer, filterVendedor, filterSKU, filterClasificacion, orders]);
