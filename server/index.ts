@@ -840,15 +840,19 @@ ${accsHtml}
 </div>
 </body></html>`;
 
+    console.log("[PDF] Launching Puppeteer for record", reId);
     const puppeteer = await import("puppeteer");
     browser = await puppeteer.default.launch({
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"],
+      timeout: 30000,
     });
+    console.log("[PDF] Browser launched, generating page...");
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
     const pdf = await page.pdf({ format: "A4", printBackground: true, margin: { top: "0", right: "0", bottom: "0", left: "0" } });
+    console.log("[PDF] PDF generated, sending response...");
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="NCR-${re.license_plate}.pdf"`);
