@@ -640,7 +640,7 @@ app.get("/api/rechazos-externos", requireAuth, async (req: Request, res: Respons
          LEFT JOIN re_images               rim ON rim.rechazo_id = re.id
          ${where}
          GROUP BY re.id
-         ORDER BY re.created_at DESC
+         ORDER BY re.registration_date DESC NULLS LAST, re.created_at DESC NULLS LAST
          LIMIT $${idx} OFFSET $${idx + 1}`,
         [...params, limit, offset]
       ),

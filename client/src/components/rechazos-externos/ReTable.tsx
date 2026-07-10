@@ -31,6 +31,56 @@ function formatDT(dt: string | null | undefined): string {
   return new Date(dt).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+// ── Week grouping helpers ─────────────────────────────────────────────────────
+
+function weekMonday(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function weekLabel(monday: Date): string {
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const dayOnly: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+  const withYear: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+  const start = monday.toLocaleDateString('es-MX', dayOnly);
+  const end   = sunday.toLocaleDateString('es-MX', withYear);
+  return `${start} – ${end}`;
+}
+
+type WeekGroup = { key: string; label: string; rows: RechazosExterno[] };
+
+function groupByWeek(rows: RechazosExterno[]): WeekGroup[] {
+  const groups: WeekGroup[] = [];
+  let current: WeekGroup | null = null;
+
+  for (const row of rows) {
+    let key: string;
+    let label: string;
+
+    if (!row.registration_date) {
+      key = '__no_date__';
+      label = 'Sin fecha de registro';
+    } else {
+      const monday = weekMonday(new Date(row.registration_date));
+      key   = monday.toISOString().slice(0, 10);
+      label = weekLabel(monday);
+    }
+
+    if (!current || current.key !== key) {
+      current = { key, label, rows: [] };
+      groups.push(current);
+    }
+    current.rows.push(row);
+  }
+
+  return groups;
+}
+
 // ── Skeleton rows ─────────────────────────────────────────────────────────────
 
 function SkeletonRows({ count, colSpan }: { count: number; colSpan: number }) {
@@ -98,74 +148,108 @@ export default function ReTable({
             ) : data.length === 0 ? (
               <EmptyRow colSpan={COLUMNS.length} />
             ) : (
-              data.map((row, idx) => {
-                const rowNumber  = (currentPage - 1) * pageSize + idx + 1;
-                const cntProbs   = Number(row.cnt_problemas ?? 0);
+              (() => {
+                const groups  = groupByWeek(data);
+                const colSpan = COLUMNS.length;
+                let globalIdx = 0;
 
-                return (
-                  <tr key={row.id} onClick={() => onView(row.id)}>
-
-                    <td className="whitespace-nowrap" style={{ color: '#999' }}>{rowNumber}</td>
-
-                    <td className="whitespace-nowrap" style={{ fontWeight: 500, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {row.return_order}
-                    </td>
-
-                    <td className="whitespace-nowrap">{row.license_plate}</td>
-
-                    <td className="whitespace-nowrap">
-                      <span style={{ background: '#f4f4f4', padding: '2px 6px', fontSize: 11, fontWeight: 500, color: '#555' }}>
-                        {row.classification || '—'}
-                      </span>
-                    </td>
-
-                    <td className="whitespace-nowrap" style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {row.sku || '—'}
-                    </td>
-
-                    <td className="whitespace-nowrap" style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {row.brand || '—'}
-                    </td>
-
-                    <td className="whitespace-nowrap" style={{ fontSize: 12 }}>
-                      {formatDT(row.plant_entry)}
-                    </td>
-
-                    <td className="whitespace-nowrap" style={{ fontSize: 12 }}>
-                      {formatDT(row.plant_exit)}
-                    </td>
-
-                    <td className="whitespace-nowrap" style={{ fontSize: 12 }}>
-                      {formatTime(row.total_time_minutes)}
-                    </td>
-
-                    <td className="whitespace-nowrap" style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {row.processed_by || '—'}
-                    </td>
-
-                    {/* Problemas badge */}
-                    <td className="whitespace-nowrap">
-                      {cntProbs > 0 ? (
-                        <span style={{ background: '#0d2b4e', color: '#fff', padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
-                          {cntProbs}
+                return groups.flatMap((group) => {
+                  const sepKey = `sep-${group.key}`;
+                  const separator = (
+                    <tr key={sepKey} style={{ pointerEvents: 'none' }}>
+                      <td
+                        colSpan={colSpan}
+                        style={{
+                          background: '#eef2f7',
+                          padding: '5px 12px',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: '#3a5a7a',
+                          borderTop: '2px solid #c8d8e8',
+                          letterSpacing: '0.03em',
+                        }}
+                      >
+                        {group.label === 'Sin fecha de registro'
+                          ? 'Sin fecha de registro'
+                          : `Semana ${group.label}`}
+                        <span style={{ fontWeight: 400, marginLeft: 8, color: '#6a8aaa' }}>
+                          — {group.rows.length} {group.rows.length === 1 ? 'registro' : 'registros'}
                         </span>
-                      ) : (
-                        <span style={{ color: '#bbb' }}>—</span>
-                      )}
-                    </td>
+                      </td>
+                    </tr>
+                  );
 
-                    {/* Actions */}
-                    <td className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => onView(row.id)} className="btn-accion">Ver</button>
-                        <button type="button" onClick={() => onEdit(row.id)} className="btn-accion">Editar</button>
-                        <button type="button" onClick={() => onDelete(row.id)} className="btn-accion rojo">Eliminar</button>
-                      </div>
-                    </td>
+                  const rows = group.rows.map((row) => {
+                    const rowNumber = (currentPage - 1) * pageSize + globalIdx + 1;
+                    globalIdx++;
+                    const cntProbs = Number(row.cnt_problemas ?? 0);
 
-                  </tr>
-                );
-              })
+                    return (
+                      <tr key={row.id} onClick={() => onView(row.id)}>
+
+                        <td className="whitespace-nowrap" style={{ color: '#999' }}>{rowNumber}</td>
+
+                        <td className="whitespace-nowrap" style={{ fontWeight: 500, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {row.return_order}
+                        </td>
+
+                        <td className="whitespace-nowrap">{row.license_plate}</td>
+
+                        <td className="whitespace-nowrap">
+                          <span style={{ background: '#f4f4f4', padding: '2px 6px', fontSize: 11, fontWeight: 500, color: '#555' }}>
+                            {row.classification || '—'}
+                          </span>
+                        </td>
+
+                        <td className="whitespace-nowrap" style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {row.sku || '—'}
+                        </td>
+
+                        <td className="whitespace-nowrap" style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {row.brand || '—'}
+                        </td>
+
+                        <td className="whitespace-nowrap" style={{ fontSize: 12 }}>
+                          {formatDT(row.plant_entry)}
+                        </td>
+
+                        <td className="whitespace-nowrap" style={{ fontSize: 12 }}>
+                          {formatDT(row.plant_exit)}
+                        </td>
+
+                        <td className="whitespace-nowrap" style={{ fontSize: 12 }}>
+                          {formatTime(row.total_time_minutes)}
+                        </td>
+
+                        <td className="whitespace-nowrap" style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {row.processed_by || '—'}
+                        </td>
+
+                        <td className="whitespace-nowrap">
+                          {cntProbs > 0 ? (
+                            <span style={{ background: '#0d2b4e', color: '#fff', padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
+                              {cntProbs}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#bbb' }}>—</span>
+                          )}
+                        </td>
+
+                        <td className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            <button type="button" onClick={() => onView(row.id)} className="btn-accion">Ver</button>
+                            <button type="button" onClick={() => onEdit(row.id)} className="btn-accion">Editar</button>
+                            <button type="button" onClick={() => onDelete(row.id)} className="btn-accion rojo">Eliminar</button>
+                          </div>
+                        </td>
+
+                      </tr>
+                    );
+                  });
+
+                  return [separator, ...rows];
+                });
+              })()
             )}
           </tbody>
         </table>
