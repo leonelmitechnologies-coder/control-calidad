@@ -1,8 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs_24"]
+
 [phases.install]
-cmds = ["npm ci --include=dev"]
+cmds = [
+  "corepack enable && corepack prepare pnpm@11.17.0 --activate",
+  "pnpm install --frozen-lockfile"
+]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = ["pnpm run build"]
 
 [start]
 cmd = "node dist/server/index.js"

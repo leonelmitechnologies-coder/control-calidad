@@ -1,0 +1,17 @@
+minimumReleaseAge: 1440
+blockExoticSubdeps: true
+overrides:
+  js-yaml: ^4.2.0
+allowBuilds:
+  # Build-critical: esbuild is invoked by Vite during `vite build`.
+  esbuild: true
+  # bcrypt native binding is NOT needed by the production runtime
+  # (prod runs dist/server/server/index.js, which never imports bcrypt).
+  # It is only require()'d by the legacy dev-only server.cjs (`dev:legacy`,
+  # port 3002), which is not in the Docker/nixpacks/pm2 path. Blocked to
+  # keep the supply-chain surface minimal + avoid native compile on Node 24.
+  bcrypt: false
+  # puppeteer's install script only downloads its bundled Chromium, which we
+  # deliberately skip: prod launches with the system Chromium via
+  # PUPPETEER_EXECUTABLE_PATH and PUPPETEER_SKIP_DOWNLOAD=true. Script unneeded.
+  puppeteer: false

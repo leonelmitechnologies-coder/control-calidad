@@ -1,23 +1,28 @@
 # build-gate — MI Apps pre-merge build check.
 # Fails a commit/PR (red X) if the app doesn't install + build cleanly, so broken code
-# can't sit on master unbuilt. Catches package-lock.json drift (npm ci) + tsc/vite errors.
+# can't sit on a deploy branch unbuilt. Catches pnpm-lock.yaml drift (frozen lockfile)
+# + tsc/vite errors. Fleet standard: Corepack pnpm@11.17.0 on Node 24.
 name: build-gate
 on:
   push:
-    branches: [master, main, dev]
+    branches: [stack-migration, master, main, dev]
   pull_request:
-    branches: [master, main]
+    branches: [stack-migration, master, main]
 jobs:
   build-gate:
     runs-on: ubuntu-latest
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
     steps:
       - uses: actions/checkout@v4
+      - name: Enable Corepack + pin pnpm
+        run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
+          cache: 'pnpm'
       - name: Install (frozen lockfile)
-        run: npm ci --include=dev
-      - name: Build (if a build script exists)
-        run: npm run build --if-present
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
