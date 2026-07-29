@@ -24,6 +24,12 @@ jobs:
           cache: 'pnpm'
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile
+      # Ratchet rule: this repo typechecks clean today (0 errors across both tsconfig
+      # projects), so the gate is BLOCKING to keep it there; repos that still have errors
+      # run this step warn-only. `vite build` is transpile-only, so without this step
+      # client-side tsc errors are invisible.
+      - name: Typecheck
+        run: pnpm run --if-present typecheck
       - name: Lint (Biome — warn-only during rollout)
         continue-on-error: true
         run: pnpm run lint
