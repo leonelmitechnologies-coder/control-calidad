@@ -15,7 +15,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 
-const asText = (o: unknown) => ({ content: [{ type: "text" as const, text: typeof o === "string" ? o : JSON.stringify(o, null, 2) }] });
+const asText = (o: unknown) => ({
+  content: [
+    { type: "text" as const, text: typeof o === "string" ? o : JSON.stringify(o, null, 2) },
+  ],
+});
 
 function listMd(dir: string): string[] {
   const out: string[] = [];
@@ -45,36 +49,74 @@ export function registerOkfTools(server: any, bundleDir: string) {
   // bundle-relative path "/tables/x.md" → filesystem path
   const resolve = (rel: string) => path.join(bundleDir, rel.replace(/^\//, ""));
 
-  server.registerTool("okf_list_concepts",
-    { description: "List every concept in the OKF knowledge bundle (the curated data dictionary / ground truth). Returns each concept's bundle path, type, title, description. Call this first.", inputSchema: {} },
+  server.registerTool(
+    "okf_list_concepts",
+    {
+      description:
+        "List every concept in the OKF knowledge bundle (the curated data dictionary / ground truth). Returns each concept's bundle path, type, title, description. Call this first.",
+      inputSchema: {},
+    },
     async () => {
       const items = listMd(bundleDir)
         .filter((p) => !/(^|\/)(index|log)\.md$/.test(p.slice(bundleDir.length)))
         .map((p) => {
           const fm = parseFrontmatter(fs.readFileSync(p, "utf8"));
-          return { path: "/" + path.relative(bundleDir, p).split(path.sep).join("/"), type: fm.type, title: fm.title, description: fm.description };
+          return {
+            path: "/" + path.relative(bundleDir, p).split(path.sep).join("/"),
+            type: fm.type,
+            title: fm.title,
+            description: fm.description,
+          };
         });
       return asText({ count: items.length, concepts: items });
-    });
+    },
+  );
 
-  server.registerTool("okf_read_concept",
-    { description: "Read one OKF concept document by its bundle-relative path (e.g. '/tables/orders.md'). Returns the full markdown (frontmatter + body) — answer from this, don't guess.", inputSchema: { path: z.string().describe("bundle-relative path, e.g. /tables/orders.md") } },
+  server.registerTool(
+    "okf_read_concept",
+    {
+      description:
+        "Read one OKF concept document by its bundle-relative path (e.g. '/tables/orders.md'). Returns the full markdown (frontmatter + body) — answer from this, don't guess.",
+      inputSchema: { path: z.string().describe("bundle-relative path, e.g. /tables/orders.md") },
+    },
     async ({ path: rel }: { path: string }) => {
       const fp = resolve(rel);
-      if (!fp.startsWith(bundleDir) || !fs.existsSync(fp)) return asText({ error: `concept '${rel}' not found — call okf_list_concepts for valid paths` });
+      if (!fp.startsWith(bundleDir) || !fs.existsSync(fp))
+        return asText({
+          error: `concept '${rel}' not found — call okf_list_concepts for valid paths`,
+        });
       return asText(fs.readFileSync(fp, "utf8"));
-    });
+    },
+  );
 
-  server.registerTool("okf_search",
-    { description: "Full-text search the OKF bundle (concept titles, descriptions, and bodies). Use to find which concept covers a field/term/entity.", inputSchema: { query: z.string() } },
+  server.registerTool(
+    "okf_search",
+    {
+      description:
+        "Full-text search the OKF bundle (concept titles, descriptions, and bodies). Use to find which concept covers a field/term/entity.",
+      inputSchema: { query: z.string() },
+    },
     async ({ query }: { query: string }) => {
       const q = query.toLowerCase();
-      const hits = listMd(bundleDir).map((p) => {
-        const txt = fs.readFileSync(p, "utf8");
-        const fm = parseFrontmatter(txt);
-        const n = (txt.toLowerCase().match(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) || []).length;
-        return n ? { path: "/" + path.relative(bundleDir, p).split(path.sep).join("/"), type: fm.type, title: fm.title, matches: n } : null;
-      }).filter(Boolean).sort((a: any, b: any) => b.matches - a.matches);
+      const hits = listMd(bundleDir)
+        .map((p) => {
+          const txt = fs.readFileSync(p, "utf8");
+          const fm = parseFrontmatter(txt);
+          const n = (
+            txt.toLowerCase().match(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) || []
+          ).length;
+          return n
+            ? {
+                path: "/" + path.relative(bundleDir, p).split(path.sep).join("/"),
+                type: fm.type,
+                title: fm.title,
+                matches: n,
+              }
+            : null;
+        })
+        .filter(Boolean)
+        .sort((a: any, b: any) => b.matches - a.matches);
       return asText({ query, results: hits });
-    });
+    },
+  );
 }

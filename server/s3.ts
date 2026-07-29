@@ -1,13 +1,13 @@
+import fs from "node:fs";
+import path from "node:path";
 import {
-  S3Client,
-  PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
-import fs from "node:fs";
-import path from "node:path";
 
 // Use local disk when S3 credentials are not configured
 const USE_LOCAL = !process.env.AWS_ENDPOINT_URL_S3 || !process.env.AWS_ACCESS_KEY_ID;
@@ -32,16 +32,11 @@ const PUBLIC_URL = process.env.MINIO_PUBLIC_URL || "";
 /**
  * Generate a unique filename for uploads
  */
-function generateFilename(
-  originalName: string,
-  prefix?: string
-): string {
+function generateFilename(originalName: string, prefix?: string): string {
   const ext = originalName.split(".").pop() || "jpg";
   const timestamp = Date.now();
   const random = crypto.randomBytes(3).toString("hex");
-  const name = prefix
-    ? `${prefix}-${timestamp}-${random}.${ext}`
-    : `${timestamp}-${random}.${ext}`;
+  const name = prefix ? `${prefix}-${timestamp}-${random}.${ext}` : `${timestamp}-${random}.${ext}`;
   return name;
 }
 
@@ -52,7 +47,7 @@ export async function uploadFileToS3(
   fileBuffer: Buffer,
   originalName: string,
   folder: string,
-  prefix?: string
+  prefix?: string,
 ): Promise<string> {
   const filename = generateFilename(originalName, prefix);
 
@@ -71,7 +66,7 @@ export async function uploadFileToS3(
         Key: key,
         Body: fileBuffer,
         ContentType: "image/*",
-      })
+      }),
     );
     return `${PUBLIC_URL}/${BUCKET_NAME}/${key}`;
   } catch (error) {
@@ -91,7 +86,7 @@ export async function uploadToS3Only(
   fileBuffer: Buffer,
   originalName: string,
   folder: string,
-  prefix?: string
+  prefix?: string,
 ): Promise<string> {
   if (USE_LOCAL) throw new Error("S3 not configured");
 
@@ -103,7 +98,7 @@ export async function uploadToS3Only(
       Key: key,
       Body: fileBuffer,
       ContentType: "image/*",
-    })
+    }),
   );
   return `${PUBLIC_URL}/${BUCKET_NAME}/${key}`;
 }
@@ -114,7 +109,7 @@ export async function uploadToS3Only(
 export async function uploadFilesToS3(
   files: Array<{ buffer: Buffer; originalname: string }>,
   folder: string,
-  prefix?: string
+  prefix?: string,
 ): Promise<string[]> {
   const urls: string[] = [];
 
@@ -148,15 +143,13 @@ export async function deleteFileFromS3(key: string): Promise<void> {
 
   try {
     // Extract the key from the full URL if needed
-    const actualKey = key.includes("/")
-      ? key.split(`/${BUCKET_NAME}/`)[1] || key
-      : key;
+    const actualKey = key.includes("/") ? key.split(`/${BUCKET_NAME}/`)[1] || key : key;
 
     await s3Client.send(
       new DeleteObjectCommand({
         Bucket: BUCKET_NAME,
         Key: actualKey,
-      })
+      }),
     );
   } catch (error) {
     console.error("[S3] Delete error:", error);
@@ -169,12 +162,10 @@ export async function deleteFileFromS3(key: string): Promise<void> {
  */
 export async function getPresignedUrl(
   key: string,
-  expirationSeconds: number = 3600
+  expirationSeconds: number = 3600,
 ): Promise<string> {
   try {
-    const actualKey = key.includes("/")
-      ? key.split(`/${BUCKET_NAME}/`)[1] || key
-      : key;
+    const actualKey = key.includes("/") ? key.split(`/${BUCKET_NAME}/`)[1] || key : key;
 
     const url = await getSignedUrl(
       s3Client,
@@ -182,7 +173,7 @@ export async function getPresignedUrl(
         Bucket: BUCKET_NAME,
         Key: actualKey,
       }),
-      { expiresIn: expirationSeconds }
+      { expiresIn: expirationSeconds },
     );
 
     return url;

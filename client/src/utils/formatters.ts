@@ -3,8 +3,8 @@
  * Uses date-fns for date operations (already in node_modules).
  */
 
-import { format as dateFnsFormat, parseISO, isValid } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { format as dateFnsFormat, isValid, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
 // ── Currency ─────────────────────────────────────────────────────────────────
 
@@ -14,16 +14,16 @@ import { es } from 'date-fns/locale';
  * @param currency ISO currency code (default: 'MXN')
  * @returns        "$1,234.56 MXN"
  */
-export function formatCurrency(amount: number, currency = 'MXN'): string {
-  if (typeof amount !== 'number' || isNaN(amount)) return '—';
-  const formatted = new Intl.NumberFormat('es-MX', {
-    style: 'currency',
+export function formatCurrency(amount: number, currency = "MXN"): string {
+  if (typeof amount !== "number" || isNaN(amount)) return "—";
+  const formatted = new Intl.NumberFormat("es-MX", {
+    style: "currency",
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
   // Intl already includes the currency symbol; append the code for MXN clarity
-  return currency === 'MXN' ? formatted : `${formatted} ${currency}`;
+  return currency === "MXN" ? formatted : `${formatted} ${currency}`;
 }
 
 // ── Dates ─────────────────────────────────────────────────────────────────────
@@ -36,11 +36,12 @@ export function formatCurrency(amount: number, currency = 'MXN'): string {
  */
 export function formatDate(
   date: Date | string | number | null | undefined,
-  fmt = 'yyyy-MM-dd',
+  fmt = "yyyy-MM-dd",
 ): string {
-  if (!date) return '—';
-  const d = date instanceof Date ? date : (typeof date === 'string' ? parseISO(date) : new Date(date));
-  if (!isValid(d)) return '—';
+  if (!date) return "—";
+  const d =
+    date instanceof Date ? date : typeof date === "string" ? parseISO(date) : new Date(date);
+  if (!isValid(d)) return "—";
   return dateFnsFormat(d, fmt, { locale: es });
 }
 
@@ -50,7 +51,7 @@ export function formatDate(
  * @returns     "dd/MM/yyyy HH:mm"
  */
 export function formatDateTime(date: Date | string | number | null | undefined): string {
-  return formatDate(date, 'dd/MM/yyyy HH:mm');
+  return formatDate(date, "dd/MM/yyyy HH:mm");
 }
 
 /**
@@ -59,7 +60,7 @@ export function formatDateTime(date: Date | string | number | null | undefined):
  * @returns     "HH:mm"
  */
 export function formatTime(date: Date | string | number | null | undefined): string {
-  return formatDate(date, 'HH:mm');
+  return formatDate(date, "HH:mm");
 }
 
 // ── Phone ─────────────────────────────────────────────────────────────────────
@@ -70,8 +71,8 @@ export function formatTime(date: Date | string | number | null | undefined): str
  * Non-standard inputs are returned as-is.
  */
 export function formatPhone(phone: string | null | undefined): string {
-  if (!phone) return '—';
-  const digits = phone.replace(/\D/g, '').replace(/^52/, '');
+  if (!phone) return "—";
+  const digits = phone.replace(/\D/g, "").replace(/^52/, "");
   if (digits.length === 10) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   }
@@ -86,12 +87,12 @@ export function formatPhone(phone: string | null | undefined): string {
  * @returns      e.g. "1.4 MB", "512 KB", "800 B"
  */
 export function formatFileSize(bytes: number): string {
-  if (typeof bytes !== 'number' || isNaN(bytes) || bytes < 0) return '—';
-  if (bytes === 0) return '0 B';
+  if (typeof bytes !== "number" || isNaN(bytes) || bytes < 0) return "—";
+  if (bytes === 0) return "0 B";
 
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const units = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / Math.pow(1024, i);
+  const value = bytes / 1024 ** i;
   return `${i === 0 ? value : value.toFixed(1)} ${units[i]}`;
 }
 
@@ -103,8 +104,8 @@ export function formatFileSize(bytes: number): string {
  * @param decimals   Decimal places (default: 0)
  */
 export function formatNumber(value: number, decimals = 0): string {
-  if (typeof value !== 'number' || isNaN(value)) return '—';
-  return new Intl.NumberFormat('es-MX', {
+  if (typeof value !== "number" || isNaN(value)) return "—";
+  return new Intl.NumberFormat("es-MX", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(value);

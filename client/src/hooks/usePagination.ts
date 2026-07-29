@@ -17,8 +17,8 @@
  *   useQuery({ queryKey: ['items', pg.page, pg.pageSize], ... })
  */
 
-import { useCallback, useState } from 'react';
-import type { PaginationState } from '../types';
+import { useCallback, useState } from "react";
+import type { PaginationState } from "../types";
 
 // ── Options ───────────────────────────────────────────────────────────────────
 

@@ -6,7 +6,7 @@
  * When period = 'ytd': shows only year selector.
  */
 
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -16,23 +16,43 @@ function buildYearOptions(currentYear: number): number[] {
 }
 
 const MONTH_NAMES_ES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
 const MONTH_NAMES_EN = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface DatePeriodSelectorProps {
-  period: 'mes' | 'ytd';
-  onPeriodChange: (p: 'mes' | 'ytd') => void;
+  period: "mes" | "ytd";
+  onPeriodChange: (p: "mes" | "ytd") => void;
   year: number;
   onYearChange: (y: number) => void;
-  month?: number;           // 1–12
+  month?: number; // 1–12
   onMonthChange?: (m: number) => void;
 }
 
@@ -51,7 +71,7 @@ export default function DatePeriodSelector({
   const yearOptions = buildYearOptions(currentYear);
 
   // Pick month names based on active language
-  const monthNames = i18n.language === 'en' ? MONTH_NAMES_EN : MONTH_NAMES_ES;
+  const monthNames = i18n.language === "en" ? MONTH_NAMES_EN : MONTH_NAMES_ES;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -59,33 +79,35 @@ export default function DatePeriodSelector({
       <div className="flex rounded-lg border border-gray-200 overflow-hidden shadow-sm">
         <button
           type="button"
-          onClick={() => onPeriodChange('mes')}
+          onClick={() => onPeriodChange("mes")}
           className={`px-4 py-2 text-sm font-medium transition-colors
-            ${period === 'mes'
-              ? 'bg-blue-700 text-white'
-              : 'bg-white text-gray-600 hover:bg-gray-50'
+            ${
+              period === "mes"
+                ? "bg-blue-700 text-white"
+                : "bg-white text-gray-600 hover:bg-gray-50"
             }`}
         >
-          {t('dashboard.period.mes')}
+          {t("dashboard.period.mes")}
         </button>
         <button
           type="button"
-          onClick={() => onPeriodChange('ytd')}
+          onClick={() => onPeriodChange("ytd")}
           className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-200
-            ${period === 'ytd'
-              ? 'bg-blue-700 text-white'
-              : 'bg-white text-gray-600 hover:bg-gray-50'
+            ${
+              period === "ytd"
+                ? "bg-blue-700 text-white"
+                : "bg-white text-gray-600 hover:bg-gray-50"
             }`}
         >
-          {t('dashboard.period.ytd')}
+          {t("dashboard.period.ytd")}
         </button>
       </div>
 
       {/* Month selector — only when period = 'mes' */}
-      {period === 'mes' && onMonthChange && (
+      {period === "mes" && onMonthChange && (
         <div className="flex items-center gap-2">
           <label htmlFor="dash-month" className="text-sm text-gray-500 font-medium">
-            {t('dashboard.month')}
+            {t("dashboard.month")}
           </label>
           <select
             id="dash-month"
@@ -109,7 +131,7 @@ export default function DatePeriodSelector({
       {/* Year selector — always visible */}
       <div className="flex items-center gap-2">
         <label htmlFor="dash-year" className="text-sm text-gray-500 font-medium">
-          {t('dashboard.year')}
+          {t("dashboard.year")}
         </label>
         <select
           id="dash-year"

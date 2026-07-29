@@ -1,17 +1,17 @@
 import {
-  pgTable,
-  serial,
-  varchar,
-  text,
-  timestamp,
-  integer,
-  smallint,
-  date,
-  time,
   boolean,
+  date,
   decimal,
   foreignKey,
+  integer,
+  pgTable,
+  serial,
+  smallint,
+  text,
+  time,
+  timestamp,
   uniqueIndex,
+  varchar,
 } from "drizzle-orm/pg-core";
 
 // ── USUARIOS ────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ export const riImages = pgTable(
       foreignColumns: [rechazosInternos.id],
       name: "ri_images_rechazo_id_fk",
     }).onDelete("cascade"),
-  })
+  }),
 );
 
 // ── CAPAS (CAPA) ────────────────────────────────────────────────────
@@ -327,7 +327,7 @@ export const calendarioSolicitudes = pgTable(
       foreignColumns: [organigramaQc.id],
       name: "calendario_solicitudes_colaborador_id_fk",
     }).onDelete("cascade"),
-  })
+  }),
 );
 
 // ── CALENDARIO: FESTIVOS ────────────────────────────────────────────
@@ -357,7 +357,7 @@ export const calendarioSaldo = pgTable(
     }).onDelete("cascade"),
     uniqueColaboradorAnio: uniqueIndex("calendario_saldo_colaborador_id_anio_unique").on(
       table.colaboradorId,
-      table.anio
+      table.anio,
     ),
-  })
+  }),
 );

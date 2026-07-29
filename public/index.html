@@ -3095,7 +3095,7 @@ const modRI = {
   },
 };
 
-document.getElementById('form-ri').addEventListener('submit', async function(e) {
+document.getElementById('form-ri').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('btn-ri-guardar');
   btn.disabled = true;
@@ -4333,7 +4333,7 @@ const modCAPA = {
   },
 };
 
-document.getElementById('form-capa').addEventListener('submit', async function(e) {
+document.getElementById('form-capa').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('btn-capa-guardar');
   btn.disabled = true;
@@ -4356,7 +4356,7 @@ document.getElementById('form-capa').addEventListener('submit', async function(e
   finally { btn.disabled = false; }
 });
 
-document.getElementById('form-accion').addEventListener('submit', async function(e) {
+document.getElementById('form-accion').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('btn-accion-guardar');
   btn.disabled = true;
@@ -4751,7 +4751,7 @@ const modNC = {
   },
 };
 
-document.getElementById('form-nc').addEventListener('submit', async function(e) {
+document.getElementById('form-nc').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('btn-nc-registrar');
   btn.disabled = true;
@@ -4967,7 +4967,7 @@ const modREC = {
   },
 };
 
-document.getElementById('form-rec').addEventListener('submit', async function(e) {
+document.getElementById('form-rec').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn  = document.getElementById('btn-rec-registrar');
   const id   = document.getElementById('rec-edit-id').value;
@@ -5406,7 +5406,7 @@ const modRE = {
   },
 };
 
-document.getElementById('form-re').addEventListener('submit', async function(e) {
+document.getElementById('form-re').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('btn-re-registrar');
   const id  = document.getElementById('re-edit-id').value;
@@ -6123,7 +6123,7 @@ modCAL.eliminar = function(id) {
   }, 'Eliminar solicitud');
 };
 
-document.getElementById('form-cal').addEventListener('submit', async function(e) {
+document.getElementById('form-cal').addEventListener('submit', async (e) => {
   e.preventDefault();
   const ini    = document.getElementById('cal-fecha-inicio').value;
   const fin    = document.getElementById('cal-fecha-fin').value;
@@ -6369,7 +6369,7 @@ const modORG = {
   },
 };
 
-document.getElementById('form-org').addEventListener('submit', async function(e) {
+document.getElementById('form-org').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('btn-org-guardar');
   const id  = document.getElementById('org-edit-id').value;
@@ -6492,7 +6492,7 @@ const modUSR = {
   },
 };
 
-document.getElementById('form-usuario').addEventListener('submit', async function(e) {
+document.getElementById('form-usuario').addEventListener('submit', async (e) => {
   e.preventDefault();
   const error   = document.getElementById('usr-error');
   error.textContent = '';
@@ -6517,7 +6517,7 @@ document.getElementById('form-usuario').addEventListener('submit', async functio
   }
 });
 
-document.getElementById('form-editar-usuario').addEventListener('submit', async function(e) {
+document.getElementById('form-editar-usuario').addEventListener('submit', async (e) => {
   e.preventDefault();
   const error   = document.getElementById('edit-usr-error');
   error.textContent = '';

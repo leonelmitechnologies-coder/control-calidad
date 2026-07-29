@@ -2,14 +2,21 @@
  * Additional routes for Dashboard, Organigrama, Calendario, Usuarios, Liberación Shipping
  */
 
-import { Express, Request, Response } from "express";
-import { db, pool, getClient, beginTransaction, commitTransaction, rollbackTransaction } from "./db.js";
-import { requireAuth, requireAdmin } from "./auth.js";
-import * as schema from "../shared/schema.js";
-import * as s3 from "./s3.js";
-import { eq, desc, sql, count, and } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
+import type { Express, Request, Response } from "express";
 import multer from "multer";
+import * as schema from "../shared/schema.js";
+import { requireAdmin, requireAuth } from "./auth.js";
 import { getBMPool } from "./binmanager.js";
+import {
+  beginTransaction,
+  commitTransaction,
+  db,
+  getClient,
+  pool,
+  rollbackTransaction,
+} from "./db.js";
+import * as s3 from "./s3.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -38,9 +45,9 @@ export function registerRoutes(app: Express) {
       const month = mes ? parseInt(mes as string) : currentMonth;
 
       // Each table has a different date column name
-      let reFilter: string;   // rechazos_externos: registration_date
-      let riFilter: string;   // rechazos_internos: fecha_registro
-      let ncFilter: string;   // no_conformidades:  fecha
+      let reFilter: string; // rechazos_externos: registration_date
+      let riFilter: string; // rechazos_internos: fecha_registro
+      let ncFilter: string; // no_conformidades:  fecha
 
       if (periodo === "ytd") {
         reFilter = `EXTRACT(year FROM re.registration_date) = ${year}`;
@@ -126,7 +133,7 @@ export function registerRoutes(app: Express) {
             WHEN ${schema.organigramaQc.puesto} = 'Inspector' THEN 3
             ELSE 4
           END`,
-          schema.organigramaQc.nombreCompleto
+          schema.organigramaQc.nombreCompleto,
         );
 
       res.json(result);
@@ -226,37 +233,33 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.patch(
-    "/api/organigrama-qc/:id/estatus",
-    requireAuth,
-    async (req: Request, res: Response) => {
-      try {
-        const { id } = req.params;
-        const newStatus = (await db
-          .select({
-            estatus: sql`CASE WHEN ${schema.organigramaQc.estatus} = 'activo' THEN 'inactivo' ELSE 'activo' END`,
-          })
-          .from(schema.organigramaQc)
-          .where(eq(schema.organigramaQc.id, parseInt(id)))
-          .limit(1)) as any;
+  app.patch("/api/organigrama-qc/:id/estatus", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const newStatus = (await db
+        .select({
+          estatus: sql`CASE WHEN ${schema.organigramaQc.estatus} = 'activo' THEN 'inactivo' ELSE 'activo' END`,
+        })
+        .from(schema.organigramaQc)
+        .where(eq(schema.organigramaQc.id, parseInt(id)))
+        .limit(1)) as any;
 
-        if (newStatus.length === 0) {
-          return res.status(404).json({ error: "Usuario no encontrado" });
-        }
-
-        const result = await db
-          .update(schema.organigramaQc)
-          .set({ estatus: newStatus[0].estatus })
-          .where(eq(schema.organigramaQc.id, parseInt(id)))
-          .returning();
-
-        res.json(result[0]);
-      } catch (err) {
-        console.error("[API] PATCH /api/organigrama-qc/:id/estatus error:", err);
-        res.status(500).json({ error: "Internal server error" });
+      if (newStatus.length === 0) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
       }
+
+      const result = await db
+        .update(schema.organigramaQc)
+        .set({ estatus: newStatus[0].estatus })
+        .where(eq(schema.organigramaQc.id, parseInt(id)))
+        .returning();
+
+      res.json(result[0]);
+    } catch (err) {
+      console.error("[API] PATCH /api/organigrama-qc/:id/estatus error:", err);
+      res.status(500).json({ error: "Internal server error" });
     }
-  );
+  });
 
   app.post(
     "/api/organigrama-qc/:id/foto",
@@ -286,7 +289,7 @@ export function registerRoutes(app: Express) {
           file.buffer,
           file.originalname,
           "organigrama",
-          `org-${orgId}`
+          `org-${orgId}`,
         );
 
         const filename = url.split("/").pop() || file.originalname;
@@ -301,7 +304,7 @@ export function registerRoutes(app: Express) {
         console.error("[API] POST /api/organigrama-qc/:id/foto error:", err);
         res.status(500).json({ error: "Internal server error" });
       }
-    }
+    },
   );
 
   app.delete("/api/organigrama-qc/:id", requireAuth, async (req: Request, res: Response) => {
@@ -319,9 +322,7 @@ export function registerRoutes(app: Express) {
         await s3.deleteFileFromS3(`organigrama/${orgRecord[0].fotoFilename}`);
       }
 
-      await db
-        .delete(schema.organigramaQc)
-        .where(eq(schema.organigramaQc.id, orgId));
+      await db.delete(schema.organigramaQc).where(eq(schema.organigramaQc.id, orgId));
 
       res.json({ ok: true });
     } catch (err) {
@@ -355,15 +356,8 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/calendario", requireAuth, async (req: Request, res: Response) => {
     try {
-      const {
-        colaborador_id,
-        tipo,
-        fecha_inicio,
-        fecha_fin,
-        dias_habiles,
-        motivo,
-        estatus,
-      } = req.body;
+      const { colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles, motivo, estatus } =
+        req.body;
 
       const result = await db
         .insert(schema.calendarioSolicitudes)
@@ -389,15 +383,8 @@ export function registerRoutes(app: Express) {
   app.put("/api/calendario/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const {
-        colaborador_id,
-        tipo,
-        fecha_inicio,
-        fecha_fin,
-        dias_habiles,
-        motivo,
-        estatus,
-      } = req.body;
+      const { colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles, motivo, estatus } =
+        req.body;
 
       const result = await db
         .update(schema.calendarioSolicitudes)
@@ -536,7 +523,7 @@ export function registerRoutes(app: Express) {
          VALUES ($1, $2, $3)
          ON CONFLICT (colaborador_id, anio) DO UPDATE SET dias_asignados = $3
          RETURNING *`,
-        [colaborador_id, anio, dias_asignados]
+        [colaborador_id, anio, dias_asignados],
       );
 
       res.json(result.rows[0]);
@@ -725,9 +712,7 @@ export function registerRoutes(app: Express) {
         }
       }
 
-      await db
-        .delete(schema.liberacionShipping)
-        .where(eq(schema.liberacionShipping.id, shipId));
+      await db.delete(schema.liberacionShipping).where(eq(schema.liberacionShipping.id, shipId));
 
       res.json({ ok: true });
     } catch (err) {
@@ -767,7 +752,7 @@ export function registerRoutes(app: Express) {
             .limit(1);
 
           if (current.length > 0) {
-            const oldFoto = current[0][column as keyof typeof current[0]];
+            const oldFoto = current[0][column as keyof (typeof current)[0]];
             if (oldFoto) {
               await s3.deleteFileFromS3(`shipping/${oldFoto}`);
             }
@@ -777,7 +762,7 @@ export function registerRoutes(app: Express) {
             file.buffer,
             file.originalname,
             "shipping",
-            `ship-${shipId}`
+            `ship-${shipId}`,
           );
 
           const filename = url.split("/").pop() || file.originalname;
@@ -795,7 +780,7 @@ export function registerRoutes(app: Express) {
           console.error(`[API] POST /api/liberacion-shipping/:id/${field} error:`, err);
           res.status(500).json({ error: "Internal server error" });
         }
-      }
+      },
     );
   });
 
@@ -918,9 +903,7 @@ export function registerRoutes(app: Express) {
     try {
       const { id } = req.params;
 
-      await db
-        .delete(schema.usuarios)
-        .where(eq(schema.usuarios.id, parseInt(id)));
+      await db.delete(schema.usuarios).where(eq(schema.usuarios.id, parseInt(id)));
 
       res.json({ ok: true });
     } catch (err) {
@@ -936,15 +919,16 @@ export function registerRoutes(app: Express) {
       const bm = await getBMPool();
 
       // Default: last 30 days
-      const startDate = (req.query.startDate as string) ||
+      const startDate =
+        (req.query.startDate as string) ||
         new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const endDate = (req.query.endDate as string) ||
-        new Date().toISOString().slice(0, 10);
+      const endDate = (req.query.endDate as string) || new Date().toISOString().slice(0, 10);
 
       // One row per item; group into orders in Node.js
-      const result = await bm.request()
+      const result = await bm
+        .request()
         .input("startDate", startDate)
-        .input("endDate",   endDate)
+        .input("endDate", endDate)
         .query(`
           SELECT
             ot.OrderID,
@@ -986,32 +970,32 @@ export function registerRoutes(app: Express) {
         const key = String(row.OrderID);
         if (!ordersMap.has(key)) {
           ordersMap.set(key, {
-            OrderID:             row.OrderID,
-            OrderEntryID:        row.OrderEntryID,
-            FechaIngreso:        row.FechaIngreso,
-            ShipDate:            row.ShipDate,
-            AccountName:         row.AccountName,
-            ShipBy:              row.ShipBy,
-            CustomerShippingName:row.CustomerShippingName,
-            Qty:                 0,
-            CanalVenta:          row.CanalVenta,
-            Status:              row.Status,
-            Tracking:            row.Tracking,
-            Shipment_ID:         row.Shipment_ID,
-            LocationName:        row.LocationName,
-            Items:               [] as Record<string, unknown>[],
+            OrderID: row.OrderID,
+            OrderEntryID: row.OrderEntryID,
+            FechaIngreso: row.FechaIngreso,
+            ShipDate: row.ShipDate,
+            AccountName: row.AccountName,
+            ShipBy: row.ShipBy,
+            CustomerShippingName: row.CustomerShippingName,
+            Qty: 0,
+            CanalVenta: row.CanalVenta,
+            Status: row.Status,
+            Tracking: row.Tracking,
+            Shipment_ID: row.Shipment_ID,
+            LocationName: row.LocationName,
+            Items: [] as Record<string, unknown>[],
           });
         }
         const order = ordersMap.get(key)!;
-        (order.Qty as number);
+        order.Qty as number;
         order.Qty = (order.Qty as number) + (row.Qty ?? 0);
         (order.Items as Record<string, unknown>[]).push({
-          WebSKU:              row.WebSKU,
-          MitSKU:              row.MitSKU,
-          LPN:                 row.LPN,
-          Clasificacion:       row.Clasificacion,
+          WebSKU: row.WebSKU,
+          MitSKU: row.MitSKU,
+          LPN: row.LPN,
+          Clasificacion: row.Clasificacion,
           DescripcionProducto: row.DescripcionProducto,
-          Qty:                 row.Qty,
+          Qty: row.Qty,
         });
       }
 
@@ -1029,15 +1013,16 @@ export function registerRoutes(app: Express) {
     try {
       const bm = await getBMPool();
 
-      const startDate = (req.query.startDate as string) ||
+      const startDate =
+        (req.query.startDate as string) ||
         new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const endDate = (req.query.endDate as string) ||
-        new Date().toISOString().slice(0, 10);
+      const endDate = (req.query.endDate as string) || new Date().toISOString().slice(0, 10);
 
       // Query 1: Orders with aggregated totals (one row per order)
-      const ordersResult = await bm.request()
+      const ordersResult = await bm
+        .request()
         .input("startDate", startDate)
-        .input("endDate",   endDate)
+        .input("endDate", endDate)
         .query(`
           SELECT
             o.OrderID,

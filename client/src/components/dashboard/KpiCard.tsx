@@ -13,7 +13,7 @@
 interface KpiCardProps {
   title: string;
   value: string | number;
-  trend?: 'up' | 'down';
+  trend?: "up" | "down";
   /** When true: up = green, down = red.  When false: up = red, down = green. */
   trendPositive?: boolean;
   icon?: string;
@@ -26,16 +26,16 @@ export default function KpiCard({
   trend,
   trendPositive = true,
   icon,
-  backgroundColor = 'bg-blue-50',
+  backgroundColor = "bg-blue-50",
 }: KpiCardProps) {
   // Determine arrow colour based on direction + polarity
   const arrowColour = (() => {
-    if (!trend) return '';
-    if (trend === 'up') return trendPositive ? 'text-green-600' : 'text-red-500';
-    return trendPositive ? 'text-red-500' : 'text-green-600';
+    if (!trend) return "";
+    if (trend === "up") return trendPositive ? "text-green-600" : "text-red-500";
+    return trendPositive ? "text-red-500" : "text-green-600";
   })();
 
-  const arrowSymbol = trend === 'up' ? '▲' : trend === 'down' ? '▼' : null;
+  const arrowSymbol = trend === "up" ? "▲" : trend === "down" ? "▼" : null;
 
   return (
     <div
@@ -56,11 +56,12 @@ export default function KpiCard({
 
       {/* Value + trend arrow */}
       <div className="flex items-end gap-2 mt-auto">
-        <span className="text-3xl font-bold text-gray-800 leading-none tabular-nums">
-          {value}
-        </span>
+        <span className="text-3xl font-bold text-gray-800 leading-none tabular-nums">{value}</span>
         {arrowSymbol && (
-          <span className={`text-lg font-bold leading-none mb-0.5 ${arrowColour}`} aria-hidden="true">
+          <span
+            className={`text-lg font-bold leading-none mb-0.5 ${arrowColour}`}
+            aria-hidden="true"
+          >
             {arrowSymbol}
           </span>
         )}

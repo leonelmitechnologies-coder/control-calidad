@@ -17,7 +17,8 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "typecheck": "tsc -p . --noEmit",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "biome check .",
+    "format": "biome check --write ."
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.554.0",
@@ -47,6 +48,7 @@
     "wouter": "^3.3.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.5",
     "@types/express": "^4.17.21",
     "@types/express-session": "^1.18.0",
     "@types/mssql": "^12.3.0",

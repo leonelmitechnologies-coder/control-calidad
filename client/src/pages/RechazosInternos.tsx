@@ -11,50 +11,47 @@
  *   - Delete with confirmation
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNotify } from '../context/NotifyContext';
-import { useConfirm } from '../context/ConfirmContext';
-import { API_BASE_URL } from '../config/api';
-import type { RechazosInterno, RiListResponse } from '../types';
-
-import RiTable from '../components/rechazos-internos/RiTable';
-import RiForm, { type RiFormValues } from '../components/rechazos-internos/RiForm';
-import RiDetailModal from '../components/rechazos-internos/RiDetailModal';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import RiDetailModal from "../components/rechazos-internos/RiDetailModal";
+import RiForm, { type RiFormValues } from "../components/rechazos-internos/RiForm";
+import RiTable from "../components/rechazos-internos/RiTable";
+import { API_BASE_URL } from "../config/api";
+import { useConfirm } from "../context/ConfirmContext";
+import { useNotify } from "../context/NotifyContext";
+import type { RechazosInterno, RiListResponse } from "../types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 20;
-const STATUS_TABS = ['Todas', 'Abierto', 'Cerrado'] as const;
+const STATUS_TABS = ["Todas", "Abierto", "Cerrado"] as const;
 type StatusFilter = (typeof STATUS_TABS)[number];
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, { credentials: 'include', ...init });
+  const res = await fetch(url, { credentials: "include", ...init });
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try {
       const j = await res.json();
       msg = j?.error?.message ?? j?.error ?? j?.message ?? msg;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     throw new Error(msg);
   }
   if (res.status === 204) return undefined as unknown as T;
   return res.json() as Promise<T>;
 }
 
-function buildListUrl(params: {
-  estatus: StatusFilter;
-  search: string;
-  page: number;
-}): string {
+function buildListUrl(params: { estatus: StatusFilter; search: string; page: number }): string {
   const qs = new URLSearchParams();
-  if (params.estatus !== 'Todas') qs.set('estatus', params.estatus);
-  if (params.search) qs.set('search', params.search);
-  qs.set('page', String(params.page));
-  qs.set('limit', String(PAGE_SIZE));
+  if (params.estatus !== "Todas") qs.set("estatus", params.estatus);
+  if (params.search) qs.set("search", params.search);
+  qs.set("page", String(params.page));
+  qs.set("limit", String(PAGE_SIZE));
   return `${API_BASE_URL}/api/rechazos-internos?${qs.toString()}`;
 }
 
@@ -62,10 +59,10 @@ function buildListUrl(params: {
 async function uploadImages(id: number, files: File[]): Promise<void> {
   if (!files.length) return;
   const form = new FormData();
-  files.forEach((f) => form.append('images', f));
+  files.forEach((f) => form.append("images", f));
   const res = await fetch(`${API_BASE_URL}/api/rechazos-internos/${id}/images`, {
-    method: 'POST',
-    credentials: 'include',
+    method: "POST",
+    credentials: "include",
     body: form,
   });
   if (!res.ok) throw new Error(`Error al subir imágenes: HTTP ${res.status}`);
@@ -75,15 +72,15 @@ async function uploadImages(id: number, files: File[]): Promise<void> {
 
 export default function RechazosInternos() {
   const { t } = useTranslation();
-  const notify  = useNotify();
+  const notify = useNotify();
   const confirm = useConfirm();
   const qc = useQueryClient();
 
   // ── Filters & pagination ──────────────────────────────────────────────────
 
-  const [activeStatus, setActiveStatus] = useState<StatusFilter>('Todas');
-  const [searchInput,  setSearchInput]  = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [activeStatus, setActiveStatus] = useState<StatusFilter>("Todas");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
 
   // 500 ms debounce on search
@@ -94,17 +91,21 @@ export default function RechazosInternos() {
       setDebouncedSearch(searchInput);
       setPage(1);
     }, 500);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [searchInput]);
 
-  useEffect(() => { setPage(1); }, [activeStatus]);
+  useEffect(() => {
+    setPage(1);
+  }, [activeStatus]);
 
   // ── Modal state ───────────────────────────────────────────────────────────
 
-  const [formOpen,   setFormOpen]   = useState(false);
-  const [isEditing,  setIsEditing]  = useState(false);
-  const [editData,   setEditData]   = useState<RechazosInterno | null>(null);
-  const [detailId,   setDetailId]   = useState<number | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<RechazosInterno | null>(null);
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   // ── Queries ───────────────────────────────────────────────────────────────
@@ -112,22 +113,22 @@ export default function RechazosInternos() {
   const listUrl = buildListUrl({ estatus: activeStatus, search: debouncedSearch, page });
 
   const { data: listRes, isLoading: listLoading } = useQuery<RiListResponse>({
-    queryKey: ['ri', activeStatus, debouncedSearch, page],
+    queryKey: ["ri", activeStatus, debouncedSearch, page],
     queryFn: () => apiFetch<RiListResponse>(listUrl),
     placeholderData: (prev) => prev,
   });
 
   // Fetch ALL records (no filter) for tab counts
   const { data: allRes } = useQuery<RiListResponse>({
-    queryKey: ['ri', 'all-counts'],
+    queryKey: ["ri", "all-counts"],
     queryFn: () => apiFetch<RiListResponse>(`${API_BASE_URL}/api/rechazos-internos?limit=1000`),
     staleTime: 30_000,
   });
 
   const statusCounts: Record<StatusFilter, number> = {
-    Todas:   allRes?.total ?? 0,
-    Abierto: (allRes?.data ?? []).filter((r) => r.estatus === 'Abierto').length,
-    Cerrado: (allRes?.data ?? []).filter((r) => r.estatus === 'Cerrado').length,
+    Todas: allRes?.total ?? 0,
+    Abierto: (allRes?.data ?? []).filter((r) => r.estatus === "Abierto").length,
+    Cerrado: (allRes?.data ?? []).filter((r) => r.estatus === "Cerrado").length,
   };
 
   // ── Mutations ─────────────────────────────────────────────────────────────
@@ -136,22 +137,22 @@ export default function RechazosInternos() {
     mutationFn: async (values: RiFormValues) => {
       // 1. Create record
       const created = await apiFetch<RechazosInterno>(`${API_BASE_URL}/api/rechazos-internos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fecha_registro:     values.fecha_registro,
-          license_plate:      values.license_plate,
-          sku:                values.sku,
-          marca:              values.marca,
-          modelo:             values.modelo,
-          pulgada:            values.pulgada,
-          descripcion:        values.descripcion,
-          defecto:            values.defecto,
+          fecha_registro: values.fecha_registro,
+          license_plate: values.license_plate,
+          sku: values.sku,
+          marca: values.marca,
+          modelo: values.modelo,
+          pulgada: values.pulgada,
+          descripcion: values.descripcion,
+          defecto: values.defecto,
           actividad_realizar: values.actividad_realizar,
-          costo_no_calidad:   values.costo_no_calidad,
-          origen_hallazgo:    values.origen_hallazgo,
-          inspector:          values.inspector,
-          firma_digital:      values.firma_digital,
+          costo_no_calidad: values.costo_no_calidad,
+          origen_hallazgo: values.origen_hallazgo,
+          inspector: values.inspector,
+          firma_digital: values.firma_digital,
         }),
       });
       const newId = created.id;
@@ -160,17 +161,17 @@ export default function RechazosInternos() {
         try {
           await uploadImages(newId, values.newFiles);
         } catch {
-          notify('El registro se guardó, pero las fotos no pudieron subirse.', 'error');
+          notify("El registro se guardó, pero las fotos no pudieron subirse.", "error");
         }
       }
       return created;
     },
     onSuccess: () => {
-      notify('Rechazo Interno registrado correctamente.', 'success');
+      notify("Rechazo Interno registrado correctamente.", "success");
       setFormOpen(false);
-      void qc.invalidateQueries({ queryKey: ['ri'] });
+      void qc.invalidateQueries({ queryKey: ["ri"] });
     },
-    onError: (err: Error) => notify(err.message, 'error'),
+    onError: (err: Error) => notify(err.message, "error"),
   });
 
   const updateMutation = useMutation({
@@ -178,22 +179,22 @@ export default function RechazosInternos() {
       const updated = await apiFetch<RechazosInterno>(
         `${API_BASE_URL}/api/rechazos-internos/${id}`,
         {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            fecha_registro:     values.fecha_registro,
-            license_plate:      values.license_plate,
-            sku:                values.sku,
-            marca:              values.marca,
-            modelo:             values.modelo,
-            pulgada:            values.pulgada,
-            descripcion:        values.descripcion,
-            defecto:            values.defecto,
+            fecha_registro: values.fecha_registro,
+            license_plate: values.license_plate,
+            sku: values.sku,
+            marca: values.marca,
+            modelo: values.modelo,
+            pulgada: values.pulgada,
+            descripcion: values.descripcion,
+            defecto: values.defecto,
             actividad_realizar: values.actividad_realizar,
-            costo_no_calidad:   values.costo_no_calidad,
-            origen_hallazgo:    values.origen_hallazgo,
-            inspector:          values.inspector,
-            firma_digital:      values.firma_digital,
+            costo_no_calidad: values.costo_no_calidad,
+            origen_hallazgo: values.origen_hallazgo,
+            inspector: values.inspector,
+            firma_digital: values.firma_digital,
           }),
         },
       );
@@ -201,28 +202,30 @@ export default function RechazosInternos() {
         try {
           await uploadImages(id, values.newFiles);
         } catch {
-          notify('El registro se actualizó, pero las fotos no pudieron subirse.', 'error');
+          notify("El registro se actualizó, pero las fotos no pudieron subirse.", "error");
         }
       }
       return updated;
     },
     onSuccess: () => {
-      notify('Rechazo Interno actualizado correctamente.', 'success');
+      notify("Rechazo Interno actualizado correctamente.", "success");
       setFormOpen(false);
       setEditData(null);
-      void qc.invalidateQueries({ queryKey: ['ri'] });
+      void qc.invalidateQueries({ queryKey: ["ri"] });
     },
-    onError: (err: Error) => notify(err.message, 'error'),
+    onError: (err: Error) => notify(err.message, "error"),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) =>
-      apiFetch<{ ok: boolean }>(`${API_BASE_URL}/api/rechazos-internos/${id}`, { method: 'DELETE' }),
+      apiFetch<{ ok: boolean }>(`${API_BASE_URL}/api/rechazos-internos/${id}`, {
+        method: "DELETE",
+      }),
     onSuccess: () => {
-      notify('Rechazo Interno eliminado.', 'success');
-      void qc.invalidateQueries({ queryKey: ['ri'] });
+      notify("Rechazo Interno eliminado.", "success");
+      void qc.invalidateQueries({ queryKey: ["ri"] });
     },
-    onError: (err: Error) => notify(err.message, 'error'),
+    onError: (err: Error) => notify(err.message, "error"),
   });
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -251,10 +254,10 @@ export default function RechazosInternos() {
   const handleDelete = useCallback(
     async (id: number) => {
       const ok = await confirm({
-        title:       'Eliminar Rechazo Interno',
-        message:     `¿Estás seguro de que deseas eliminar el Rechazo Interno #${id}? Esta acción no se puede deshacer.`,
-        confirmText: 'Eliminar',
-        cancelText:  'Cancelar',
+        title: "Eliminar Rechazo Interno",
+        message: `¿Estás seguro de que deseas eliminar el Rechazo Interno #${id}? Esta acción no se puede deshacer.`,
+        confirmText: "Eliminar",
+        cancelText: "Cancelar",
       });
       if (ok) deleteMutation.mutate(id);
     },
@@ -278,57 +281,57 @@ export default function RechazosInternos() {
 
   return (
     <div className="space-y-5">
-
       {/* Page header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111111', marginBottom: 2 }}>
-            {t('rechazos_internos.title')}
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111111", marginBottom: 2 }}>
+            {t("rechazos_internos.title")}
           </h1>
-          <p style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
+          <p style={{ fontSize: 13, color: "#666", marginTop: 2 }}>
             Gestión de Rechazos Internos y COPQ — ISO 9001:2015 §8.7
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleOpenCreate}
-          className="btn btn-primario"
-        >
-          + {t('rechazos_internos.add')}
+        <button type="button" onClick={handleOpenCreate} className="btn btn-primario">
+          + {t("rechazos_internos.add")}
         </button>
       </div>
 
       {/* Status filter tabs */}
-      <div style={{ borderBottom: '2px solid #e2e2e2', display: 'flex', gap: 0 }}>
+      <div style={{ borderBottom: "2px solid #e2e2e2", display: "flex", gap: 0 }}>
         {STATUS_TABS.map((status) => (
           <button
             key={status}
             type="button"
-            onClick={() => { setActiveStatus(status); setPage(1); }}
+            onClick={() => {
+              setActiveStatus(status);
+              setPage(1);
+            }}
             style={{
-              padding: '8px 16px',
+              padding: "8px 16px",
               fontSize: 13,
               fontWeight: 500,
-              background: 'none',
-              border: 'none',
-              borderBottom: activeStatus === status ? '2px solid #0d2b4e' : '2px solid transparent',
+              background: "none",
+              border: "none",
+              borderBottom: activeStatus === status ? "2px solid #0d2b4e" : "2px solid transparent",
               marginBottom: -2,
-              color: activeStatus === status ? '#0d2b4e' : '#666',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
+              color: activeStatus === status ? "#0d2b4e" : "#666",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
               gap: 6,
             }}
           >
             {status}
-            <span style={{
-              background: activeStatus === status ? '#0d2b4e' : '#e2e2e2',
-              color: activeStatus === status ? '#fff' : '#555',
-              borderRadius: 10,
-              padding: '1px 7px',
-              fontSize: 11,
-              fontWeight: 600,
-            }}>
+            <span
+              style={{
+                background: activeStatus === status ? "#0d2b4e" : "#e2e2e2",
+                color: activeStatus === status ? "#fff" : "#555",
+                borderRadius: 10,
+                padding: "1px 7px",
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            >
               {statusCounts[status]}
             </span>
           </button>
@@ -337,13 +340,29 @@ export default function RechazosInternos() {
 
       {/* Search bar */}
       <div className="filtros">
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: "relative" }}>
           <svg
-            style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#999', pointerEvents: 'none' }}
-            fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
+            style={{
+              position: "absolute",
+              left: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: 14,
+              height: 14,
+              color: "#999",
+              pointerEvents: "none",
+            }}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
           <input
             type="search"
@@ -355,12 +374,37 @@ export default function RechazosInternos() {
           {searchInput && (
             <button
               type="button"
-              onClick={() => { setSearchInput(''); setDebouncedSearch(''); }}
+              onClick={() => {
+                setSearchInput("");
+                setDebouncedSearch("");
+              }}
               aria-label="Limpiar búsqueda"
-              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#999', display: 'flex', padding: 0 }}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#999",
+                display: "flex",
+                padding: 0,
+              }}
             >
-              <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                style={{ width: 14, height: 14 }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           )}
@@ -386,7 +430,10 @@ export default function RechazosInternos() {
         isEditing={isEditing}
         data={editData}
         onSubmit={handleFormSubmit}
-        onCancel={() => { setFormOpen(false); setEditData(null); }}
+        onCancel={() => {
+          setFormOpen(false);
+          setEditData(null);
+        }}
         submitting={isMutating}
       />
 
@@ -394,9 +441,11 @@ export default function RechazosInternos() {
       <RiDetailModal
         id={detailId}
         isOpen={detailOpen}
-        onClose={() => { setDetailOpen(false); setDetailId(null); }}
+        onClose={() => {
+          setDetailOpen(false);
+          setDetailId(null);
+        }}
       />
-
     </div>
   );
 }

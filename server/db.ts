@@ -1,6 +1,6 @@
-import { Pool, Client } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
 import { sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Client, Pool } from "pg";
 import * as schema from "../shared/schema.js";
 
 // Initialize the database connection pool
@@ -44,7 +44,9 @@ export async function initDB() {
     await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS oidc_id TEXT`);
     await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email TEXT`);
     await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_acceso TIMESTAMPTZ`);
-    await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos JSONB NOT NULL DEFAULT '{}'`);
+    await pool.query(
+      `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos JSONB NOT NULL DEFAULT '{}'`,
+    );
     await pool.query(`ALTER TABLE usuarios ALTER COLUMN password_hash SET DEFAULT ''`);
     await pool.query(`
       DO $$ BEGIN
@@ -180,13 +182,23 @@ export async function initDB() {
     await pool.query(`ALTER TABLE ri_images ADD COLUMN IF NOT EXISTS data_b64 TEXT`);
     await pool.query(`ALTER TABLE re_images ADD COLUMN IF NOT EXISTS url VARCHAR(500)`);
     await pool.query(`ALTER TABLE re_images ADD COLUMN IF NOT EXISTS data_b64 TEXT`);
-    await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_url VARCHAR(500)`);
+    await pool.query(
+      `ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_url VARCHAR(500)`,
+    );
     await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_data_b64 TEXT`);
     // Migrations for rechazos_externos
-    await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS estatus VARCHAR(20) NOT NULL DEFAULT 'Pendiente'`);
-    await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS modelo VARCHAR(100) NOT NULL DEFAULT ''`);
-    await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS pulgada VARCHAR(20) NOT NULL DEFAULT ''`);
-    await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS descripcion TEXT NOT NULL DEFAULT ''`);
+    await pool.query(
+      `ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS estatus VARCHAR(20) NOT NULL DEFAULT 'Pendiente'`,
+    );
+    await pool.query(
+      `ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS modelo VARCHAR(100) NOT NULL DEFAULT ''`,
+    );
+    await pool.query(
+      `ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS pulgada VARCHAR(20) NOT NULL DEFAULT ''`,
+    );
+    await pool.query(
+      `ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS descripcion TEXT NOT NULL DEFAULT ''`,
+    );
 
     // Create catalogo_sku table
     await pool.query(`
@@ -234,15 +246,29 @@ export async function initDB() {
       )
     `);
     // Migrations for aql_registros (idempotent — must come after CREATE TABLE above)
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_url VARCHAR(500)`);
+    await pool.query(
+      `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_url VARCHAR(500)`,
+    );
     await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_lpn_data_b64 TEXT`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_url VARCHAR(500)`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_data_b64 TEXT`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS order_id VARCHAR(100) NOT NULL DEFAULT ''`);
+    await pool.query(
+      `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_url VARCHAR(500)`,
+    );
+    await pool.query(
+      `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS foto_pantalla_data_b64 TEXT`,
+    );
+    await pool.query(
+      `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS order_id VARCHAR(100) NOT NULL DEFAULT ''`,
+    );
     await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS muestra_total INTEGER`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS defectos_encontrados INTEGER NOT NULL DEFAULT 0`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS lote VARCHAR(100) NOT NULL DEFAULT ''`);
-    await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS observaciones TEXT NOT NULL DEFAULT ''`);
+    await pool.query(
+      `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS defectos_encontrados INTEGER NOT NULL DEFAULT 0`,
+    );
+    await pool.query(
+      `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS lote VARCHAR(100) NOT NULL DEFAULT ''`,
+    );
+    await pool.query(
+      `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS observaciones TEXT NOT NULL DEFAULT ''`,
+    );
     await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS checklist_json TEXT`);
 
     // Create capas table
@@ -413,7 +439,7 @@ export async function initDB() {
       for (const [nombre, fecha, recurrente] of mexicanHolidays) {
         await pool.query(
           "INSERT INTO calendario_festivos (nombre, fecha, recurrente) VALUES ($1, $2, $3)",
-          [nombre, fecha, recurrente]
+          [nombre, fecha, recurrente],
         );
       }
       console.log("[DB] Seeded calendar_festivos");

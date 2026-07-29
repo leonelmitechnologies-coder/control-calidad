@@ -10,20 +10,13 @@
  *   notify('Error al guardar', 'error', 5000);
  */
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
-import Notify from '../components/Notify';
-import type { Toast } from '../types';
+import { createContext, type ReactNode, useCallback, useContext, useRef, useState } from "react";
+import Notify from "../components/Notify";
+import type { Toast } from "../types";
 
 // ── Context shape ─────────────────────────────────────────────────────────────
 
-type NotifyFn = (message: string, type: Toast['type'], duration?: number) => void;
+type NotifyFn = (message: string, type: Toast["type"], duration?: number) => void;
 
 const NotifyContext = createContext<NotifyFn | null>(null);
 
@@ -88,7 +81,7 @@ export function NotifyProvider({ children }: NotifyProviderProps) {
 export function useNotify(): NotifyFn {
   const ctx = useContext(NotifyContext);
   if (ctx === null) {
-    throw new Error('useNotify must be used inside <NotifyProvider>');
+    throw new Error("useNotify must be used inside <NotifyProvider>");
   }
   return ctx;
 }

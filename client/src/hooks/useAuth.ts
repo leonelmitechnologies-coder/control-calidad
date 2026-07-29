@@ -3,8 +3,8 @@
  * Custom hook for authentication state management with TanStack Query
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { User, fetchCurrentUser, logout } from '../api/auth';
+import { useQuery } from "@tanstack/react-query";
+import { fetchCurrentUser, logout, type User } from "../api/auth";
 
 export interface UseAuthReturn {
   user: User | null;
@@ -24,7 +24,7 @@ export function useAuth(): UseAuthReturn {
     isLoading: loading,
     error,
   } = useQuery({
-    queryKey: ['auth', 'me'],
+    queryKey: ["auth", "me"],
     queryFn: fetchCurrentUser,
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 1,

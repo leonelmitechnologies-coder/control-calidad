@@ -178,7 +178,7 @@ export interface CapaCreateInput {
   acciones?: Array<{ accion: string; responsable?: string; fecha_compromiso?: string }>;
 }
 
-export interface CapaResponse extends Omit<CapaCreateInput, 'porques' | 'ishikawa' | 'acciones'> {
+export interface CapaResponse extends Omit<CapaCreateInput, "porques" | "ishikawa" | "acciones"> {
   id: number;
   fecha_cierre?: string;
   estatus: string;
@@ -189,7 +189,14 @@ export interface CapaResponse extends Omit<CapaCreateInput, 'porques' | 'ishikaw
   origen_ref?: string;
   porques?: Array<{ id: number; orden: number; respuesta: string }>;
   ishikawa?: Array<{ id: number; categoria: string; causa: string }>;
-  acciones?: Array<{ id: number; accion: string; responsable: string; fecha_compromiso?: string; estatus: string; created_at: string }>;
+  acciones?: Array<{
+    id: number;
+    accion: string;
+    responsable: string;
+    fecha_compromiso?: string;
+    estatus: string;
+    created_at: string;
+  }>;
 }
 
 // ── Liberación Shipping ────────────────────────────────────────

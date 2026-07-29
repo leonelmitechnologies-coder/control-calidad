@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from "express";
-import passport from "passport";
-import { Issuer, Strategy as OIDCStrategy } from "openid-client";
+import type { NextFunction, Request, Response } from "express";
 import session from "express-session";
+import { Issuer, Strategy as OIDCStrategy } from "openid-client";
+import passport from "passport";
 import { pool } from "./db.js";
 
 /**
@@ -24,17 +24,17 @@ declare global {
 
 // Default permissions for new OIDC users
 const DEFAULT_PERMISOS: Record<string, { ver: boolean; editar: boolean; eliminar: boolean }> = {
-  "":                    { ver: true, editar: false, eliminar: false },
-  "nc":                  { ver: true, editar: true,  eliminar: false },
-  "recepciones":         { ver: true, editar: true,  eliminar: false },
-  "rechazos-ext":        { ver: true, editar: true,  eliminar: false },
-  "rechazos-int":        { ver: true, editar: true,  eliminar: false },
-  "capas":               { ver: true, editar: true,  eliminar: false },
-  "aql":                 { ver: true, editar: true,  eliminar: false },
-  "liberacion-shipping": { ver: true, editar: true,  eliminar: false },
-  "organigrama-qc":      { ver: true, editar: false, eliminar: false },
-  "calendario":          { ver: true, editar: false, eliminar: false },
-  "manual":              { ver: true, editar: false, eliminar: false },
+  "": { ver: true, editar: false, eliminar: false },
+  nc: { ver: true, editar: true, eliminar: false },
+  recepciones: { ver: true, editar: true, eliminar: false },
+  "rechazos-ext": { ver: true, editar: true, eliminar: false },
+  "rechazos-int": { ver: true, editar: true, eliminar: false },
+  capas: { ver: true, editar: true, eliminar: false },
+  aql: { ver: true, editar: true, eliminar: false },
+  "liberacion-shipping": { ver: true, editar: true, eliminar: false },
+  "organigrama-qc": { ver: true, editar: false, eliminar: false },
+  calendario: { ver: true, editar: false, eliminar: false },
+  manual: { ver: true, editar: false, eliminar: false },
 };
 
 /**
@@ -44,17 +44,17 @@ const DEFAULT_PERMISOS: Record<string, { ver: boolean; editar: boolean; eliminar
 export async function upsertOidcUser(
   oidcId: string,
   name: string,
-  email: string
+  email: string,
 ): Promise<{ rol: string; permisos: Record<string, any> }> {
   const existing = await pool.query(
     "SELECT id, rol, permisos, activo FROM usuarios WHERE oidc_id = $1",
-    [oidcId]
+    [oidcId],
   );
 
   if (existing.rows.length > 0) {
     await pool.query(
       "UPDATE usuarios SET nombre=$1, email=$2, ultimo_acceso=NOW() WHERE oidc_id=$3",
-      [name, email, oidcId]
+      [name, email, oidcId],
     );
     return {
       rol: existing.rows[0].rol,
@@ -69,7 +69,7 @@ export async function upsertOidcUser(
       `INSERT INTO usuarios (oidc_id, nombre, usuario, email, password_hash, activo, rol, permisos, ultimo_acceso)
        VALUES ($1, $2, $3, $4, '', true, 'Usuario', $5, NOW())
        RETURNING rol, permisos`,
-      [oidcId, name, usuarioVal, email, JSON.stringify(DEFAULT_PERMISOS)]
+      [oidcId, name, usuarioVal, email, JSON.stringify(DEFAULT_PERMISOS)],
     );
     return { rol: result.rows[0].rol, permisos: result.rows[0].permisos || DEFAULT_PERMISOS };
   } catch (err: any) {
@@ -80,7 +80,7 @@ export async function upsertOidcUser(
          VALUES ($1, $2, $3, $4, '', true, 'Usuario', $5, NOW())
          ON CONFLICT (oidc_id) DO UPDATE SET nombre=EXCLUDED.nombre, email=EXCLUDED.email, ultimo_acceso=NOW()
          RETURNING rol, permisos`,
-        [oidcId, name, oidcId, email, JSON.stringify(DEFAULT_PERMISOS)]
+        [oidcId, name, oidcId, email, JSON.stringify(DEFAULT_PERMISOS)],
       );
       return { rol: result.rows[0].rol, permisos: result.rows[0].permisos || DEFAULT_PERMISOS };
     }
@@ -108,7 +108,7 @@ export function setupSession(app: any) {
         sameSite: "lax",
         maxAge: 8 * 60 * 60 * 1000,
       },
-    })
+    }),
   );
   app.use(passport.initialize());
   app.use(passport.session());
@@ -118,12 +118,7 @@ export function setupSession(app: any) {
  * Initialize Nextcloud OIDC authentication with Passport
  */
 export async function initializePassport(app: any) {
-  const {
-    OIDC_CLIENT_ID,
-    OIDC_CLIENT_SECRET,
-    SESSION_SECRET,
-    APP_URL,
-  } = process.env;
+  const { OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, SESSION_SECRET, APP_URL } = process.env;
 
   if (!OIDC_CLIENT_ID || !OIDC_CLIENT_SECRET) {
     throw new Error("OIDC_CLIENT_ID and OIDC_CLIENT_SECRET must be set");
@@ -135,7 +130,7 @@ export async function initializePassport(app: any) {
 
   const issuer = await Issuer.discover(
     process.env.OIDC_ISSUER_URL ||
-      "https://cloud.miglobal.com.mx/index.php/.well-known/openid-configuration"
+      "https://cloud.miglobal.com.mx/index.php/.well-known/openid-configuration",
   );
 
   const client = new issuer.Client({
@@ -150,10 +145,15 @@ export async function initializePassport(app: any) {
     (tokenSet: any, userInfo: any, done: any) => {
       console.log("[OIDC] userInfo claims:", JSON.stringify(userInfo));
       const user: PassportUser = {
-        id:      userInfo.sub || userInfo.preferred_username || userInfo.email || "unknown",
-        name:    userInfo.name || userInfo.display_name || userInfo.preferred_username || userInfo.given_name || "Usuario",
-        email:   userInfo.email || userInfo.preferred_username || "",
-        oidcId:  userInfo.sub,
+        id: userInfo.sub || userInfo.preferred_username || userInfo.email || "unknown",
+        name:
+          userInfo.name ||
+          userInfo.display_name ||
+          userInfo.preferred_username ||
+          userInfo.given_name ||
+          "Usuario",
+        email: userInfo.email || userInfo.preferred_username || "",
+        oidcId: userInfo.sub,
       };
 
       upsertOidcUser(user.id, user.name, user.email)
@@ -166,7 +166,7 @@ export async function initializePassport(app: any) {
           console.error("[OIDC] upsertOidcUser failed:", err);
           return done(null, user);
         });
-    }
+    },
   );
 
   passport.use("oidc", oidcStrategy);
@@ -198,7 +198,10 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
   if (!process.env.OIDC_CLIENT_ID) return next();
   if (!req.user) return res.status(401).json({ error: "No autorizado" });
 
-  const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim()).filter(Boolean);
+  const adminEmails = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
   if (adminEmails.some((a) => a === req.user!.email || a === req.user!.id)) return next();
 
   // Check DB for promoted admins

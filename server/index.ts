@@ -1,24 +1,37 @@
 import "dotenv/config"; // must be first — loads .env before any module-level code runs
-import express, { Request, Response, NextFunction } from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import passport from "passport";
+import express, { type NextFunction, type Request, type Response } from "express";
 import multer from "multer";
+import passport from "passport";
+
 // Initialize paths
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Import local modules
-import { initDB, pool, db, getClient, beginTransaction, commitTransaction, rollbackTransaction } from "./db.js";
-import { setupSession, initializePassport, requireAuth, requireAdmin, PassportUser } from "./auth.js";
-import * as s3 from "./s3.js";
-import * as types from "./types.js";
-
+import { and, asc, count, desc, eq, like, sql } from "drizzle-orm";
 // Import schema tables
 import * as schema from "../shared/schema.js";
-import { eq, and, like, desc, sql, count, asc } from "drizzle-orm";
-
+import {
+  initializePassport,
+  PassportUser,
+  requireAdmin,
+  requireAuth,
+  setupSession,
+} from "./auth.js";
+// Import local modules
+import {
+  beginTransaction,
+  commitTransaction,
+  db,
+  getClient,
+  initDB,
+  pool,
+  rollbackTransaction,
+} from "./db.js";
 // Import additional routes
 import { registerRoutes } from "./routes.js";
+import * as s3 from "./s3.js";
+import * as types from "./types.js";
 
 // ── Express Setup ──────────────────────────────────────────────
 
@@ -49,7 +62,8 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // Session + passport: use a dev fallback when SESSION_SECRET is not set so the
 // server can still start and serve the health endpoint even in misconfigured envs.
-const SESSION_SECRET_VALUE = process.env.SESSION_SECRET ||
+const SESSION_SECRET_VALUE =
+  process.env.SESSION_SECRET ||
   (process.env.NODE_ENV !== "production" ? "dev-insecure-secret" : "");
 if (!SESSION_SECRET_VALUE) {
   console.error("[App] FATAL: SESSION_SECRET env var is required in production");
@@ -150,7 +164,11 @@ app.get("/api/auth/login", async (req: Request, res: Response, next: NextFunctio
       console.log("[Auth] OIDC re-initialized on login attempt");
     } catch (err: any) {
       console.error("[Auth] OIDC re-init failed:", err.message);
-      return res.status(503).send("SSO no disponible. Nextcloud no accesible desde el servidor. Contacte al administrador.");
+      return res
+        .status(503)
+        .send(
+          "SSO no disponible. Nextcloud no accesible desde el servidor. Contacte al administrador.",
+        );
     }
   }
   passport.authenticate("oidc")(req, res, next);
@@ -168,7 +186,7 @@ app.get(
   },
   (_req: Request, res: Response) => {
     res.redirect("/");
-  }
+  },
 );
 
 // GET /api/auth/logout - Destroy local session only, redirect to /login
@@ -195,8 +213,11 @@ app.post("/api/logout", (req: Request, res: Response) => {
 // GET /api/me - Get current user with fresh permisos from DB
 app.get("/api/me", async (req: Request, res: Response) => {
   if (req.user) {
-    const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(Boolean);
-    const isEnvAdmin = adminEmails.some(a => a === req.user!.email || a === req.user!.id);
+    const adminEmails = (process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
+    const isEnvAdmin = adminEmails.some((a) => a === req.user!.email || a === req.user!.id);
 
     let rol = isEnvAdmin ? "Administrador" : ((req.user as any).rol ?? "Usuario");
     let permisos: any = (req.user as any).permisos ?? {};
@@ -205,7 +226,7 @@ app.get("/api/me", async (req: Request, res: Response) => {
     try {
       const dbUser = await pool.query(
         "SELECT rol, permisos, activo FROM usuarios WHERE oidc_id = $1",
-        [req.user.id]
+        [req.user.id],
       );
       if (dbUser.rows.length > 0) {
         if (!isEnvAdmin) rol = dbUser.rows[0].rol;
@@ -219,15 +240,21 @@ app.get("/api/me", async (req: Request, res: Response) => {
     }
 
     return res.json({
-      id:       req.user.id,
-      nombre:   req.user.name,
-      usuario:  req.user.email,
+      id: req.user.id,
+      nombre: req.user.name,
+      usuario: req.user.email,
       rol,
       permisos: rol === "Administrador" ? null : permisos,
     });
   }
   if (!process.env.OIDC_CLIENT_ID) {
-    return res.json({ id: "dev", nombre: "Dev Local", usuario: "dev", rol: "Administrador", permisos: null });
+    return res.json({
+      id: "dev",
+      nombre: "Dev Local",
+      usuario: "dev",
+      rol: "Administrador",
+      permisos: null,
+    });
   }
   return res.status(401).json({ error: "No autorizado" });
 });
@@ -247,7 +274,7 @@ app.get("/api/health", (_req: Request, res: Response) => {
 app.get("/api/nc", async (req: Request, res: Response) => {
   try {
     const { fecha } = req.query;
-    let whereClause: any = undefined;
+    let whereClause: any;
 
     if (fecha && fecha !== "todos") {
       const dateStr = fecha as string;
@@ -276,16 +303,7 @@ app.get("/api/nc", async (req: Request, res: Response) => {
 // POST /api/nc - Create NCR
 app.post("/api/nc", requireAuth, async (req: Request, res: Response) => {
   try {
-    const {
-      hora,
-      area,
-      tipo,
-      descripcion,
-      severidad,
-      responsable,
-      accion,
-      fecha,
-    } = req.body;
+    const { hora, area, tipo, descripcion, severidad, responsable, accion, fecha } = req.body;
 
     const today = new Date().toISOString().split("T")[0];
     const insertFecha = fecha || today;
@@ -337,9 +355,7 @@ app.delete("/api/nc/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    await db
-      .delete(schema.noConformidades)
-      .where(eq(schema.noConformidades.id, parseInt(id)));
+    await db.delete(schema.noConformidades).where(eq(schema.noConformidades.id, parseInt(id)));
 
     res.json({ ok: true });
   } catch (err) {
@@ -356,7 +372,11 @@ app.get("/api/recepciones", requireAuth, async (req: Request, res: Response) => 
     const result = await db
       .select()
       .from(schema.recepciones)
-      .orderBy(desc(schema.recepciones.fecha), desc(schema.recepciones.hora), desc(schema.recepciones.id));
+      .orderBy(
+        desc(schema.recepciones.fecha),
+        desc(schema.recepciones.hora),
+        desc(schema.recepciones.id),
+      );
 
     res.json(result);
   } catch (err) {
@@ -449,9 +469,7 @@ app.delete("/api/recepciones/:id", requireAuth, async (req: Request, res: Respon
   try {
     const { id } = req.params;
 
-    await db
-      .delete(schema.recepciones)
-      .where(eq(schema.recepciones.id, parseInt(id)));
+    await db.delete(schema.recepciones).where(eq(schema.recepciones.id, parseInt(id)));
 
     res.json({ ok: true });
   } catch (err) {
@@ -485,7 +503,7 @@ app.get("/api/diag/s3", async (req: Request, res: Response) => {
     let listResult: any = null;
     let listError: string | null = null;
     // Also try with trimmed credentials
-    let listErrorTrimmed: string | null = null;
+    const listErrorTrimmed: string | null = null;
     try {
       listResult = await (s3Client as any).send(new ListBucketsCommand({}));
     } catch (e: any) {
@@ -504,7 +522,9 @@ app.get("/api/diag/s3", async (req: Request, res: Response) => {
           uploadFiles = fs.readdirSync(riDir).slice(0, 10);
         }
       }
-    } catch (e: any) { /* ignore */ }
+    } catch (e: any) {
+      /* ignore */
+    }
 
     // Test write
     let canWrite = false;
@@ -514,9 +534,20 @@ app.get("/api/diag/s3", async (req: Request, res: Response) => {
       fs.writeFileSync(testPath, "ok");
       fs.unlinkSync(testPath);
       canWrite = true;
-    } catch (e: any) { /* ignore */ }
+    } catch (e: any) {
+      /* ignore */
+    }
 
-    res.json({ envVars, listResult, listError, listErrorTrimmed, cwd: process.cwd(), uploadDirExists, canWrite, uploadFiles });
+    res.json({
+      envVars,
+      listResult,
+      listError,
+      listErrorTrimmed,
+      cwd: process.cwd(),
+      uploadDirExists,
+      canWrite,
+      uploadFiles,
+    });
   } catch (e: any) {
     res.status(500).json({ error: e?.message ?? String(e) });
   }
@@ -528,7 +559,13 @@ app.post("/api/catalogo-sku/seed", async (req: Request, res: Response) => {
   if (token !== "mi-sku-seed-2026-qc") {
     return res.status(403).json({ error: "Forbidden" });
   }
-  const records: Array<{ sku: string; marca: string; modelo: string; pulgada: string; descripcion: string }> = req.body;
+  const records: Array<{
+    sku: string;
+    marca: string;
+    modelo: string;
+    pulgada: string;
+    descripcion: string;
+  }> = req.body;
   if (!Array.isArray(records) || records.length === 0) {
     return res.status(400).json({ error: "Body must be a non-empty array" });
   }
@@ -541,7 +578,7 @@ app.post("/api/catalogo-sku/seed", async (req: Request, res: Response) => {
           `INSERT INTO catalogo_sku (sku, marca, modelo, pulgada, descripcion)
            VALUES ($1,$2,$3,$4,$5)
            ON CONFLICT (sku) DO UPDATE SET marca=$2, modelo=$3, pulgada=$4, descripcion=$5`,
-          [r.sku, r.marca ?? "", r.modelo ?? "", r.pulgada ?? "", r.descripcion ?? ""]
+          [r.sku, r.marca ?? "", r.modelo ?? "", r.pulgada ?? "", r.descripcion ?? ""],
         );
       }
       await client.query("COMMIT");
@@ -569,7 +606,7 @@ app.get("/api/catalogo-sku", async (req: Request, res: Response) => {
 
     const result = await pool.query(
       `SELECT sku, marca, modelo, pulgada, descripcion FROM catalogo_sku WHERE UPPER(sku) LIKE UPPER($1) LIMIT 25`,
-      [`${q}%`]
+      [`${q}%`],
     );
 
     res.json(result.rows);
@@ -586,7 +623,7 @@ app.get("/api/catalogo-sku/:sku", async (req: Request, res: Response) => {
 
     const result = await pool.query(
       `SELECT marca, modelo, descripcion, pulgada FROM catalogo_sku WHERE UPPER(sku) = UPPER($1) LIMIT 1`,
-      [sku]
+      [sku],
     );
 
     if (result.rows.length === 0) {
@@ -605,14 +642,14 @@ app.get("/api/catalogo-sku/:sku", async (req: Request, res: Response) => {
 // GET /api/rechazos-externos - List with pagination, estatus filter and search
 app.get("/api/rechazos-externos", requireAuth, async (req: Request, res: Response) => {
   try {
-    const page    = Math.max(1, parseInt(String(req.query.page  || "1")));
-    const limit   = Math.max(1, Math.min(100, parseInt(String(req.query.limit || "20"))));
-    const offset  = (page - 1) * limit;
+    const page = Math.max(1, parseInt(String(req.query.page || "1")));
+    const limit = Math.max(1, Math.min(100, parseInt(String(req.query.limit || "20"))));
+    const offset = (page - 1) * limit;
     const estatus = String(req.query.estatus || "").trim();
-    const search  = String(req.query.search  || "").trim();
+    const search = String(req.query.search || "").trim();
 
     const conditions: string[] = [];
-    const params: any[]        = [];
+    const params: any[] = [];
     let idx = 1;
 
     if (estatus) {
@@ -620,7 +657,9 @@ app.get("/api/rechazos-externos", requireAuth, async (req: Request, res: Respons
       params.push(estatus);
     }
     if (search) {
-      conditions.push(`(re.return_order ILIKE $${idx} OR re.license_plate ILIKE $${idx} OR re.classification ILIKE $${idx})`);
+      conditions.push(
+        `(re.return_order ILIKE $${idx} OR re.license_plate ILIKE $${idx} OR re.classification ILIKE $${idx})`,
+      );
       params.push(`%${search}%`);
       idx++;
     }
@@ -642,12 +681,12 @@ app.get("/api/rechazos-externos", requireAuth, async (req: Request, res: Respons
          GROUP BY re.id
          ORDER BY re.registration_date DESC NULLS LAST, re.created_at DESC NULLS LAST
          LIMIT $${idx} OFFSET $${idx + 1}`,
-        [...params, limit, offset]
+        [...params, limit, offset],
       ),
     ]);
 
     res.json({
-      data:  dataRes.rows,
+      data: dataRes.rows,
       total: parseInt(countRes.rows[0].count),
       page,
       limit,
@@ -665,8 +704,12 @@ app.get("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
 
     const [mainRes, probsRes, actionsRes, imagesRes] = await Promise.all([
       pool.query(`SELECT * FROM rechazos_externos WHERE id = $1`, [reId]),
-      pool.query(`SELECT * FROM re_problem_descriptions WHERE rechazo_id = $1 ORDER BY orden`, [reId]),
-      pool.query(`SELECT * FROM re_corrective_actions WHERE rechazo_id = $1 ORDER BY orden`, [reId]),
+      pool.query(`SELECT * FROM re_problem_descriptions WHERE rechazo_id = $1 ORDER BY orden`, [
+        reId,
+      ]),
+      pool.query(`SELECT * FROM re_corrective_actions WHERE rechazo_id = $1 ORDER BY orden`, [
+        reId,
+      ]),
       pool.query(`SELECT * FROM re_images WHERE rechazo_id = $1`, [reId]),
     ]);
 
@@ -677,7 +720,7 @@ app.get("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
     res.json({
       ...mainRes.rows[0],
       problem_descriptions: probsRes.rows,
-      corrective_actions:   actionsRes.rows,
+      corrective_actions: actionsRes.rows,
       images: imagesRes.rows.map((img: any) => ({
         ...img,
         url: img.url || s3.getFileUrl("rechazos-externos", img.filename),
@@ -696,20 +739,31 @@ app.get("/api/rechazos-externos/:id/pdf", requireAuth, async (req: Request, res:
     const reId = parseInt(req.params.id);
     const [mainRes, probsRes, accsRes, imgsRes] = await Promise.all([
       pool.query(`SELECT * FROM rechazos_externos WHERE id = $1`, [reId]),
-      pool.query(`SELECT * FROM re_problem_descriptions WHERE rechazo_id = $1 ORDER BY orden`, [reId]),
-      pool.query(`SELECT * FROM re_corrective_actions WHERE rechazo_id = $1 ORDER BY departamento, orden`, [reId]),
-      pool.query(`SELECT id, filename, url, data_b64 FROM re_images WHERE rechazo_id = $1 ORDER BY id`, [reId]),
+      pool.query(`SELECT * FROM re_problem_descriptions WHERE rechazo_id = $1 ORDER BY orden`, [
+        reId,
+      ]),
+      pool.query(
+        `SELECT * FROM re_corrective_actions WHERE rechazo_id = $1 ORDER BY departamento, orden`,
+        [reId],
+      ),
+      pool.query(
+        `SELECT id, filename, url, data_b64 FROM re_images WHERE rechazo_id = $1 ORDER BY id`,
+        [reId],
+      ),
     ]);
 
     if (mainRes.rows.length === 0) return res.status(404).json({ error: "Registro no encontrado" });
 
-    const re    = mainRes.rows[0];
+    const re = mainRes.rows[0];
     const probs = probsRes.rows;
-    const accs  = accsRes.rows;
+    const accs = accsRes.rows;
 
     // Build dept → actions map
     const depts: Record<string, string[]> = {};
-    accs.forEach((a: any) => { if (!depts[a.departamento]) depts[a.departamento] = []; depts[a.departamento].push(a.accion); });
+    accs.forEach((a: any) => {
+      if (!depts[a.departamento]) depts[a.departamento] = [];
+      depts[a.departamento].push(a.accion);
+    });
 
     // Logo as base64
     const { default: fsSync } = await import("fs");
@@ -730,38 +784,79 @@ app.get("/api/rechazos-externos/:id/pdf", requireAuth, async (req: Request, res:
       }
     }
 
-    const esc   = (s: any) => String(s ?? "—").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    const fmtTs = (ts: any) => ts ? new Date(ts).toLocaleString("en-US", { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit", hour12:true }) : "—";
-    const fmtDate = (d: any) => d ? String(d).slice(0, 10) : "—";
-    const fmtMins = (m: any) => { if (m == null) return "—"; const h = Math.floor(m/60), min = m%60; return `${h}h ${min}m`; };
-    const fmtPrice = (p: any) => p != null ? "$" + parseFloat(p).toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 }) : "—";
-    const di = (label: string, val: any) => `<div class="di"><label>${label}</label><span>${esc(val)}</span></div>`;
-    const today = new Date().toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+    const esc = (s: any) =>
+      String(s ?? "—")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    const fmtTs = (ts: any) =>
+      ts
+        ? new Date(ts).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })
+        : "—";
+    const fmtDate = (d: any) => (d ? String(d).slice(0, 10) : "—");
+    const fmtMins = (m: any) => {
+      if (m == null) return "—";
+      const h = Math.floor(m / 60),
+        min = m % 60;
+      return `${h}h ${min}m`;
+    };
+    const fmtPrice = (p: any) =>
+      p != null
+        ? "$" +
+          parseFloat(p).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        : "—";
+    const di = (label: string, val: any) =>
+      `<div class="di"><label>${label}</label><span>${esc(val)}</span></div>`;
+    const today = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
 
-    const photosHtml = imgsB64.length ? `
+    const photosHtml = imgsB64.length
+      ? `
       <div class="section">
         <div class="sec-title">Photographic Evidence</div>
         <div class="photo-box">
-          <div class="photos-wrap">${imgsB64.map(src => `<div class="photo-item"><img src="${src}"></div>`).join("")}</div>
+          <div class="photos-wrap">${imgsB64.map((src) => `<div class="photo-item"><img src="${src}"></div>`).join("")}</div>
           <p class="photo-cap">${esc(re.license_plate)} — Visual evidence</p>
         </div>
-      </div>` : "";
+      </div>`
+      : "";
 
-    const probsHtml = probs.length ? `
+    const probsHtml = probs.length
+      ? `
       <div class="section">
         <div class="sec-title">Problem Description</div>
-        ${probs.map((p: any, i: number) => `<div class="prob-item"><div class="prob-num">${i+1}</div><div class="prob-text">${esc(p.descripcion)}</div></div>`).join("")}
-      </div>` : "";
+        ${probs.map((p: any, i: number) => `<div class="prob-item"><div class="prob-num">${i + 1}</div><div class="prob-text">${esc(p.descripcion)}</div></div>`).join("")}
+      </div>`
+      : "";
 
-    const accsHtml = Object.keys(depts).length ? `
+    const accsHtml = Object.keys(depts).length
+      ? `
       <div class="section">
         <div class="sec-title">Corrective Actions</div>
-        ${Object.entries(depts).map(([dept, acts]) => `
+        ${Object.entries(depts)
+          .map(
+            ([dept, acts]) => `
           <div class="dept-block">
             <div class="dept-hdr">${esc(dept)}</div>
-            ${acts.map((a, i) => `<div class="act-item"><div class="act-num">${i+1}</div><div class="act-text">${esc(a)}</div></div>`).join("")}
-          </div>`).join("")}
-      </div>` : "";
+            ${acts.map((a, i) => `<div class="act-item"><div class="act-num">${i + 1}</div><div class="act-text">${esc(a)}</div></div>`).join("")}
+          </div>`,
+          )
+          .join("")}
+      </div>`
+      : "";
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
@@ -845,13 +940,23 @@ ${accsHtml}
     browser = await puppeteer.default.launch({
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"],
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--single-process",
+      ],
       timeout: 30000,
     });
     console.log("[PDF] Browser launched, generating page...");
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
-    const pdf = await page.pdf({ format: "A4", printBackground: true, margin: { top: "0", right: "0", bottom: "0", left: "0" } });
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "0", right: "0", bottom: "0", left: "0" },
+    });
     console.log("[PDF] PDF generated, sending response...");
 
     res.setHeader("Content-Type", "application/pdf");
@@ -929,7 +1034,7 @@ app.post("/api/rechazos-externos", requireAuth, async (req: Request, res: Respon
         registration_date || null,
         sale_price != null && sale_price !== "" ? sale_price : null,
         req.user?.name || "",
-      ]
+      ],
     );
 
     const reId = reResult.rows[0].id;
@@ -939,7 +1044,7 @@ app.post("/api/rechazos-externos", requireAuth, async (req: Request, res: Respon
       for (const pd of problem_descriptions) {
         await client.query(
           `INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1, $2, $3)`,
-          [reId, pd.orden || 1, pd.descripcion || ""]
+          [reId, pd.orden || 1, pd.descripcion || ""],
         );
       }
     }
@@ -949,7 +1054,7 @@ app.post("/api/rechazos-externos", requireAuth, async (req: Request, res: Respon
       for (const ca of corrective_actions) {
         await client.query(
           `INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1, $2, $3, $4)`,
-          [reId, ca.departamento || "", ca.orden || 1, ca.accion || ""]
+          [reId, ca.departamento || "", ca.orden || 1, ca.accion || ""],
         );
       }
     }
@@ -1031,7 +1136,7 @@ app.put("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
         registration_date || null,
         sale_price != null && sale_price !== "" ? sale_price : null,
         reId,
-      ]
+      ],
     );
 
     if (updateResult.rowCount === 0) {
@@ -1047,7 +1152,7 @@ app.put("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
       for (const pd of problem_descriptions) {
         await client.query(
           `INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1, $2, $3)`,
-          [reId, pd.orden || 1, pd.descripcion || ""]
+          [reId, pd.orden || 1, pd.descripcion || ""],
         );
       }
     }
@@ -1057,7 +1162,7 @@ app.put("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
       for (const ca of corrective_actions) {
         await client.query(
           `INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1, $2, $3, $4)`,
-          [reId, ca.departamento || "", ca.orden || 1, ca.accion || ""]
+          [reId, ca.departamento || "", ca.orden || 1, ca.accion || ""],
         );
       }
     }
@@ -1097,7 +1202,12 @@ app.post(
         let filename: string;
 
         try {
-          const s3Url = await s3.uploadToS3Only(file.buffer, file.originalname, "rechazos-externos", `re-${reId}`);
+          const s3Url = await s3.uploadToS3Only(
+            file.buffer,
+            file.originalname,
+            "rechazos-externos",
+            `re-${reId}`,
+          );
           filename = s3Url.split("/").pop() || file.originalname;
           finalUrl = s3Url;
         } catch (_s3Err) {
@@ -1107,16 +1217,22 @@ app.post(
           finalUrl = "db:pending";
         }
 
-        const inserted = await db.insert(schema.reImages).values({
-          rechazoId: reId,
-          filename,
-          url: finalUrl === "db:pending" ? "/api/re/image/0" : finalUrl,
-          dataB64,
-        }).returning({ id: schema.reImages.id });
+        const inserted = await db
+          .insert(schema.reImages)
+          .values({
+            rechazoId: reId,
+            filename,
+            url: finalUrl === "db:pending" ? "/api/re/image/0" : finalUrl,
+            dataB64,
+          })
+          .returning({ id: schema.reImages.id });
 
         if (finalUrl === "db:pending" && inserted[0]) {
           finalUrl = `/api/re/image/${inserted[0].id}`;
-          await db.update(schema.reImages).set({ url: finalUrl }).where(eq(schema.reImages.id, inserted[0].id));
+          await db
+            .update(schema.reImages)
+            .set({ url: finalUrl })
+            .where(eq(schema.reImages.id, inserted[0].id));
         }
 
         uploadedUrls.push(finalUrl);
@@ -1127,7 +1243,7 @@ app.post(
       console.error("[API] POST /api/rechazos-externos/:id/images error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // GET /api/re/image/:imgId — serve RE image stored in DB
@@ -1139,7 +1255,14 @@ app.get("/api/re/image/:imgId", requireAuth, async (req: Request, res: Response)
       .where(eq(schema.reImages.id, parseInt(req.params.imgId)));
     if (!img || !img.dataB64) return res.status(404).json({ error: "Image not found" });
     const ext = (img.filename.split(".").pop() || "jpg").toLowerCase();
-    const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
+    const mime =
+      ext === "png"
+        ? "image/png"
+        : ext === "gif"
+          ? "image/gif"
+          : ext === "webp"
+            ? "image/webp"
+            : "image/jpeg";
     res.setHeader("Content-Type", mime);
     res.setHeader("Cache-Control", "private, max-age=86400");
     res.send(Buffer.from(img.dataB64, "base64"));
@@ -1167,21 +1290,17 @@ app.delete(
       }
 
       // Delete from S3
-      await s3.deleteFileFromS3(
-        `rechazos-externos/${imageRecord[0].filename}`
-      );
+      await s3.deleteFileFromS3(`rechazos-externos/${imageRecord[0].filename}`);
 
       // Delete from database
-      await db
-        .delete(schema.reImages)
-        .where(eq(schema.reImages.id, parseInt(imageId)));
+      await db.delete(schema.reImages).where(eq(schema.reImages.id, parseInt(imageId)));
 
       res.json({ ok: true });
     } catch (err) {
       console.error("[API] DELETE /api/rechazos-externos/:id/images/:imageId error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // DELETE /api/rechazos-externos/:id - Delete external reject
@@ -1201,9 +1320,7 @@ app.delete("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: 
     }
 
     // Delete all related records (cascade)
-    await db
-      .delete(schema.reImages)
-      .where(eq(schema.reImages.rechazoId, reId));
+    await db.delete(schema.reImages).where(eq(schema.reImages.rechazoId, reId));
 
     await db
       .delete(schema.reProblemDescriptions)
@@ -1214,9 +1331,7 @@ app.delete("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: 
       .where(eq(schema.reCorrectiveActions.rechazoId, reId));
 
     // Delete main record
-    await db
-      .delete(schema.rechazosExternos)
-      .where(eq(schema.rechazosExternos.id, reId));
+    await db.delete(schema.rechazosExternos).where(eq(schema.rechazosExternos.id, reId));
 
     res.json({ ok: true });
   } catch (err) {
@@ -1230,11 +1345,11 @@ app.delete("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: 
 // GET /api/rechazos-internos - List internal rejects
 app.get("/api/rechazos-internos", requireAuth, async (req: Request, res: Response) => {
   try {
-    const estatus  = req.query.estatus  as string | undefined;
-    const search   = req.query.search   as string | undefined;
-    const page     = Math.max(1, parseInt(req.query.page  as string) || 1);
-    const limit    = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 20));
-    const offset   = (page - 1) * limit;
+    const estatus = req.query.estatus as string | undefined;
+    const search = req.query.search as string | undefined;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const offset = (page - 1) * limit;
 
     const conditions: string[] = [];
     const params: unknown[] = [];
@@ -1246,14 +1361,16 @@ app.get("/api/rechazos-internos", requireAuth, async (req: Request, res: Respons
     if (search) {
       params.push(`%${search}%`);
       const n = params.length;
-      conditions.push(`(ri.license_plate ILIKE $${n} OR ri.sku ILIKE $${n} OR ri.defecto ILIKE $${n})`);
+      conditions.push(
+        `(ri.license_plate ILIKE $${n} OR ri.sku ILIKE $${n} OR ri.defecto ILIKE $${n})`,
+      );
     }
 
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM rechazos_internos ri ${where}`,
-      params
+      params,
     );
     const total = parseInt(countResult.rows[0].count, 10);
 
@@ -1266,7 +1383,7 @@ app.get("/api/rechazos-internos", requireAuth, async (req: Request, res: Respons
        GROUP BY ri.id
        ORDER BY ri.fecha_registro DESC, ri.created_at DESC
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params
+      params,
     );
 
     res.json({ data: dataResult.rows, total, page, limit });
@@ -1288,10 +1405,7 @@ app.get("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: Res
         .from(schema.rechazosInternos)
         .where(eq(schema.rechazosInternos.id, riId))
         .limit(1),
-      db
-        .select()
-        .from(schema.riImages)
-        .where(eq(schema.riImages.rechazoId, riId)),
+      db.select().from(schema.riImages).where(eq(schema.riImages.rechazoId, riId)),
     ]);
 
     if (riMain.length === 0) {
@@ -1301,7 +1415,9 @@ app.get("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: Res
     const ri = riMain[0];
     res.json({
       ...ri,
-      firma_url: ri.firmaUrl || (ri.firmaFilename ? s3.getFileUrl("rechazos-internos", ri.firmaFilename) : null),
+      firma_url:
+        ri.firmaUrl ||
+        (ri.firmaFilename ? s3.getFileUrl("rechazos-internos", ri.firmaFilename) : null),
       images: images.map((img) => ({
         ...img,
         url: img.url || s3.getFileUrl("rechazos-internos", img.filename),
@@ -1430,7 +1546,7 @@ app.post(
             file.buffer,
             file.originalname,
             "rechazos-internos",
-            `ri-${riId}`
+            `ri-${riId}`,
           );
           filename = s3Url.split("/").pop() || file.originalname;
           finalUrl = s3Url;
@@ -1444,17 +1560,21 @@ app.post(
           finalUrl = "db:pending"; // placeholder, updated after insert
         }
 
-        const inserted = await db.insert(schema.riImages).values({
-          rechazoId: riId,
-          filename,
-          url: finalUrl === "db:pending" ? "/api/ri/image/0" : finalUrl,
-          dataB64,
-        }).returning({ id: schema.riImages.id });
+        const inserted = await db
+          .insert(schema.riImages)
+          .values({
+            rechazoId: riId,
+            filename,
+            url: finalUrl === "db:pending" ? "/api/ri/image/0" : finalUrl,
+            dataB64,
+          })
+          .returning({ id: schema.riImages.id });
 
         if (finalUrl === "db:pending" && inserted[0]) {
           const imgId = inserted[0].id;
           finalUrl = `/api/ri/image/${imgId}`;
-          await db.update(schema.riImages)
+          await db
+            .update(schema.riImages)
             .set({ url: finalUrl })
             .where(eq(schema.riImages.id, imgId));
         }
@@ -1467,7 +1587,7 @@ app.post(
       console.error("[API] POST /api/rechazos-internos/:id/images error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // POST /api/rechazos-internos/:id/firma - Upload signature
@@ -1502,7 +1622,12 @@ app.post(
       let firmaFilename: string;
 
       try {
-        const s3Url = await s3.uploadToS3Only(file.buffer, file.originalname, "rechazos-internos", `firma-${riId}`);
+        const s3Url = await s3.uploadToS3Only(
+          file.buffer,
+          file.originalname,
+          "rechazos-internos",
+          `firma-${riId}`,
+        );
         firmaFilename = s3Url.split("/").pop() || file.originalname;
         firmaUrl = s3Url;
       } catch (_s3Err) {
@@ -1522,14 +1647,17 @@ app.post(
       console.error("[API] POST /api/rechazos-internos/:id/firma error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // GET /api/ri/firma-image/:riId — serve RI signature stored in DB
 app.get("/api/ri/firma-image/:riId", requireAuth, async (req: Request, res: Response) => {
   try {
     const [ri] = await db
-      .select({ firmaFilename: schema.rechazosInternos.firmaFilename, firmaDataB64: schema.rechazosInternos.firmaDataB64 })
+      .select({
+        firmaFilename: schema.rechazosInternos.firmaFilename,
+        firmaDataB64: schema.rechazosInternos.firmaDataB64,
+      })
       .from(schema.rechazosInternos)
       .where(eq(schema.rechazosInternos.id, parseInt(req.params.riId)));
     if (!ri || !ri.firmaDataB64) return res.status(404).json({ error: "Firma not found" });
@@ -1558,7 +1686,14 @@ app.get("/api/ri/image/:imgId", requireAuth, async (req: Request, res: Response)
 
     const buf = Buffer.from(img.dataB64, "base64");
     const ext = (img.filename.split(".").pop() || "jpg").toLowerCase();
-    const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
+    const mime =
+      ext === "png"
+        ? "image/png"
+        : ext === "gif"
+          ? "image/gif"
+          : ext === "webp"
+            ? "image/webp"
+            : "image/jpeg";
     res.setHeader("Content-Type", mime);
     res.setHeader("Cache-Control", "private, max-age=86400");
     res.send(buf);
@@ -1586,20 +1721,16 @@ app.delete(
         return res.status(404).json({ error: "Image not found" });
       }
 
-      await s3.deleteFileFromS3(
-        `rechazos-internos/${imageRecord[0].filename}`
-      );
+      await s3.deleteFileFromS3(`rechazos-internos/${imageRecord[0].filename}`);
 
-      await db
-        .delete(schema.riImages)
-        .where(eq(schema.riImages.id, parseInt(imgId)));
+      await db.delete(schema.riImages).where(eq(schema.riImages.id, parseInt(imgId)));
 
       res.json({ ok: true });
     } catch (err) {
       console.error("[API] DELETE /api/rechazos-internos/:id/images/:imgId error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // DELETE /api/rechazos-internos/:id - Delete internal reject
@@ -1610,10 +1741,7 @@ app.delete("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: 
 
     // Get all images and firma to delete
     const [images, riData] = await Promise.all([
-      db
-        .select()
-        .from(schema.riImages)
-        .where(eq(schema.riImages.rechazoId, riId)),
+      db.select().from(schema.riImages).where(eq(schema.riImages.rechazoId, riId)),
       db
         .select()
         .from(schema.rechazosInternos)
@@ -1632,14 +1760,10 @@ app.delete("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: 
     }
 
     // Delete all related records
-    await db
-      .delete(schema.riImages)
-      .where(eq(schema.riImages.rechazoId, riId));
+    await db.delete(schema.riImages).where(eq(schema.riImages.rechazoId, riId));
 
     // ri_images has ON DELETE CASCADE, so main delete will cascade
-    await db
-      .delete(schema.rechazosInternos)
-      .where(eq(schema.rechazosInternos.id, riId));
+    await db.delete(schema.rechazosInternos).where(eq(schema.rechazosInternos.id, riId));
 
     res.json({ ok: true });
   } catch (err) {
@@ -1653,14 +1777,14 @@ app.delete("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: 
 // GET /api/aql - List AQL registros (paginado, filtrado, con conteos)
 app.get("/api/aql", requireAuth, async (req: Request, res: Response) => {
   try {
-    const page     = Math.max(1, parseInt(String(req.query.page  || "1")));
-    const limit    = Math.max(1, Math.min(100, parseInt(String(req.query.limit || "20"))));
-    const offset   = (page - 1) * limit;
-    const estado   = String(req.query.estado || "").trim();
-    const search   = String(req.query.search || "").trim();
+    const page = Math.max(1, parseInt(String(req.query.page || "1")));
+    const limit = Math.max(1, Math.min(100, parseInt(String(req.query.limit || "20"))));
+    const offset = (page - 1) * limit;
+    const estado = String(req.query.estado || "").trim();
+    const search = String(req.query.search || "").trim();
 
     const conditions: string[] = [];
-    const params: any[]        = [];
+    const params: any[] = [];
     let idx = 1;
 
     if (estado && estado !== "Todas") {
@@ -1668,7 +1792,9 @@ app.get("/api/aql", requireAuth, async (req: Request, res: Response) => {
       params.push(estado);
     }
     if (search) {
-      conditions.push(`(order_id ILIKE $${idx} OR license_plate ILIKE $${idx} OR sku ILIKE $${idx} OR lote ILIKE $${idx})`);
+      conditions.push(
+        `(order_id ILIKE $${idx} OR license_plate ILIKE $${idx} OR sku ILIKE $${idx} OR lote ILIKE $${idx})`,
+      );
       params.push(`%${search}%`);
       idx++;
     }
@@ -1679,26 +1805,37 @@ app.get("/api/aql", requireAuth, async (req: Request, res: Response) => {
       pool.query(`SELECT COUNT(*) FROM aql_registros ${where}`, params),
       pool.query(
         `SELECT * FROM aql_registros ${where} ORDER BY fecha_registro DESC, created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
-        [...params, limit, offset]
+        [...params, limit, offset],
       ),
-      pool.query(
-        `SELECT estado_aql, COUNT(*) AS cnt FROM aql_registros GROUP BY estado_aql`
-      ),
+      pool.query(`SELECT estado_aql, COUNT(*) AS cnt FROM aql_registros GROUP BY estado_aql`),
     ]);
 
     const total = parseInt(countRes.rows[0].count);
-    const cMap  = Object.fromEntries(countsRes.rows.map((r: any) => [r.estado_aql, parseInt(r.cnt)]));
+    const cMap = Object.fromEntries(
+      countsRes.rows.map((r: any) => [r.estado_aql, parseInt(r.cnt)]),
+    );
     const counts = {
-      todas:     total,
-      aceptado:  cMap["Aceptado"]  || 0,
+      todas: total,
+      aceptado: cMap["Aceptado"] || 0,
       rechazado: cMap["Rechazado"] || 0,
     };
 
     const data = dataRes.rows.map((r: any) => ({
       ...r,
-      checklist: r.checklist_json ? (() => { try { return JSON.parse(r.checklist_json); } catch { return []; } })() : [],
-      foto_lpn_url:      r.foto_lpn_url      || (r.foto_lpn_filename      ? s3.getFileUrl("aql", r.foto_lpn_filename)      : null),
-      foto_pantalla_url: r.foto_pantalla_url || (r.foto_pantalla_filename ? s3.getFileUrl("aql", r.foto_pantalla_filename) : null),
+      checklist: r.checklist_json
+        ? (() => {
+            try {
+              return JSON.parse(r.checklist_json);
+            } catch {
+              return [];
+            }
+          })()
+        : [],
+      foto_lpn_url:
+        r.foto_lpn_url || (r.foto_lpn_filename ? s3.getFileUrl("aql", r.foto_lpn_filename) : null),
+      foto_pantalla_url:
+        r.foto_pantalla_url ||
+        (r.foto_pantalla_filename ? s3.getFileUrl("aql", r.foto_pantalla_filename) : null),
     }));
 
     res.json({ data, total, page, pageSize: limit, counts });
@@ -1726,9 +1863,20 @@ app.get("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
     const aql = result[0];
     res.json({
       ...aql,
-      checklist: aql.checklistJson ? (() => { try { return JSON.parse(aql.checklistJson as string); } catch { return []; } })() : [],
-      foto_lpn_url:      aql.fotoLpnUrl      || (aql.fotoLpnFilename      ? s3.getFileUrl("aql", aql.fotoLpnFilename)      : null),
-      foto_pantalla_url: aql.fotoPantallaUrl || (aql.fotoPantallaFilename ? s3.getFileUrl("aql", aql.fotoPantallaFilename) : null),
+      checklist: aql.checklistJson
+        ? (() => {
+            try {
+              return JSON.parse(aql.checklistJson as string);
+            } catch {
+              return [];
+            }
+          })()
+        : [],
+      foto_lpn_url:
+        aql.fotoLpnUrl || (aql.fotoLpnFilename ? s3.getFileUrl("aql", aql.fotoLpnFilename) : null),
+      foto_pantalla_url:
+        aql.fotoPantallaUrl ||
+        (aql.fotoPantallaFilename ? s3.getFileUrl("aql", aql.fotoPantallaFilename) : null),
     });
   } catch (err) {
     console.error("[API] GET /api/aql/:id error:", err);
@@ -1740,32 +1888,43 @@ app.get("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
 app.post("/api/aql", requireAuth, async (req: Request, res: Response) => {
   try {
     const {
-      fecha_registro, order_id, sku, marca, modelo, pulgada, descripcion,
-      lote, muestra_total, defectos_encontrados, observaciones, checklist, inspector,
+      fecha_registro,
+      order_id,
+      sku,
+      marca,
+      modelo,
+      pulgada,
+      descripcion,
+      lote,
+      muestra_total,
+      defectos_encontrados,
+      observaciones,
+      checklist,
+      inspector,
     } = req.body;
 
-    const defectos   = parseInt(defectos_encontrados) || 0;
-    const estadoAql  = defectos === 0 ? "Aceptado" : "Rechazado";
+    const defectos = parseInt(defectos_encontrados) || 0;
+    const estadoAql = defectos === 0 ? "Aceptado" : "Rechazado";
 
     const result = await db
       .insert(schema.aqlRegistros)
       .values({
-        fechaRegistro:        fecha_registro,
-        licensePlate:         order_id || "",
-        orderId:              order_id || "",
-        sku:                  sku || "",
-        marca:                marca || "",
-        modelo:               modelo || "",
-        pulgada:              pulgada || "",
-        descripcion:          descripcion || "",
-        lote:                 lote || "",
-        muestraTotal:         muestra_total ? parseInt(muestra_total) : null,
-        defectosEncontrados:  defectos,
-        observaciones:        observaciones || "",
-        checklistJson:        checklist ? JSON.stringify(checklist) : null,
+        fechaRegistro: fecha_registro,
+        licensePlate: order_id || "",
+        orderId: order_id || "",
+        sku: sku || "",
+        marca: marca || "",
+        modelo: modelo || "",
+        pulgada: pulgada || "",
+        descripcion: descripcion || "",
+        lote: lote || "",
+        muestraTotal: muestra_total ? parseInt(muestra_total) : null,
+        defectosEncontrados: defectos,
+        observaciones: observaciones || "",
+        checklistJson: checklist ? JSON.stringify(checklist) : null,
         estadoAql,
-        inspector:            inspector || req.user?.name || "",
-        registradoPor:        req.user?.name || "",
+        inspector: inspector || req.user?.name || "",
+        registradoPor: req.user?.name || "",
       })
       .returning();
 
@@ -1781,31 +1940,42 @@ app.put("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const {
-      fecha_registro, order_id, sku, marca, modelo, pulgada, descripcion,
-      lote, muestra_total, defectos_encontrados, observaciones, checklist, inspector,
+      fecha_registro,
+      order_id,
+      sku,
+      marca,
+      modelo,
+      pulgada,
+      descripcion,
+      lote,
+      muestra_total,
+      defectos_encontrados,
+      observaciones,
+      checklist,
+      inspector,
     } = req.body;
 
-    const defectos  = parseInt(defectos_encontrados) || 0;
+    const defectos = parseInt(defectos_encontrados) || 0;
     const estadoAql = defectos === 0 ? "Aceptado" : "Rechazado";
 
     const result = await db
       .update(schema.aqlRegistros)
       .set({
-        fechaRegistro:        fecha_registro,
-        licensePlate:         order_id || "",
-        orderId:              order_id || "",
-        sku:                  sku || "",
-        marca:                marca || "",
-        modelo:               modelo || "",
-        pulgada:              pulgada || "",
-        descripcion:          descripcion || "",
-        lote:                 lote || "",
-        muestraTotal:         muestra_total ? parseInt(muestra_total) : null,
-        defectosEncontrados:  defectos,
-        observaciones:        observaciones || "",
-        checklistJson:        checklist ? JSON.stringify(checklist) : null,
+        fechaRegistro: fecha_registro,
+        licensePlate: order_id || "",
+        orderId: order_id || "",
+        sku: sku || "",
+        marca: marca || "",
+        modelo: modelo || "",
+        pulgada: pulgada || "",
+        descripcion: descripcion || "",
+        lote: lote || "",
+        muestraTotal: muestra_total ? parseInt(muestra_total) : null,
+        defectosEncontrados: defectos,
+        observaciones: observaciones || "",
+        checklistJson: checklist ? JSON.stringify(checklist) : null,
         estadoAql,
-        inspector:            inspector || "",
+        inspector: inspector || "",
       })
       .where(eq(schema.aqlRegistros.id, parseInt(id)))
       .returning();
@@ -1848,7 +2018,12 @@ app.post(
       let fotoLpnFilename: string;
 
       try {
-        const s3Url = await s3.uploadToS3Only(file.buffer, file.originalname, "aql", `lpn-${aqlId}`);
+        const s3Url = await s3.uploadToS3Only(
+          file.buffer,
+          file.originalname,
+          "aql",
+          `lpn-${aqlId}`,
+        );
         fotoLpnFilename = s3Url.split("/").pop() || file.originalname;
         fotoLpnUrl = s3Url;
       } catch (_s3Err) {
@@ -1868,7 +2043,7 @@ app.post(
       console.error("[API] POST /api/aql/:id/foto-lpn error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // POST /api/aql/:id/foto-pantalla - Upload screen photo
@@ -1901,7 +2076,12 @@ app.post(
       let fotoPantallaFilename: string;
 
       try {
-        const s3Url = await s3.uploadToS3Only(file.buffer, file.originalname, "aql", `pantalla-${aqlId}`);
+        const s3Url = await s3.uploadToS3Only(
+          file.buffer,
+          file.originalname,
+          "aql",
+          `pantalla-${aqlId}`,
+        );
         fotoPantallaFilename = s3Url.split("/").pop() || file.originalname;
         fotoPantallaUrl = s3Url;
       } catch (_s3Err) {
@@ -1921,14 +2101,17 @@ app.post(
       console.error("[API] POST /api/aql/:id/foto-pantalla error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // GET /api/aql/image/lpn/:aqlId — serve LPN photo stored in DB
 app.get("/api/aql/image/lpn/:aqlId", requireAuth, async (req: Request, res: Response) => {
   try {
     const [aql] = await db
-      .select({ fotoLpnFilename: schema.aqlRegistros.fotoLpnFilename, fotoLpnDataB64: schema.aqlRegistros.fotoLpnDataB64 })
+      .select({
+        fotoLpnFilename: schema.aqlRegistros.fotoLpnFilename,
+        fotoLpnDataB64: schema.aqlRegistros.fotoLpnDataB64,
+      })
       .from(schema.aqlRegistros)
       .where(eq(schema.aqlRegistros.id, parseInt(req.params.aqlId)));
     if (!aql || !aql.fotoLpnDataB64) return res.status(404).json({ error: "Image not found" });
@@ -1946,7 +2129,10 @@ app.get("/api/aql/image/lpn/:aqlId", requireAuth, async (req: Request, res: Resp
 app.get("/api/aql/image/pantalla/:aqlId", requireAuth, async (req: Request, res: Response) => {
   try {
     const [aql] = await db
-      .select({ fotoPantallaFilename: schema.aqlRegistros.fotoPantallaFilename, fotoPantallaDataB64: schema.aqlRegistros.fotoPantallaDataB64 })
+      .select({
+        fotoPantallaFilename: schema.aqlRegistros.fotoPantallaFilename,
+        fotoPantallaDataB64: schema.aqlRegistros.fotoPantallaDataB64,
+      })
       .from(schema.aqlRegistros)
       .where(eq(schema.aqlRegistros.id, parseInt(req.params.aqlId)));
     if (!aql || !aql.fotoPantallaDataB64) return res.status(404).json({ error: "Image not found" });
@@ -1981,9 +2167,7 @@ app.delete("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
       }
     }
 
-    await db
-      .delete(schema.aqlRegistros)
-      .where(eq(schema.aqlRegistros.id, aqlId));
+    await db.delete(schema.aqlRegistros).where(eq(schema.aqlRegistros.id, aqlId));
 
     res.json({ ok: true });
   } catch (err) {
@@ -2023,24 +2207,14 @@ app.get("/api/capas/:id", requireAuth, async (req: Request, res: Response) => {
     const capaId = parseInt(id);
 
     const [capaMain, porques, ishikawa, acciones] = await Promise.all([
-      db
-        .select()
-        .from(schema.capas)
-        .where(eq(schema.capas.id, capaId))
-        .limit(1),
+      db.select().from(schema.capas).where(eq(schema.capas.id, capaId)).limit(1),
       db
         .select()
         .from(schema.capa5Porques)
         .where(eq(schema.capa5Porques.capaId, capaId))
         .orderBy(schema.capa5Porques.orden),
-      db
-        .select()
-        .from(schema.capaIshikawa)
-        .where(eq(schema.capaIshikawa.capaId, capaId)),
-      db
-        .select()
-        .from(schema.capaAcciones)
-        .where(eq(schema.capaAcciones.capaId, capaId)),
+      db.select().from(schema.capaIshikawa).where(eq(schema.capaIshikawa.capaId, capaId)),
+      db.select().from(schema.capaAcciones).where(eq(schema.capaAcciones.capaId, capaId)),
     ]);
 
     if (capaMain.length === 0) {
@@ -2097,7 +2271,7 @@ app.post("/api/capas", requireAuth, async (req: Request, res: Response) => {
         fecha_apertura,
         fecha_compromiso || null,
         req.user?.name || "",
-      ]
+      ],
     );
 
     const capaId = capaResult.rows[0].id;
@@ -2107,7 +2281,7 @@ app.post("/api/capas", requireAuth, async (req: Request, res: Response) => {
       for (const pq of porques) {
         await client.query(
           `INSERT INTO capa_5porques (capa_id, orden, respuesta) VALUES ($1, $2, $3)`,
-          [capaId, pq.orden || 1, pq.respuesta || ""]
+          [capaId, pq.orden || 1, pq.respuesta || ""],
         );
       }
     }
@@ -2117,7 +2291,7 @@ app.post("/api/capas", requireAuth, async (req: Request, res: Response) => {
       for (const ish of ishikawa) {
         await client.query(
           `INSERT INTO capa_ishikawa (capa_id, categoria, causa) VALUES ($1, $2, $3)`,
-          [capaId, ish.categoria || "", ish.causa || ""]
+          [capaId, ish.categoria || "", ish.causa || ""],
         );
       }
     }
@@ -2129,7 +2303,7 @@ app.post("/api/capas", requireAuth, async (req: Request, res: Response) => {
           await client.query(
             `INSERT INTO capa_acciones (capa_id, accion, responsable, fecha_compromiso, estatus)
              VALUES ($1, $2, $3, $4, 'Pendiente')`,
-            [capaId, acc.accion || "", acc.responsable || "", acc.fecha_compromiso || null]
+            [capaId, acc.accion || "", acc.responsable || "", acc.fecha_compromiso || null],
           );
         }
       }
@@ -2183,7 +2357,7 @@ app.put("/api/capas/:id", requireAuth, async (req: Request, res: Response) => {
         fecha_apertura,
         fecha_compromiso || null,
         capaId,
-      ]
+      ],
     );
 
     if (updateResult.rowCount === 0) {
@@ -2200,7 +2374,7 @@ app.put("/api/capas/:id", requireAuth, async (req: Request, res: Response) => {
       for (const pq of porques) {
         await client.query(
           `INSERT INTO capa_5porques (capa_id, orden, respuesta) VALUES ($1, $2, $3)`,
-          [capaId, pq.orden || 1, pq.respuesta || ""]
+          [capaId, pq.orden || 1, pq.respuesta || ""],
         );
       }
     }
@@ -2210,7 +2384,7 @@ app.put("/api/capas/:id", requireAuth, async (req: Request, res: Response) => {
       for (const ish of ishikawa) {
         await client.query(
           `INSERT INTO capa_ishikawa (capa_id, categoria, causa) VALUES ($1, $2, $3)`,
-          [capaId, ish.categoria || "", ish.causa || ""]
+          [capaId, ish.categoria || "", ish.causa || ""],
         );
       }
     }
@@ -2222,7 +2396,7 @@ app.put("/api/capas/:id", requireAuth, async (req: Request, res: Response) => {
           await client.query(
             `INSERT INTO capa_acciones (capa_id, accion, responsable, fecha_compromiso)
              VALUES ($1, $2, $3, $4)`,
-            [capaId, acc.accion || "", acc.responsable || "", acc.fecha_compromiso || null]
+            [capaId, acc.accion || "", acc.responsable || "", acc.fecha_compromiso || null],
           );
         }
       }
@@ -2292,21 +2466,13 @@ app.delete("/api/capas/:id", requireAuth, async (req: Request, res: Response) =>
     const capaId = parseInt(id);
 
     // Delete in cascade order
-    await db
-      .delete(schema.capa5Porques)
-      .where(eq(schema.capa5Porques.capaId, capaId));
+    await db.delete(schema.capa5Porques).where(eq(schema.capa5Porques.capaId, capaId));
 
-    await db
-      .delete(schema.capaIshikawa)
-      .where(eq(schema.capaIshikawa.capaId, capaId));
+    await db.delete(schema.capaIshikawa).where(eq(schema.capaIshikawa.capaId, capaId));
 
-    await db
-      .delete(schema.capaAcciones)
-      .where(eq(schema.capaAcciones.capaId, capaId));
+    await db.delete(schema.capaAcciones).where(eq(schema.capaAcciones.capaId, capaId));
 
-    await db
-      .delete(schema.capas)
-      .where(eq(schema.capas.id, capaId));
+    await db.delete(schema.capas).where(eq(schema.capas.id, capaId));
 
     res.json({ ok: true });
   } catch (err) {
@@ -2340,19 +2506,28 @@ app.patch("/api/usuarios/:id", requireAdmin, async (req: Request, res: Response)
     const { rol, permisos, activo } = req.body;
 
     const fields: string[] = [];
-    const vals: any[]      = [];
+    const vals: any[] = [];
     let i = 1;
 
-    if (rol      !== undefined) { fields.push(`rol = $${i++}`);                vals.push(rol); }
-    if (permisos !== undefined) { fields.push(`permisos = $${i++}`);           vals.push(JSON.stringify(permisos)); }
-    if (activo   !== undefined) { fields.push(`activo = $${i++}`);             vals.push(activo); }
+    if (rol !== undefined) {
+      fields.push(`rol = $${i++}`);
+      vals.push(rol);
+    }
+    if (permisos !== undefined) {
+      fields.push(`permisos = $${i++}`);
+      vals.push(JSON.stringify(permisos));
+    }
+    if (activo !== undefined) {
+      fields.push(`activo = $${i++}`);
+      vals.push(activo);
+    }
 
     if (fields.length === 0) return res.status(400).json({ error: "Sin campos a actualizar" });
 
     vals.push(id);
     const result = await pool.query(
       `UPDATE usuarios SET ${fields.join(", ")} WHERE id = $${i} RETURNING *`,
-      vals
+      vals,
     );
 
     if (result.rowCount === 0) return res.status(404).json({ error: "Usuario no encontrado" });

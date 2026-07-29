@@ -6,7 +6,7 @@
  * On 401 the user is redirected to /login (Nextcloud SSO flow).
  */
 
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL } from "../config/api";
 
 // ── Error shape ─────────────────────────────────────────────────────────────
 
@@ -17,7 +17,7 @@ export class ApiClientError extends Error {
 
   constructor(status: number, code: string, message: string, details?: unknown) {
     super(message);
-    this.name = 'ApiClientError';
+    this.name = "ApiClientError";
     this.status = status;
     this.code = code;
     this.details = details;
@@ -26,8 +26,11 @@ export class ApiClientError extends Error {
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
 
-function buildUrl(endpoint: string, query?: Record<string, string | number | boolean | undefined>): string {
-  const base = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+function buildUrl(
+  endpoint: string,
+  query?: Record<string, string | number | boolean | undefined>,
+): string {
+  const base = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
   if (!query) return base;
 
   const params = new URLSearchParams();
@@ -43,7 +46,7 @@ function buildUrl(endpoint: string, query?: Record<string, string | number | boo
 async function handleResponse<T>(res: Response): Promise<T> {
   if (res.status === 401) {
     // Session expired or not logged in — redirect to SSO login
-    window.location.href = '/login';
+    window.location.href = "/login";
     // Return a never-resolving promise so callers don't proceed
     return new Promise(() => undefined);
   }
@@ -54,9 +57,11 @@ async function handleResponse<T>(res: Response): Promise<T> {
     let details: unknown;
 
     try {
-      const body = await res.json() as { error?: { code?: string; message?: string; details?: unknown } };
+      const body = (await res.json()) as {
+        error?: { code?: string; message?: string; details?: unknown };
+      };
       if (body.error) {
-        code    = body.error.code    ?? code;
+        code = body.error.code ?? code;
         message = body.error.message ?? message;
         details = body.error.details;
       }
@@ -85,9 +90,9 @@ export async function apiGet<T>(
   query?: Record<string, string | number | boolean | undefined>,
 ): Promise<T> {
   const res = await fetch(buildUrl(endpoint, query), {
-    method: 'GET',
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
+    method: "GET",
+    credentials: "include",
+    headers: { Accept: "application/json" },
   });
   return handleResponse<T>(res);
 }
@@ -97,11 +102,11 @@ export async function apiGet<T>(
  */
 export async function apiPost<T>(endpoint: string, body: unknown): Promise<T> {
   const res = await fetch(buildUrl(endpoint), {
-    method: 'POST',
-    credentials: 'include',
+    method: "POST",
+    credentials: "include",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
@@ -113,11 +118,11 @@ export async function apiPost<T>(endpoint: string, body: unknown): Promise<T> {
  */
 export async function apiPut<T>(endpoint: string, body: unknown): Promise<T> {
   const res = await fetch(buildUrl(endpoint), {
-    method: 'PUT',
-    credentials: 'include',
+    method: "PUT",
+    credentials: "include",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
@@ -129,11 +134,11 @@ export async function apiPut<T>(endpoint: string, body: unknown): Promise<T> {
  */
 export async function apiPatch<T>(endpoint: string, body: unknown): Promise<T> {
   const res = await fetch(buildUrl(endpoint), {
-    method: 'PATCH',
-    credentials: 'include',
+    method: "PATCH",
+    credentials: "include",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
@@ -145,9 +150,9 @@ export async function apiPatch<T>(endpoint: string, body: unknown): Promise<T> {
  */
 export async function apiDelete<T = void>(endpoint: string): Promise<T> {
   const res = await fetch(buildUrl(endpoint), {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
+    method: "DELETE",
+    credentials: "include",
+    headers: { Accept: "application/json" },
   });
   return handleResponse<T>(res);
 }

@@ -16,7 +16,7 @@
     --input: 240 6% 90%;
   }
   body {
-    font-family: 'Segoe UI', Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     font-size: 14px;
     color: #111111;
     background: #f4f6f9;
@@ -39,13 +39,13 @@ label {
 }
 
 /* ── Inputs / Selects / Textareas ────────────────────────────────── */
-input[type=text],
-input[type=password],
-input[type=number],
-input[type=time],
-input[type=email],
-input[type=date],
-input[type=datetime-local],
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="time"],
+input[type="email"],
+input[type="date"],
+input[type="datetime-local"],
 select,
 textarea {
   width: 100%;
@@ -155,23 +155,91 @@ textarea {
   border-radius: 0 !important;
 }
 
-.badge-alta      { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
-.badge-media     { background: #fdf6e8; color: #8a6a00; border: 1px solid #8a6a00; }
-.badge-baja      { background: #e8f5ee; color: #27ae60; border: 1px solid #27ae60; }
-.badge-critica   { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
-.badge-mayor     { background: #fdf2e8; color: #c0711a; border: 1px solid #c0711a; }
-.badge-menor     { background: #fdf6e8; color: #8a6a00; border: 1px solid #8a6a00; }
-.badge-abierta   { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
-.badge-proceso   { background: #e8f0fd; color: #2563a8; border: 1px solid #2563a8; }
-.badge-cerrada   { background: #e8f5ee; color: #27ae60; border: 1px solid #27ae60; }
-.badge-rechazada { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
-.badge-aprobado  { background: #e8f5ee; color: #27ae60; border: 1px solid #27ae60; }
-.badge-rechazado { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
-.badge-pendiente { background: #fdf6e8; color: #8a6a00; border: 1px solid #8a6a00; }
-.badge-admin     { background: #e8f0fd; color: #0d2b4e; border: 1px solid #0d2b4e; }
-.badge-usuario   { background: #f4f4f4; color: #444444; border: 1px solid #e2e2e2; }
-.badge-activo    { background: #e8f5ee; color: #27ae60; border: 1px solid #27ae60; }
-.badge-inactivo  { background: #fde8e8; color: #c0392b; border: 1px solid #c0392b; }
+.badge-alta {
+  background: #fde8e8;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}
+.badge-media {
+  background: #fdf6e8;
+  color: #8a6a00;
+  border: 1px solid #8a6a00;
+}
+.badge-baja {
+  background: #e8f5ee;
+  color: #27ae60;
+  border: 1px solid #27ae60;
+}
+.badge-critica {
+  background: #fde8e8;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}
+.badge-mayor {
+  background: #fdf2e8;
+  color: #c0711a;
+  border: 1px solid #c0711a;
+}
+.badge-menor {
+  background: #fdf6e8;
+  color: #8a6a00;
+  border: 1px solid #8a6a00;
+}
+.badge-abierta {
+  background: #fde8e8;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}
+.badge-proceso {
+  background: #e8f0fd;
+  color: #2563a8;
+  border: 1px solid #2563a8;
+}
+.badge-cerrada {
+  background: #e8f5ee;
+  color: #27ae60;
+  border: 1px solid #27ae60;
+}
+.badge-rechazada {
+  background: #fde8e8;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}
+.badge-aprobado {
+  background: #e8f5ee;
+  color: #27ae60;
+  border: 1px solid #27ae60;
+}
+.badge-rechazado {
+  background: #fde8e8;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}
+.badge-pendiente {
+  background: #fdf6e8;
+  color: #8a6a00;
+  border: 1px solid #8a6a00;
+}
+.badge-admin {
+  background: #e8f0fd;
+  color: #0d2b4e;
+  border: 1px solid #0d2b4e;
+}
+.badge-usuario {
+  background: #f4f4f4;
+  color: #444444;
+  border: 1px solid #e2e2e2;
+}
+.badge-activo {
+  background: #e8f5ee;
+  color: #27ae60;
+  border: 1px solid #27ae60;
+}
+.badge-inactivo {
+  background: #fde8e8;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}
 
 /* ── Action buttons (inside table rows) ──────────────────────────── */
 .btn-accion {
@@ -185,8 +253,12 @@ textarea {
   font-family: inherit;
   transition: opacity 0.15s;
 }
-.btn-accion:hover { opacity: 0.7; }
-.btn-accion.rojo  { color: #c0392b; }
+.btn-accion:hover {
+  opacity: 0.7;
+}
+.btn-accion.rojo {
+  color: #c0392b;
+}
 
 /* ── Primary / Secondary / Danger buttons ────────────────────────── */
 .btn {
@@ -201,12 +273,27 @@ textarea {
   font-family: inherit;
   transition: opacity 0.15s;
 }
-.btn:hover    { opacity: 0.85; }
-.btn:disabled { opacity: 0.5; cursor: default; }
+.btn:hover {
+  opacity: 0.85;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
-.btn-primario   { background: #0d2b4e; color: #ffffff; }
-.btn-secundario { background: transparent; color: #0d2b4e; border: 1px solid #0d2b4e; }
-.btn-peligro    { background: #c0392b; color: #ffffff; }
+.btn-primario {
+  background: #0d2b4e;
+  color: #ffffff;
+}
+.btn-secundario {
+  background: transparent;
+  color: #0d2b4e;
+  border: 1px solid #0d2b4e;
+}
+.btn-peligro {
+  background: #c0392b;
+  color: #ffffff;
+}
 
 /* ── Button group ─────────────────────────────────────────────────── */
 .btn-grupo {
@@ -293,5 +380,10 @@ textarea {
   font-family: inherit;
   color: #111111;
 }
-.paginador button:hover:not(:disabled) { background: #f0f4f9; }
-.paginador button:disabled { opacity: 0.4; cursor: default; }
+.paginador button:hover:not(:disabled) {
+  background: #f0f4f9;
+}
+.paginador button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
