@@ -81,9 +81,9 @@ const PHONE_RE = /^[+]?[\d\s\-().]{7,20}$/;
 function validate(values: OrgFormValues, t: (k: string) => string): FormErrors {
   const errors: FormErrors = {};
 
-  if (!values.nombre_completo.trim()) errors.nombre_completo = t("forms.required_field");
+  if (!values.nombre_completo?.trim()) errors.nombre_completo = t("forms.required_field");
 
-  if (!values.no_empleado.trim()) errors.no_empleado = t("forms.required_field");
+  if (!values.no_empleado?.trim()) errors.no_empleado = t("forms.required_field");
 
   if (!values.sexo) errors.sexo = t("forms.required_field");
 
@@ -124,28 +124,38 @@ function emptyValues(): OrgFormValues {
 }
 
 function fromEmployee(emp: OrganigramaQc): OrgFormValues {
+  const e = emp as Record<string, unknown>;
+  const str = (snake: string, camel: string) =>
+    String((e[snake] ?? e[camel]) ?? "");
+  const dateStr = (snake: string, camel: string) => {
+    const v = (e[snake] ?? e[camel]) as string | undefined;
+    return v ? String(v).slice(0, 10) : "";
+  };
   return {
-    nombre_completo: emp.nombre_completo,
-    no_empleado: emp.no_empleado ?? "",
-    sexo: emp.sexo ?? "",
-    fecha_nacimiento: emp.fecha_nacimiento ? emp.fecha_nacimiento.slice(0, 10) : "",
-    puesto: emp.puesto,
-    area: emp.area ?? "",
-    turno: emp.turno ?? "",
-    fecha_ingreso: emp.fecha_ingreso ? emp.fecha_ingreso.slice(0, 10) : "",
-    estatus: emp.estatus ?? "activo",
-    telefono: emp.telefono ?? "",
-    correo: emp.correo ?? "",
-    contacto_emergencia: emp.contactoEmergencia ?? "",
-    tel_emergencia: emp.telEmergencia ?? "",
+    nombre_completo: str("nombre_completo", "nombreCompleto"),
+    no_empleado: str("no_empleado", "noEmpleado"),
+    sexo: str("sexo", "sexo"),
+    fecha_nacimiento: dateStr("fecha_nacimiento", "fechaNacimiento"),
+    puesto: str("puesto", "puesto"),
+    area: str("area", "area"),
+    turno: str("turno", "turno"),
+    fecha_ingreso: dateStr("fecha_ingreso", "fechaIngreso"),
+    estatus: str("estatus", "estatus") || "activo",
+    telefono: str("telefono", "telefono"),
+    correo: str("correo", "correo"),
+    contacto_emergencia: str("contacto_emergencia", "contactoEmergencia"),
+    tel_emergencia: str("tel_emergencia", "telEmergencia"),
   };
 }
 
 // ── Existing photo URL ─────────────────────────────────────────────────────────
 
 function existingPhotoUrl(emp: OrganigramaQc | null | undefined): string | null {
-  if (!emp?.foto_filename) return null;
-  return `${API_BASE_URL}/uploads/organigrama/${emp.foto_filename}`;
+  if (!emp) return null;
+  const e = emp as Record<string, unknown>;
+  const filename = (e.foto_filename ?? e.fotoFilename) as string | undefined;
+  if (!filename) return null;
+  return `${API_BASE_URL}/uploads/organigrama/${filename}`;
 }
 
 // ── Section wrapper ───────────────────────────────────────────────────────────

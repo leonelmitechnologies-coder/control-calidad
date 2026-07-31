@@ -25,8 +25,10 @@ interface OrgDetailModalProps {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function photoUrl(emp: OrganigramaQc): string | null {
-  if (!emp.foto_filename) return null;
-  return `${API_BASE_URL}/uploads/organigrama/${emp.foto_filename}`;
+  const e = emp as Record<string, unknown>;
+  const filename = (e.foto_filename ?? e.fotoFilename) as string | undefined;
+  if (!filename) return null;
+  return `${API_BASE_URL}/uploads/organigrama/${filename}`;
 }
 
 function initials(name: string): string {
