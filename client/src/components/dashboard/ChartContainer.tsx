@@ -8,7 +8,7 @@
  *   className — Optional extra Tailwind classes on the outer card
  */
 
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 interface ChartContainerProps {
   title: string;
@@ -16,18 +16,13 @@ interface ChartContainerProps {
   className?: string;
 }
 
-export default function ChartContainer({ title, children, className = '' }: ChartContainerProps) {
+export default function ChartContainer({ title, children, className = "" }: ChartContainerProps) {
   return (
-    <div
-      className={`card flex flex-col gap-4 ${className}`}
-      style={{ padding: '18px 22px' }}
-    >
+    <div className={`card flex flex-col gap-4 ${className}`} style={{ padding: "18px 22px" }}>
       <h3 className="seccion-titulo" style={{ marginBottom: 0 }}>
         {title}
       </h3>
-      <div className="relative flex-1 min-h-0">
-        {children}
-      </div>
+      <div className="relative flex-1 min-h-0">{children}</div>
     </div>
   );
 }

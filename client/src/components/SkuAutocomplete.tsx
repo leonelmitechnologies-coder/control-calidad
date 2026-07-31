@@ -10,16 +10,10 @@
  *  - "Sin resultados" placeholder when API returns empty
  */
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  KeyboardEvent,
-} from 'react';
-import { useTranslation } from 'react-i18next';
-import { apiGet } from '../utils/api-client';
-import type { SkuRecord } from '../types';
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { SkuRecord } from "../types";
+import { apiGet } from "../utils/api-client";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,16 +38,16 @@ export default function SkuAutocomplete({
 }: SkuAutocompleteProps) {
   const { t } = useTranslation();
 
-  const [open, setOpen]           = useState(false);
-  const [results, setResults]     = useState<SkuRecord[]>([]);
-  const [loading, setLoading]     = useState(false);
-  const [focusIdx, setFocusIdx]   = useState(-1);
+  const [open, setOpen] = useState(false);
+  const [results, setResults] = useState<SkuRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [focusIdx, setFocusIdx] = useState(-1);
 
   // Simple in-memory cache: query → results
   const cache = useRef<Map<string, SkuRecord[]>>(new Map());
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const containerRef  = useRef<HTMLDivElement>(null);
-  const inputRef      = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // ── Search ────────────────────────────────────────────────────────────────
 
@@ -74,7 +68,7 @@ export default function SkuAutocomplete({
 
     setLoading(true);
     try {
-      const res = await apiGet<SkuApiResponse>('/api/catalogo-sku', { q: trimmed });
+      const res = await apiGet<SkuApiResponse>("/api/catalogo-sku", { q: trimmed });
       const rows = (Array.isArray(res) ? res : (res?.data ?? [])).slice(0, 25);
       cache.current.set(trimmed, rows);
       setResults(rows);
@@ -113,18 +107,18 @@ export default function SkuAutocomplete({
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (!open) return;
 
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
       setFocusIdx((prev) => Math.min(prev + 1, results.length - 1));
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setFocusIdx((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       if (focusIdx >= 0 && focusIdx < results.length) {
         handleSelect(results[focusIdx]);
       }
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       setOpen(false);
       setFocusIdx(-1);
     }
@@ -139,8 +133,8 @@ export default function SkuAutocomplete({
         setFocusIdx(-1);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   // Cleanup timer on unmount
@@ -153,7 +147,7 @@ export default function SkuAutocomplete({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+    <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
       {/* Input */}
       <input
         ref={inputRef}
@@ -162,7 +156,7 @@ export default function SkuAutocomplete({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onFocus={() => value.trim().length > 0 && results.length > 0 && setOpen(true)}
-        placeholder={placeholder ?? t('sku.search')}
+        placeholder={placeholder ?? t("sku.search")}
         disabled={disabled}
         autoComplete="off"
         aria-autocomplete="list"
@@ -175,21 +169,28 @@ export default function SkuAutocomplete({
       {loading && (
         <span
           style={{
-            pointerEvents: 'none',
-            position: 'absolute',
+            pointerEvents: "none",
+            position: "absolute",
             right: 10,
-            top: '50%',
-            transform: 'translateY(-50%)',
+            top: "50%",
+            transform: "translateY(-50%)",
           }}
         >
           <svg
             className="animate-spin"
-            style={{ height: 16, width: 16, color: '#aaa' }}
+            style={{ height: 16, width: 16, color: "#aaa" }}
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
           >
-            <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <circle
+              style={{ opacity: 0.25 }}
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
             <path
               style={{ opacity: 0.75 }}
               fill="currentColor"
@@ -204,33 +205,33 @@ export default function SkuAutocomplete({
         <ul
           role="listbox"
           style={{
-            position: 'fixed',
+            position: "fixed",
             zIndex: 9999,
-            background: '#fff',
-            border: '1px solid #e2e2e2',
-            borderTop: 'none',
+            background: "#fff",
+            border: "1px solid #e2e2e2",
+            borderTop: "none",
             maxHeight: 260,
-            overflowY: 'auto',
+            overflowY: "auto",
             margin: 0,
             padding: 0,
-            listStyle: 'none',
-            width: containerRef.current?.getBoundingClientRect().width ?? 'auto',
+            listStyle: "none",
+            width: containerRef.current?.getBoundingClientRect().width ?? "auto",
             left: containerRef.current?.getBoundingClientRect().left ?? 0,
-            top: (containerRef.current?.getBoundingClientRect().bottom ?? 0),
+            top: containerRef.current?.getBoundingClientRect().bottom ?? 0,
           }}
         >
           {results.length === 0 ? (
             <li
               key="no-results"
               style={{
-                padding: '8px 12px',
+                padding: "8px 12px",
                 fontSize: 13,
-                color: '#777',
-                fontStyle: 'italic',
-                userSelect: 'none',
+                color: "#777",
+                fontStyle: "italic",
+                userSelect: "none",
               }}
             >
-              {t('sku.notfound')}
+              {t("sku.notfound")}
             </li>
           ) : (
             results.map((record, idx) => (
@@ -245,19 +246,19 @@ export default function SkuAutocomplete({
                 }}
                 onMouseEnter={() => setFocusIdx(idx)}
                 style={{
-                  padding: '8px 12px',
+                  padding: "8px 12px",
                   fontSize: 13,
-                  cursor: 'pointer',
-                  borderBottom: '1px solid #e2e2e2',
-                  background: idx === focusIdx ? '#f0f4f9' : '#fff',
-                  color: '#111',
+                  cursor: "pointer",
+                  borderBottom: "1px solid #e2e2e2",
+                  background: idx === focusIdx ? "#f0f4f9" : "#fff",
+                  color: "#111",
                 }}
               >
                 <span style={{ fontWeight: 600 }}>{record.sku}</span>
-                <span style={{ margin: '0 4px', color: '#aaa' }}>—</span>
-                <span style={{ color: '#444' }}>
-                  {[record.marca, record.modelo].filter(Boolean).join(' ')}
-                  {record.pulgada ? ` (${record.pulgada})` : ''}
+                <span style={{ margin: "0 4px", color: "#aaa" }}>—</span>
+                <span style={{ color: "#444" }}>
+                  {[record.marca, record.modelo].filter(Boolean).join(" ")}
+                  {record.pulgada ? ` (${record.pulgada})` : ""}
                 </span>
               </li>
             ))

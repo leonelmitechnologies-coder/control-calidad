@@ -26,11 +26,11 @@ export default function StatusTabs({ tabs, active, onChange }: StatusTabsProps) 
   return (
     <div
       style={{
-        borderBottom: '1px solid #e2e2e2',
-        display: 'flex',
+        borderBottom: "1px solid #e2e2e2",
+        display: "flex",
         gap: 0,
         marginBottom: 16,
-        flexWrap: 'wrap',
+        flexWrap: "wrap",
       }}
       role="tablist"
       aria-label="Filtrar por estatus"
@@ -44,31 +44,31 @@ export default function StatusTabs({ tabs, active, onChange }: StatusTabsProps) 
             aria-selected={isActive}
             onClick={() => onChange(tab.value)}
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
+              display: "inline-flex",
+              alignItems: "center",
               gap: 6,
-              padding: '8px 16px',
-              background: 'none',
-              border: 'none',
-              borderBottom: isActive ? '2px solid #0d2b4e' : '2px solid transparent',
-              color: isActive ? '#0d2b4e' : '#777',
+              padding: "8px 16px",
+              background: "none",
+              border: "none",
+              borderBottom: isActive ? "2px solid #0d2b4e" : "2px solid transparent",
+              color: isActive ? "#0d2b4e" : "#777",
               fontWeight: isActive ? 700 : 400,
               fontSize: 13,
-              cursor: 'pointer',
+              cursor: "pointer",
               marginBottom: -1,
             }}
           >
             {tab.label}
             <span
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
                 minWidth: 20,
                 height: 18,
-                padding: '0 4px',
-                background: isActive ? '#0d2b4e' : '#e2e2e2',
-                color: isActive ? '#fff' : '#555',
+                padding: "0 4px",
+                background: isActive ? "#0d2b4e" : "#e2e2e2",
+                color: isActive ? "#fff" : "#555",
                 fontSize: 11,
                 fontWeight: 600,
               }}

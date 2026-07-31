@@ -5,7 +5,7 @@
 
 declare const __API_URL__: string;
 
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '';
+export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || "";
 
 export const API_ENDPOINTS = {
   auth: {

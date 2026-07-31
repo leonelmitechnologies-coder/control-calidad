@@ -6,8 +6,8 @@
  * Selecting a new file replaces the preview.
  */
 
-import { useRef, useState, ChangeEvent } from 'react';
-import { useTranslation } from 'react-i18next';
+import { type ChangeEvent, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -35,13 +35,13 @@ export default function PhotoUploadArea({
   const [removed, setRemoved] = useState(false);
 
   // Displayed image: local preview > existing URL (unless removed)
-  const displayUrl = preview ?? (removed ? null : currentPhotoUrl ?? null);
-  const hasImage   = Boolean(displayUrl);
+  const displayUrl = preview ?? (removed ? null : (currentPhotoUrl ?? null));
+  const hasImage = Boolean(displayUrl);
 
   const handleInput = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     if (!file) return;
-    if (!file.type.startsWith('image/')) return;
+    if (!file.type.startsWith("image/")) return;
 
     // Revoke old object URL
     if (preview) URL.revokeObjectURL(preview);
@@ -51,7 +51,7 @@ export default function PhotoUploadArea({
     setRemoved(false);
     onFileChange(file);
     // Reset so re-selecting the same file triggers onChange
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const handleRemove = () => {
@@ -61,12 +61,12 @@ export default function PhotoUploadArea({
     }
     setRemoved(true);
     onFileChange(null);
-    if (inputRef.current) inputRef.current.value = '';
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <p style={{ margin: 0 }}>{t('organigrama.form.foto')}</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <p style={{ margin: 0 }}>{t("organigrama.form.foto")}</p>
 
       {hasImage ? (
         <div className="flex items-start gap-4">
@@ -76,17 +76,13 @@ export default function PhotoUploadArea({
               height: 96,
               width: 96,
               flexShrink: 0,
-              overflow: 'hidden',
-              borderRadius: '50%',
-              border: '2px solid #e2e2e2',
-              background: '#f4f6f9',
+              overflow: "hidden",
+              borderRadius: "50%",
+              border: "2px solid #e2e2e2",
+              background: "#f4f6f9",
             }}
           >
-            <img
-              src={displayUrl!}
-              alt="Foto de perfil"
-              className="h-full w-full object-cover"
-            />
+            <img src={displayUrl!} alt="Foto de perfil" className="h-full w-full object-cover" />
           </div>
 
           {/* Actions */}
@@ -96,18 +92,18 @@ export default function PhotoUploadArea({
               disabled={disabled}
               onClick={() => inputRef.current?.click()}
               className="btn btn-secundario"
-              style={disabled ? { cursor: 'not-allowed', opacity: 0.5 } : undefined}
+              style={disabled ? { cursor: "not-allowed", opacity: 0.5 } : undefined}
             >
-              {t('organigrama.foto_cambiar')}
+              {t("organigrama.foto_cambiar")}
             </button>
             <button
               type="button"
               disabled={disabled}
               onClick={handleRemove}
               className="btn btn-peligro"
-              style={disabled ? { cursor: 'not-allowed', opacity: 0.5 } : undefined}
+              style={disabled ? { cursor: "not-allowed", opacity: 0.5 } : undefined}
             >
-              {t('organigrama.foto_quitar')}
+              {t("organigrama.foto_quitar")}
             </button>
           </div>
         </div>
@@ -115,25 +111,27 @@ export default function PhotoUploadArea({
         /* Upload zone */
         <div
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '2px dashed #e2e2e2',
-            background: '#f4f6f9',
-            padding: '32px 16px',
-            cursor: disabled ? 'not-allowed' : 'pointer',
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "2px dashed #e2e2e2",
+            background: "#f4f6f9",
+            padding: "32px 16px",
+            cursor: disabled ? "not-allowed" : "pointer",
             opacity: disabled ? 0.5 : 1,
           }}
           onClick={() => !disabled && inputRef.current?.click()}
           role="button"
           tabIndex={disabled ? -1 : 0}
-          onKeyDown={(e) => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) inputRef.current?.click(); }}
-          aria-label={t('organigrama.form.foto')}
+          onKeyDown={(e) => {
+            if (!disabled && (e.key === "Enter" || e.key === " ")) inputRef.current?.click();
+          }}
+          aria-label={t("organigrama.form.foto")}
         >
           {/* Camera icon */}
           <svg
-            style={{ marginBottom: 8, height: 32, width: 32, color: '#aaa' }}
+            style={{ marginBottom: 8, height: 32, width: 32, color: "#aaa" }}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -152,8 +150,10 @@ export default function PhotoUploadArea({
               d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <p style={{ fontSize: 13, color: '#555', margin: 0 }}>{t('organigrama.foto_subir')}</p>
-          <p style={{ fontSize: 11, color: '#aaa', marginTop: 4, marginBottom: 0 }}>JPG, PNG, WEBP</p>
+          <p style={{ fontSize: 13, color: "#555", margin: 0 }}>{t("organigrama.foto_subir")}</p>
+          <p style={{ fontSize: 11, color: "#aaa", marginTop: 4, marginBottom: 0 }}>
+            JPG, PNG, WEBP
+          </p>
         </div>
       )}
 
@@ -165,7 +165,7 @@ export default function PhotoUploadArea({
         disabled={disabled}
         className="hidden"
         onChange={handleInput}
-        aria-label={t('organigrama.form.foto')}
+        aria-label={t("organigrama.form.foto")}
       />
     </div>
   );

@@ -21,22 +21,21 @@
  *   DELETE /api/rechazos-externos/:id/images/:imageId
  */
 
-import { useCallback, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNotify } from '../context/NotifyContext';
-import { useConfirm } from '../context/ConfirmContext';
-import { API_BASE_URL } from '../config/api';
-import ReTable from '../components/rechazos-externos/ReTable';
-import ReForm, { type ReFormData } from '../components/rechazos-externos/ReForm';
-import ReDetailModal from '../components/rechazos-externos/ReDetailModal';
-import type { RechazosExterno, ReListResponse } from '../types';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import ReDetailModal from "../components/rechazos-externos/ReDetailModal";
+import ReForm, { type ReFormData } from "../components/rechazos-externos/ReForm";
+import ReTable from "../components/rechazos-externos/ReTable";
+import { API_BASE_URL } from "../config/api";
+import { useConfirm } from "../context/ConfirmContext";
+import { useNotify } from "../context/NotifyContext";
+import type { RechazosExterno, ReListResponse } from "../types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE            = 20;
-const SEARCH_DEBOUNCE_MS   = 500;
-
+const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 500;
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -44,10 +43,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const { headers: callerHeaders, ...restInit } = init ?? {};
   const res = await fetch(url, {
-    credentials: 'include',
+    credentials: "include",
     ...restInit,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(callerHeaders instanceof Headers
         ? Object.fromEntries(callerHeaders.entries())
         : (callerHeaders as Record<string, string> | undefined)),
@@ -58,7 +57,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     try {
       const json = await res.json();
       message = json?.error?.message ?? json?.message ?? json?.error ?? message;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     throw new Error(message);
   }
   if (res.status === 204) return undefined as unknown as T;
@@ -68,10 +69,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 async function uploadImages(id: number, files: File[]): Promise<void> {
   if (!files.length) return;
   const formData = new FormData();
-  files.forEach((f) => formData.append('images', f));
+  files.forEach((f) => formData.append("images", f));
   const res = await fetch(`${API_BASE_URL}/api/rechazos-externos/${id}/images`, {
-    method: 'POST',
-    credentials: 'include',
+    method: "POST",
+    credentials: "include",
     body: formData,
   });
   if (!res.ok) {
@@ -79,7 +80,9 @@ async function uploadImages(id: number, files: File[]): Promise<void> {
     try {
       const json = await res.json();
       message = json?.error?.message ?? json?.message ?? json?.error ?? message;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     throw new Error(message);
   }
 }
@@ -88,27 +91,27 @@ async function uploadImages(id: number, files: File[]): Promise<void> {
 
 function buildListUrl(page: number, search: string): string {
   const p = new URLSearchParams();
-  p.set('page',  String(page));
-  p.set('limit', String(PAGE_SIZE));
-  if (search.trim()) p.set('search', search.trim());
+  p.set("page", String(page));
+  p.set("limit", String(PAGE_SIZE));
+  if (search.trim()) p.set("search", search.trim());
   return `/api/rechazos-externos?${p.toString()}`;
 }
 
 function buildListKey(page: number, search: string) {
-  return ['rechazos-externos', 'list', page, search] as const;
+  return ["rechazos-externos", "list", page, search] as const;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function RechazosExternos() {
-  const { t }   = useTranslation();
-  const notify  = useNotify();
+  const { t } = useTranslation();
+  const notify = useNotify();
   const confirm = useConfirm();
-  const qc      = useQueryClient();
+  const qc = useQueryClient();
 
   // ── Filter state ──────────────────────────────────────────────────────────
-  const [searchInput,     setSearchInput]     = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,52 +130,61 @@ export default function RechazosExternos() {
 
   const listQuery = useQuery<ReListResponse>({
     queryKey: listKey,
-    queryFn:  () => apiFetch<ReListResponse>(listUrl),
+    queryFn: () => apiFetch<ReListResponse>(listUrl),
     staleTime: 60000,
     placeholderData: (prev) => prev,
   });
 
   // ── Modal state ───────────────────────────────────────────────────────────
-  const [formOpen,     setFormOpen]     = useState(false);
-  const [isEditing,    setIsEditing]    = useState(false);
-  const [editTarget,   setEditTarget]   = useState<RechazosExterno | undefined>(undefined);
-  const [detailOpen,   setDetailOpen]   = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTarget, setEditTarget] = useState<RechazosExterno | undefined>(undefined);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [detailTarget, setDetailTarget] = useState<RechazosExterno | undefined>(undefined);
-  const [fetchingId,   setFetchingId]   = useState<number | null>(null);
+  const [fetchingId, setFetchingId] = useState<number | null>(null);
 
   // ── Fetch single record ───────────────────────────────────────────────────
-  const fetchSingle = useCallback(async (id: number): Promise<RechazosExterno | null> => {
-    try {
-      setFetchingId(id);
-      return await apiFetch<RechazosExterno>(`/api/rechazos-externos/${id}`);
-    } catch (err) {
-      notify(err instanceof Error ? err.message : t('common.error'), 'error');
-      return null;
-    } finally {
-      setFetchingId(null);
-    }
-  }, [notify, t]);
+  const fetchSingle = useCallback(
+    async (id: number): Promise<RechazosExterno | null> => {
+      try {
+        setFetchingId(id);
+        return await apiFetch<RechazosExterno>(`/api/rechazos-externos/${id}`);
+      } catch (err) {
+        notify(err instanceof Error ? err.message : t("common.error"), "error");
+        return null;
+      } finally {
+        setFetchingId(null);
+      }
+    },
+    [notify, t],
+  );
 
   // ── Invalidate all RE queries ─────────────────────────────────────────────
   const invalidateAll = useCallback(() => {
-    void qc.invalidateQueries({ queryKey: ['rechazos-externos'] });
+    void qc.invalidateQueries({ queryKey: ["rechazos-externos"] });
   }, [qc]);
 
   // ── Modal openers ─────────────────────────────────────────────────────────
-  const handleView = useCallback(async (id: number) => {
-    const rec = await fetchSingle(id);
-    if (!rec) return;
-    setDetailTarget(rec);
-    setDetailOpen(true);
-  }, [fetchSingle]);
+  const handleView = useCallback(
+    async (id: number) => {
+      const rec = await fetchSingle(id);
+      if (!rec) return;
+      setDetailTarget(rec);
+      setDetailOpen(true);
+    },
+    [fetchSingle],
+  );
 
-  const handleEdit = useCallback(async (id: number) => {
-    const rec = await fetchSingle(id);
-    if (!rec) return;
-    setEditTarget(rec);
-    setIsEditing(true);
-    setFormOpen(true);
-  }, [fetchSingle]);
+  const handleEdit = useCallback(
+    async (id: number) => {
+      const rec = await fetchSingle(id);
+      if (!rec) return;
+      setEditTarget(rec);
+      setIsEditing(true);
+      setFormOpen(true);
+    },
+    [fetchSingle],
+  );
 
   const handleAddNew = useCallback(() => {
     setEditTarget(undefined);
@@ -185,29 +197,32 @@ export default function RechazosExternos() {
   const createMutation = useMutation<RechazosExterno, Error, { form: ReFormData; files: File[] }>({
     mutationFn: async ({ form, files }) => {
       const body = {
-        return_order:          form.return_order,
-        license_plate:         form.license_plate,
-        classification:        form.classification,
-        inches:                form.inches,
-        sales_channel:         form.sales_channel,
-        sku:                   form.sku,
-        brand:                 form.brand,
-        modelo:                form.modelo,
-        descripcion:           form.descripcion,
-        plant_entry:           form.plant_entry,
-        plant_exit:            form.plant_exit || null,
-        total_time_minutes:    form.total_time_minutes,
-        outbound_order:        form.outbound_order,
-        processed_by:          form.processed_by,
-        registration_date:     form.registration_date || null,
-        sale_price:            form.sale_price ? parseFloat(form.sale_price) : null,
-        estatus:               'Pendiente',
-        problem_descriptions:  form.problems.map((p, i) => ({ orden: i + 1, descripcion: p.descripcion })),
-        corrective_actions:    (form.corrective_actions ?? []),
+        return_order: form.return_order,
+        license_plate: form.license_plate,
+        classification: form.classification,
+        inches: form.inches,
+        sales_channel: form.sales_channel,
+        sku: form.sku,
+        brand: form.brand,
+        modelo: form.modelo,
+        descripcion: form.descripcion,
+        plant_entry: form.plant_entry,
+        plant_exit: form.plant_exit || null,
+        total_time_minutes: form.total_time_minutes,
+        outbound_order: form.outbound_order,
+        processed_by: form.processed_by,
+        registration_date: form.registration_date || null,
+        sale_price: form.sale_price ? parseFloat(form.sale_price) : null,
+        estatus: "Pendiente",
+        problem_descriptions: form.problems.map((p, i) => ({
+          orden: i + 1,
+          descripcion: p.descripcion,
+        })),
+        corrective_actions: form.corrective_actions ?? [],
       };
-      const rec = await apiFetch<RechazosExterno>('/api/rechazos-externos', {
-        method: 'POST',
-        body:   JSON.stringify(body),
+      const rec = await apiFetch<RechazosExterno>("/api/rechazos-externos", {
+        method: "POST",
+        body: JSON.stringify(body),
       });
       if (files.length > 0) {
         await uploadImages(rec.id, files);
@@ -215,38 +230,45 @@ export default function RechazosExternos() {
       return rec;
     },
     onSuccess: () => {
-      notify(t('common.success'), 'success');
+      notify(t("common.success"), "success");
       setFormOpen(false);
       invalidateAll();
     },
-    onError: (err) => notify(err.message, 'error'),
+    onError: (err) => notify(err.message, "error"),
   });
 
-  const updateMutation = useMutation<RechazosExterno, Error, { id: number; form: ReFormData; files: File[] }>({
+  const updateMutation = useMutation<
+    RechazosExterno,
+    Error,
+    { id: number; form: ReFormData; files: File[] }
+  >({
     mutationFn: async ({ id, form, files }) => {
       const body = {
-        return_order:          form.return_order,
-        license_plate:         form.license_plate,
-        classification:        form.classification,
-        inches:                form.inches,
-        sales_channel:         form.sales_channel,
-        sku:                   form.sku,
-        brand:                 form.brand,
-        modelo:                form.modelo,
-        descripcion:           form.descripcion,
-        plant_entry:           form.plant_entry,
-        plant_exit:            form.plant_exit || null,
-        total_time_minutes:    form.total_time_minutes,
-        outbound_order:        form.outbound_order,
-        processed_by:          form.processed_by,
-        registration_date:     form.registration_date || null,
-        sale_price:            form.sale_price ? parseFloat(form.sale_price) : null,
-        problem_descriptions:  form.problems.map((p, i) => ({ orden: i + 1, descripcion: p.descripcion })),
-        corrective_actions:    (form.corrective_actions ?? []),
+        return_order: form.return_order,
+        license_plate: form.license_plate,
+        classification: form.classification,
+        inches: form.inches,
+        sales_channel: form.sales_channel,
+        sku: form.sku,
+        brand: form.brand,
+        modelo: form.modelo,
+        descripcion: form.descripcion,
+        plant_entry: form.plant_entry,
+        plant_exit: form.plant_exit || null,
+        total_time_minutes: form.total_time_minutes,
+        outbound_order: form.outbound_order,
+        processed_by: form.processed_by,
+        registration_date: form.registration_date || null,
+        sale_price: form.sale_price ? parseFloat(form.sale_price) : null,
+        problem_descriptions: form.problems.map((p, i) => ({
+          orden: i + 1,
+          descripcion: p.descripcion,
+        })),
+        corrective_actions: form.corrective_actions ?? [],
       };
       const rec = await apiFetch<RechazosExterno>(`/api/rechazos-externos/${id}`, {
-        method: 'PUT',
-        body:   JSON.stringify(body),
+        method: "PUT",
+        body: JSON.stringify(body),
       });
       if (files.length > 0) {
         await uploadImages(id, files);
@@ -254,30 +276,29 @@ export default function RechazosExternos() {
       return rec;
     },
     onSuccess: () => {
-      notify(t('common.success'), 'success');
+      notify(t("common.success"), "success");
       setFormOpen(false);
       invalidateAll();
     },
-    onError: (err) => notify(err.message, 'error'),
+    onError: (err) => notify(err.message, "error"),
   });
 
   const deleteMutation = useMutation<unknown, Error, number>({
-    mutationFn: (id) =>
-      apiFetch(`/api/rechazos-externos/${id}`, { method: 'DELETE' }),
+    mutationFn: (id) => apiFetch(`/api/rechazos-externos/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      notify(t('common.success'), 'success');
+      notify(t("common.success"), "success");
       invalidateAll();
       const remaining = (listQuery.data?.data.length ?? 0) - 1;
       if (remaining === 0 && page > 1) setPage((p) => p - 1);
     },
-    onError: (err) => notify(err.message, 'error'),
+    onError: (err) => notify(err.message, "error"),
   });
 
   const deletePhotoMutation = useMutation<unknown, Error, { reId: number; imageId: number }>({
     mutationFn: ({ reId, imageId }) =>
-      apiFetch(`/api/rechazos-externos/${reId}/images/${imageId}`, { method: 'DELETE' }),
+      apiFetch(`/api/rechazos-externos/${reId}/images/${imageId}`, { method: "DELETE" }),
     onSuccess: async () => {
-      notify(t('common.success'), 'success');
+      notify(t("common.success"), "success");
       // Refresh the detail modal content
       if (detailTarget) {
         const refreshed = await fetchSingle(detailTarget.id);
@@ -285,33 +306,42 @@ export default function RechazosExternos() {
       }
       invalidateAll();
     },
-    onError: (err) => notify(err.message, 'error'),
+    onError: (err) => notify(err.message, "error"),
   });
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  const handleDelete = useCallback(async (id: number) => {
-    const ok = await confirm({
-      title:       t('confirm.title'),
-      message:     t('confirm.delete_confirm'),
-      confirmText: t('common.delete'),
-      cancelText:  t('common.cancel'),
-    });
-    if (ok) deleteMutation.mutate(id);
-  }, [confirm, deleteMutation, t]);
+  const handleDelete = useCallback(
+    async (id: number) => {
+      const ok = await confirm({
+        title: t("confirm.title"),
+        message: t("confirm.delete_confirm"),
+        confirmText: t("common.delete"),
+        cancelText: t("common.cancel"),
+      });
+      if (ok) deleteMutation.mutate(id);
+    },
+    [confirm, deleteMutation, t],
+  );
 
-  const handleFormSubmit = useCallback((formData: ReFormData, files: File[]) => {
-    if (isEditing && editTarget) {
-      updateMutation.mutate({ id: editTarget.id, form: formData, files });
-    } else {
-      createMutation.mutate({ form: formData, files });
-    }
-  }, [isEditing, editTarget, createMutation, updateMutation]);
+  const handleFormSubmit = useCallback(
+    (formData: ReFormData, files: File[]) => {
+      if (isEditing && editTarget) {
+        updateMutation.mutate({ id: editTarget.id, form: formData, files });
+      } else {
+        createMutation.mutate({ form: formData, files });
+      }
+    },
+    [isEditing, editTarget, createMutation, updateMutation],
+  );
 
-  const handleDeletePhoto = useCallback((imageId: number) => {
-    if (!detailTarget) return;
-    deletePhotoMutation.mutate({ reId: detailTarget.id, imageId });
-  }, [detailTarget, deletePhotoMutation]);
+  const handleDeletePhoto = useCallback(
+    (imageId: number) => {
+      if (!detailTarget) return;
+      deletePhotoMutation.mutate({ reId: detailTarget.id, imageId });
+    },
+    [detailTarget, deletePhotoMutation],
+  );
 
   const handleEditFromDetail = useCallback(() => {
     if (!detailTarget) return;
@@ -322,8 +352,8 @@ export default function RechazosExternos() {
   }, [detailTarget]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const rows      = listQuery.data?.data    ?? [];
-  const total     = listQuery.data?.total   ?? 0;
+  const rows = listQuery.data?.data ?? [];
+  const total = listQuery.data?.total ?? 0;
   const isLoading = listQuery.isLoading || fetchingId !== null;
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -332,32 +362,38 @@ export default function RechazosExternos() {
       {/* Page header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111111', marginBottom: 2 }}>
-            {t('rechazos_externos.title')}
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111111", marginBottom: 2 }}>
+            {t("rechazos_externos.title")}
           </h1>
-          <p style={{ fontSize: 13, color: '#666', marginTop: 2 }}>{t('nav.rechazos_ext')}</p>
+          <p style={{ fontSize: 13, color: "#666", marginTop: 2 }}>{t("nav.rechazos_ext")}</p>
         </div>
-        <button
-          type="button"
-          onClick={handleAddNew}
-          className="btn btn-primario"
-        >
-          + {t('rechazos_externos.add')}
+        <button type="button" onClick={handleAddNew} className="btn btn-primario">
+          + {t("rechazos_externos.add")}
         </button>
       </div>
 
       {/* Search bar */}
       <div className="filtros">
-        <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none', fontSize: 14 }}>
+        <div style={{ position: "relative" }}>
+          <span
+            style={{
+              position: "absolute",
+              left: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "#999",
+              pointerEvents: "none",
+              fontSize: 14,
+            }}
+          >
             &#128269;
           </span>
           <input
             type="search"
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder={t('rechazos_externos.search_placeholder')}
-            aria-label={t('rechazos_externos.search_placeholder')}
+            placeholder={t("rechazos_externos.search_placeholder")}
+            aria-label={t("rechazos_externos.search_placeholder")}
             style={{ paddingLeft: 30 }}
           />
         </div>
@@ -365,8 +401,17 @@ export default function RechazosExternos() {
 
       {/* Error banner */}
       {listQuery.isError && (
-        <div style={{ background: '#fff0f0', border: '1px solid #ffcccc', borderRadius: 4, padding: '10px 14px', fontSize: 13, color: '#c0392b' }}>
-          {t('common.error')}: {listQuery.error instanceof Error ? listQuery.error.message : ''}
+        <div
+          style={{
+            background: "#fff0f0",
+            border: "1px solid #ffcccc",
+            borderRadius: 4,
+            padding: "10px 14px",
+            fontSize: 13,
+            color: "#c0392b",
+          }}
+        >
+          {t("common.error")}: {listQuery.error instanceof Error ? listQuery.error.message : ""}
         </div>
       )}
 

@@ -15,17 +15,19 @@ export async function getBMPool(): Promise<sql.ConnectionPool> {
 
   // Read env vars lazily so dotenv has time to load them before first use
   const cfg: sql.config = {
-    server:   process.env.BM_SERVER   ?? "45.22.197.136",
+    server: process.env.BM_SERVER ?? "45.22.197.136",
     database: process.env.BM_DATABASE ?? "BinManagerRo",
-    user:     process.env.BM_USER     ?? "ro_leonel.hernandez",
+    user: process.env.BM_USER ?? "ro_leonel.hernandez",
     password: pw,
-    options:  { encrypt: false, trustServerCertificate: true },
-    pool:     { max: 5, min: 0, idleTimeoutMillis: 30_000 },
+    options: { encrypt: false, trustServerCertificate: true },
+    pool: { max: 5, min: 0, idleTimeoutMillis: 30_000 },
     connectionTimeout: 20_000,
-    requestTimeout:    30_000,
+    requestTimeout: 30_000,
   };
 
   _pool = await new sql.ConnectionPool(cfg).connect();
-  _pool.on("error", () => { _pool = null; });
+  _pool.on("error", () => {
+    _pool = null;
+  });
   return _pool;
 }

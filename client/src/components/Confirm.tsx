@@ -6,9 +6,9 @@
  * Consumed via ConfirmContext / useConfirm() — not used directly.
  */
 
-import { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import type { ConfirmConfig } from '../types';
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import type { ConfirmConfig } from "../types";
 
 interface ConfirmProps extends ConfirmConfig {
   isOpen: boolean;
@@ -20,8 +20,8 @@ export default function Confirm({
   isOpen,
   title,
   message,
-  confirmText = 'Confirmar',
-  cancelText = 'Cancelar',
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
   onConfirm,
   onCancel,
 }: ConfirmProps) {
@@ -32,13 +32,13 @@ export default function Confirm({
     if (!isOpen) return;
 
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onCancel();
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onCancel]);
 
   // Trap focus inside modal when open
@@ -68,13 +68,13 @@ export default function Confirm({
       aria-labelledby="confirm-title"
       aria-describedby="confirm-message"
       style={{
-        position: 'fixed',
+        position: "fixed",
         inset: 0,
         zIndex: 400,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.5)',
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0,0,0,0.5)",
       }}
       onClick={handleOverlayClick}
     >
@@ -82,14 +82,14 @@ export default function Confirm({
       <div
         ref={dialogRef}
         style={{
-          position: 'relative',
-          background: '#fff',
-          border: 'none',
+          position: "relative",
+          background: "#fff",
+          border: "none",
           padding: 28,
           width: 380,
-          maxWidth: '95vw',
-          display: 'flex',
-          flexDirection: 'column',
+          maxWidth: "95vw",
+          display: "flex",
+          flexDirection: "column",
           gap: 0,
         }}
       >
@@ -99,40 +99,29 @@ export default function Confirm({
           style={{
             fontSize: 13,
             fontWeight: 700,
-            color: '#0d2b4e',
-            textTransform: 'uppercase',
-            letterSpacing: '0.8px',
-            borderBottom: '2px solid #0d2b4e',
+            color: "#0d2b4e",
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+            borderBottom: "2px solid #0d2b4e",
             paddingBottom: 8,
             marginBottom: 16,
-            margin: '0 0 16px 0',
+            margin: "0 0 16px 0",
           }}
         >
           {title}
         </h2>
 
         {/* Message */}
-        <p
-          id="confirm-message"
-          style={{ fontSize: 14, color: '#111', marginBottom: 20 }}
-        >
+        <p id="confirm-message" style={{ fontSize: 14, color: "#111", marginBottom: 20 }}>
           {message}
         </p>
 
         {/* Actions */}
-        <div className="btn-grupo" style={{ justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="btn btn-secundario"
-          >
+        <div className="btn-grupo" style={{ justifyContent: "flex-end" }}>
+          <button type="button" onClick={onCancel} className="btn btn-secundario">
             {cancelText}
           </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="btn btn-primario"
-          >
+          <button type="button" onClick={onConfirm} className="btn btn-primario">
             {confirmText}
           </button>
         </div>

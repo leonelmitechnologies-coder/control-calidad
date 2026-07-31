@@ -1,118 +1,120 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const express  = require('express');
-const { Pool } = require('pg');
-const session  = require('express-session');
-const bcrypt   = require('bcrypt');
-const path     = require('path');
-const fs       = require('fs');
-const multer   = require('multer');
+const express = require("express");
+const { Pool } = require("pg");
+const session = require("express-session");
+const bcrypt = require("bcrypt");
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ── Base de datos ──────────────────────────────────────────────
 const pool = new Pool({
-  host:     process.env.DB_HOST,
-  port:     parseInt(process.env.DB_PORT),
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT),
   database: process.env.DB_NAME,
-  user:     process.env.DB_USER,
+  user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
 });
 
 // ── Middleware ─────────────────────────────────────────────────
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({
-  secret:            process.env.SESSION_SECRET,
-  resave:            false,
-  saveUninitialized: false,
-  cookie: { secure: false, maxAge: 8 * 60 * 60 * 1000 },
-}));
+app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 8 * 60 * 60 * 1000 },
+  }),
+);
 
 // ── Uploads ────────────────────────────────────────────────────
-const uploadsDir    = path.join(__dirname, 'public', 'uploads', 'rechazos');
-const uploadsOrgDir = path.join(__dirname, 'public', 'uploads', 'organigrama');
-if (!fs.existsSync(uploadsDir))    fs.mkdirSync(uploadsDir,    { recursive: true });
+const uploadsDir = path.join(__dirname, "public", "uploads", "rechazos");
+const uploadsOrgDir = path.join(__dirname, "public", "uploads", "organigrama");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 if (!fs.existsSync(uploadsOrgDir)) fs.mkdirSync(uploadsOrgDir, { recursive: true });
 
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadsDir),
     filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
     },
   }),
-  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith("image/")),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 const uploadOrg = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadsOrgDir),
-    filename:    (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
       cb(null, `org-${Date.now()}${ext}`);
     },
   }),
-  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith("image/")),
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-const uploadsIntDir = path.join(__dirname, 'public', 'uploads', 'rechazos-internos');
+const uploadsIntDir = path.join(__dirname, "public", "uploads", "rechazos-internos");
 if (!fs.existsSync(uploadsIntDir)) fs.mkdirSync(uploadsIntDir, { recursive: true });
 
 const uploadInt = multer({
   storage: multer.diskStorage({
     destination: (_, __, cb) => cb(null, uploadsIntDir),
-    filename:    (_, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    filename: (_, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
     },
   }),
-  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith("image/")),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-const uploadsAqlDir = path.join(__dirname, 'public', 'uploads', 'aql');
+const uploadsAqlDir = path.join(__dirname, "public", "uploads", "aql");
 if (!fs.existsSync(uploadsAqlDir)) fs.mkdirSync(uploadsAqlDir, { recursive: true });
 
 const uploadAql = multer({
   storage: multer.diskStorage({
     destination: (_, __, cb) => cb(null, uploadsAqlDir),
-    filename:    (_, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    filename: (_, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
     },
   }),
-  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith("image/")),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-const uploadsShipDir = path.join(__dirname, 'public', 'uploads', 'shipping');
+const uploadsShipDir = path.join(__dirname, "public", "uploads", "shipping");
 if (!fs.existsSync(uploadsShipDir)) fs.mkdirSync(uploadsShipDir, { recursive: true });
 
 const uploadShip = multer({
   storage: multer.diskStorage({
     destination: (_, __, cb) => cb(null, uploadsShipDir),
-    filename:    (_, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    filename: (_, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
     },
   }),
-  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith("image/")),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 function auth(req, res, next) {
-  if (!req.session.usuario) return res.status(401).json({ error: 'No autorizado' });
+  if (!req.session.usuario) return res.status(401).json({ error: "No autorizado" });
   next();
 }
 
 function admin(req, res, next) {
-  if (req.session.usuario?.rol !== 'Administrador')
-    return res.status(403).json({ error: 'Sin permisos de administrador' });
+  if (req.session.usuario?.rol !== "Administrador")
+    return res.status(403).json({ error: "Sin permisos de administrador" });
   next();
 }
 
@@ -165,14 +167,28 @@ async function initDB() {
     )
   `);
 
-  await pool.query('ALTER TABLE recepciones DROP COLUMN IF EXISTS trailer');
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS marca            VARCHAR(100) NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS modelo           VARCHAR(100) NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS pulgada          VARCHAR(20)  NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS descripcion      TEXT         NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS observaciones    TEXT         NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS estatus          VARCHAR(20)  NOT NULL DEFAULT 'Abierto'`);
-  await pool.query(`ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_digital    TEXT         NOT NULL DEFAULT ''`);
+  await pool.query("ALTER TABLE recepciones DROP COLUMN IF EXISTS trailer");
+  await pool.query(
+    `ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS marca            VARCHAR(100) NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS modelo           VARCHAR(100) NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS pulgada          VARCHAR(20)  NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS descripcion      TEXT         NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS observaciones    TEXT         NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS estatus          VARCHAR(20)  NOT NULL DEFAULT 'Abierto'`,
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_internos ADD COLUMN IF NOT EXISTS firma_digital    TEXT         NOT NULL DEFAULT ''`,
+  );
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS rechazos_externos (
@@ -204,12 +220,22 @@ async function initDB() {
     )
   `);
 
-  await pool.query('ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS registration_date DATE');
-  await pool.query('ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS sale_price NUMERIC(10,2)');
-  await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS estatus VARCHAR(50) NOT NULL DEFAULT 'Pendiente'`);
-  await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS modelo      VARCHAR(100) NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS pulgada     VARCHAR(20)  NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS descripcion TEXT         NOT NULL DEFAULT ''`);
+  await pool.query("ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS registration_date DATE");
+  await pool.query(
+    "ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS sale_price NUMERIC(10,2)",
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS estatus VARCHAR(50) NOT NULL DEFAULT 'Pendiente'`,
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS modelo      VARCHAR(100) NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS pulgada     VARCHAR(20)  NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE rechazos_externos ADD COLUMN IF NOT EXISTS descripcion TEXT         NOT NULL DEFAULT ''`,
+  );
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS re_images (
@@ -251,7 +277,9 @@ async function initDB() {
     )
   `);
 
-  await pool.query(`ALTER TABLE organigrama_qc ADD COLUMN IF NOT EXISTS foto_filename VARCHAR(255) NOT NULL DEFAULT ''`);
+  await pool.query(
+    `ALTER TABLE organigrama_qc ADD COLUMN IF NOT EXISTS foto_filename VARCHAR(255) NOT NULL DEFAULT ''`,
+  );
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS calendario_solicitudes (
@@ -270,7 +298,9 @@ async function initDB() {
       created_at     TIMESTAMP    DEFAULT NOW()
     )
   `);
-  await pool.query(`ALTER TABLE calendario_solicitudes ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT NOT NULL DEFAULT ''`);
+  await pool.query(
+    `ALTER TABLE calendario_solicitudes ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT NOT NULL DEFAULT ''`,
+  );
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS calendario_festivos (
@@ -322,9 +352,15 @@ async function initDB() {
     )
   `);
   // Columnas nuevas CAPA (idempotentes)
-  await pool.query(`ALTER TABLE capas ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) NOT NULL DEFAULT 'Correctiva'`);
-  await pool.query(`ALTER TABLE capa_5porques ADD COLUMN IF NOT EXISTS pregunta TEXT NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE capa_acciones ADD COLUMN IF NOT EXISTS descripcion TEXT NOT NULL DEFAULT ''`);
+  await pool.query(
+    `ALTER TABLE capas ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) NOT NULL DEFAULT 'Correctiva'`,
+  );
+  await pool.query(
+    `ALTER TABLE capa_5porques ADD COLUMN IF NOT EXISTS pregunta TEXT NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE capa_acciones ADD COLUMN IF NOT EXISTS descripcion TEXT NOT NULL DEFAULT ''`,
+  );
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS capa_ishikawa (
@@ -407,11 +443,21 @@ async function initDB() {
   `);
 
   // AQL Phase 2D: nuevas columnas
-  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS order_id          VARCHAR(100) NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS lote              VARCHAR(100) NOT NULL DEFAULT ''`);
-  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS muestra_total     INTEGER      NOT NULL DEFAULT 0`);
-  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS defectos_encontrados INTEGER   NOT NULL DEFAULT 0`);
-  await pool.query(`ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS observaciones     TEXT         NOT NULL DEFAULT ''`);
+  await pool.query(
+    `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS order_id          VARCHAR(100) NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS lote              VARCHAR(100) NOT NULL DEFAULT ''`,
+  );
+  await pool.query(
+    `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS muestra_total     INTEGER      NOT NULL DEFAULT 0`,
+  );
+  await pool.query(
+    `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS defectos_encontrados INTEGER   NOT NULL DEFAULT 0`,
+  );
+  await pool.query(
+    `ALTER TABLE aql_registros ADD COLUMN IF NOT EXISTS observaciones     TEXT         NOT NULL DEFAULT ''`,
+  );
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS aql_checklist (
@@ -488,65 +534,70 @@ async function initDB() {
   for (const sql of lsNewCols) await pool.query(sql);
 
   // Festivos oficiales México (solo si la tabla está vacía)
-  const { rows: fRows } = await pool.query('SELECT COUNT(*) FROM calendario_festivos');
+  const { rows: fRows } = await pool.query("SELECT COUNT(*) FROM calendario_festivos");
   if (parseInt(fRows[0].count) === 0) {
     const festivos = [
-      ['Año Nuevo',                  '2026-01-01'],
-      ['Día de la Constitución',     '2026-02-02'],
-      ['Natalicio de Benito Juárez', '2026-03-16'],
-      ['Día del Trabajo',            '2026-05-01'],
-      ['Independencia de México',    '2026-09-16'],
-      ['Revolución Mexicana',        '2026-11-16'],
-      ['Navidad',                    '2026-12-25'],
+      ["Año Nuevo", "2026-01-01"],
+      ["Día de la Constitución", "2026-02-02"],
+      ["Natalicio de Benito Juárez", "2026-03-16"],
+      ["Día del Trabajo", "2026-05-01"],
+      ["Independencia de México", "2026-09-16"],
+      ["Revolución Mexicana", "2026-11-16"],
+      ["Navidad", "2026-12-25"],
     ];
     for (const [nombre, fecha] of festivos) {
-      await pool.query('INSERT INTO calendario_festivos (nombre, fecha, recurrente) VALUES ($1,$2,true)', [nombre, fecha]);
+      await pool.query(
+        "INSERT INTO calendario_festivos (nombre, fecha, recurrente) VALUES ($1,$2,true)",
+        [nombre, fecha],
+      );
     }
-    console.log('Festivos oficiales precargados.');
+    console.log("Festivos oficiales precargados.");
   }
 
-  const { rows } = await pool.query('SELECT COUNT(*) FROM usuarios');
+  const { rows } = await pool.query("SELECT COUNT(*) FROM usuarios");
   if (parseInt(rows[0].count) === 0) {
-    const hash = await bcrypt.hash('admin123', 10);
+    const hash = await bcrypt.hash("admin123", 10);
     await pool.query(
       `INSERT INTO usuarios (nombre, usuario, password_hash, rol, area, activo)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      ['Administrador', 'admin', hash, 'Administrador', '', true]
+      ["Administrador", "admin", hash, "Administrador", "", true],
     );
-    console.log('Usuario inicial creado → admin / admin123');
+    console.log("Usuario inicial creado → admin / admin123");
   }
 }
 
 // ── AUTH ───────────────────────────────────────────────────────
-app.post('/api/login', async (req, res) => {
+app.post("/api/login", async (req, res) => {
   const { usuario, password } = req.body;
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM usuarios WHERE usuario = $1 AND activo = true',
-      [usuario]
+      "SELECT * FROM usuarios WHERE usuario = $1 AND activo = true",
+      [usuario],
     );
-    if (!rows.length) return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
-    const u  = rows[0];
+    if (!rows.length) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
+    const u = rows[0];
     const ok = await bcrypt.compare(password, u.password_hash);
-    if (!ok) return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
+    if (!ok) return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
     const sesion = { id: u.id, nombre: u.nombre, usuario: u.usuario, rol: u.rol };
     req.session.usuario = sesion;
     res.json(sesion);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/logout', (req, res) => {
+app.post("/api/logout", (req, res) => {
   req.session.destroy();
   res.json({ ok: true });
 });
 
-app.get('/api/me', (req, res) => {
-  if (!req.session.usuario) return res.status(401).json({ error: 'No autenticado' });
+app.get("/api/me", (req, res) => {
+  if (!req.session.usuario) return res.status(401).json({ error: "No autenticado" });
   res.json(req.session.usuario);
 });
 
 // ── NO CONFORMIDADES ───────────────────────────────────────────
-app.get('/api/nc', auth, async (req, res) => {
+app.get("/api/nc", auth, async (req, res) => {
   try {
     // Supports: estatus, area, tipo, search, start_date, end_date, page, limit
     const { estatus, area, tipo, search, start_date, end_date, page = 1, limit = 20 } = req.query;
@@ -554,7 +605,7 @@ app.get('/api/nc', auth, async (req, res) => {
     const params = [];
     let idx = 1;
 
-    if (estatus && estatus !== 'Todas') {
+    if (estatus && estatus !== "Todas") {
       conditions.push(`nc.estatus = $${idx++}`);
       params.push(estatus);
     }
@@ -567,7 +618,9 @@ app.get('/api/nc', auth, async (req, res) => {
       params.push(tipo);
     }
     if (search) {
-      conditions.push(`(nc.area ILIKE $${idx} OR nc.tipo ILIKE $${idx} OR nc.descripcion ILIKE $${idx})`);
+      conditions.push(
+        `(nc.area ILIKE $${idx} OR nc.tipo ILIKE $${idx} OR nc.descripcion ILIKE $${idx})`,
+      );
       params.push(`%${search}%`);
       idx++;
     }
@@ -580,17 +633,17 @@ app.get('/api/nc', auth, async (req, res) => {
       params.push(end_date);
     }
 
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const countResult = await pool.query(
       `SELECT COUNT(*) AS total FROM no_conformidades nc ${where}`,
-      params
+      params,
     );
     const total = parseInt(countResult.rows[0].total, 10);
 
-    const pageNum  = Math.max(1, parseInt(page, 10) || 1);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const pageSize = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
-    const offset   = (pageNum - 1) * pageSize;
+    const offset = (pageNum - 1) * pageSize;
 
     const dataParams = [...params, pageSize, offset];
     const { rows } = await pool.query(
@@ -600,29 +653,33 @@ app.get('/api/nc', auth, async (req, res) => {
        ${where}
        ORDER BY nc.fecha DESC, nc.hora DESC
        LIMIT $${idx++} OFFSET $${idx++}`,
-      dataParams
+      dataParams,
     );
 
     res.json({ data: rows, total, page: pageNum, pageSize });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/nc/:id', auth, async (req, res) => {
+app.get("/api/nc/:id", auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT nc.*,
          (SELECT COUNT(*) FROM capas WHERE origen_tipo='nc' AND origen_id=nc.id) AS cnt_capas
        FROM no_conformidades nc WHERE nc.id = $1`,
-      [req.params.id]
+      [req.params.id],
     );
-    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    if (!rows.length) return res.status(404).json({ error: "No encontrado" });
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/nc', auth, async (req, res) => {
+app.post("/api/nc", auth, async (req, res) => {
   const { hora, area, tipo, descripcion, severidad, responsable, accion } = req.body;
-  const fecha          = new Date().toISOString().slice(0, 10);
+  const fecha = new Date().toISOString().slice(0, 10);
   const registrado_por = req.session.usuario.nombre;
   try {
     const { rows } = await pool.query(
@@ -630,14 +687,25 @@ app.post('/api/nc', auth, async (req, res) => {
          (hora, area, tipo, descripcion, severidad, responsable, accion, registrado_por, estatus, fecha)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'Abierta',$9)
        RETURNING *`,
-      [hora, area, tipo, descripcion, severidad,
-       responsable || '—', accion || '—', registrado_por, fecha]
+      [
+        hora,
+        area,
+        tipo,
+        descripcion,
+        severidad,
+        responsable || "—",
+        accion || "—",
+        registrado_por,
+        fecha,
+      ],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.put('/api/nc/:id', auth, async (req, res) => {
+app.put("/api/nc/:id", auth, async (req, res) => {
   const { hora, area, tipo, descripcion, severidad, responsable, accion } = req.body;
   try {
     const { rows } = await pool.query(
@@ -645,66 +713,95 @@ app.put('/api/nc/:id', auth, async (req, res) => {
        SET hora=$1, area=$2, tipo=$3, descripcion=$4, severidad=$5, responsable=$6, accion=$7
        WHERE id=$8
        RETURNING *`,
-      [hora, area, tipo, descripcion, severidad, responsable || '—', accion || '—', req.params.id]
+      [hora, area, tipo, descripcion, severidad, responsable || "—", accion || "—", req.params.id],
     );
-    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    if (!rows.length) return res.status(404).json({ error: "No encontrado" });
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.patch('/api/nc/:id/estatus', auth, async (req, res) => {
+app.patch("/api/nc/:id/estatus", auth, async (req, res) => {
   const { estatus } = req.body;
   try {
     const { rows } = await pool.query(
-      'UPDATE no_conformidades SET estatus=$1 WHERE id=$2 RETURNING *',
-      [estatus, req.params.id]
+      "UPDATE no_conformidades SET estatus=$1 WHERE id=$2 RETURNING *",
+      [estatus, req.params.id],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/nc/:id', auth, async (req, res) => {
+app.delete("/api/nc/:id", auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM no_conformidades WHERE id=$1', [req.params.id]);
+    await pool.query("DELETE FROM no_conformidades WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── RECEPCIONES ────────────────────────────────────────────────
-app.get('/api/recepciones', auth, async (req, res) => {
+app.get("/api/recepciones", auth, async (req, res) => {
   try {
     const { company, origen, estatus, page = 1, limit = 20 } = req.query;
-    const params  = [];
+    const params = [];
     const filters = [];
-    if (company) { params.push(`%${company}%`);  filters.push(`company ILIKE $${params.length}`); }
-    if (origen)  { params.push(`%${origen}%`);   filters.push(`origen  ILIKE $${params.length}`); }
-    if (estatus && estatus !== 'Todas') { params.push(estatus); filters.push(`estatus = $${params.length}`); }
-    const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+    if (company) {
+      params.push(`%${company}%`);
+      filters.push(`company ILIKE $${params.length}`);
+    }
+    if (origen) {
+      params.push(`%${origen}%`);
+      filters.push(`origen  ILIKE $${params.length}`);
+    }
+    if (estatus && estatus !== "Todas") {
+      params.push(estatus);
+      filters.push(`estatus = $${params.length}`);
+    }
+    const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
     const countRow = await pool.query(`SELECT COUNT(*) FROM recepciones ${where}`, params);
-    const total    = parseInt(countRow.rows[0].count, 10);
+    const total = parseInt(countRow.rows[0].count, 10);
 
     const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     params.push(parseInt(limit, 10), offset);
     const { rows } = await pool.query(
       `SELECT * FROM recepciones ${where} ORDER BY fecha DESC, hora DESC, id DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params
+      params,
     );
     res.json({ data: rows, total, page: parseInt(page, 10), limit: parseInt(limit, 10) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/recepciones/:id', auth, async (req, res) => {
+app.get("/api/recepciones/:id", auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM recepciones WHERE id=$1', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    const { rows } = await pool.query("SELECT * FROM recepciones WHERE id=$1", [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: "No encontrado" });
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/recepciones', auth, async (req, res) => {
-  const { hora, company, origen, cargo, unit_qty, pallet_qty, tipo, estatus, fecha: fechaBody } = req.body;
-  const fecha          = fechaBody || new Date().toISOString().slice(0, 10);
+app.post("/api/recepciones", auth, async (req, res) => {
+  const {
+    hora,
+    company,
+    origen,
+    cargo,
+    unit_qty,
+    pallet_qty,
+    tipo,
+    estatus,
+    fecha: fechaBody,
+  } = req.body;
+  const fecha = fechaBody || new Date().toISOString().slice(0, 10);
   const registrado_por = req.session.usuario.nombre;
   try {
     const { rows } = await pool.query(
@@ -712,53 +809,72 @@ app.post('/api/recepciones', auth, async (req, res) => {
          (hora, company, origen, cargo, unit_qty, pallet_qty, tipo, estatus, registrado_por, fecha)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        RETURNING *`,
-      [hora, company, origen, cargo, unit_qty || 0, pallet_qty || 0, tipo || 'Import', estatus || 'Confirmado', registrado_por, fecha]
+      [
+        hora,
+        company,
+        origen,
+        cargo,
+        unit_qty || 0,
+        pallet_qty || 0,
+        tipo || "Import",
+        estatus || "Confirmado",
+        registrado_por,
+        fecha,
+      ],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.patch('/api/recepciones/:id/estatus', auth, async (req, res) => {
+app.patch("/api/recepciones/:id/estatus", auth, async (req, res) => {
   const { estatus } = req.body;
   try {
-    const { rows } = await pool.query(
-      'UPDATE recepciones SET estatus=$1 WHERE id=$2 RETURNING *',
-      [estatus, req.params.id]
-    );
+    const { rows } = await pool.query("UPDATE recepciones SET estatus=$1 WHERE id=$2 RETURNING *", [
+      estatus,
+      req.params.id,
+    ]);
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.put('/api/recepciones/:id', auth, async (req, res) => {
+app.put("/api/recepciones/:id", auth, async (req, res) => {
   const { hora, company, origen, cargo, unit_qty, pallet_qty, tipo, estatus } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE recepciones SET hora=$1, company=$2, origen=$3, cargo=$4,
        unit_qty=$5, pallet_qty=$6, tipo=$7, estatus=$8 WHERE id=$9 RETURNING *`,
-      [hora, company, origen, cargo, unit_qty || 0, pallet_qty || 0, tipo, estatus, req.params.id]
+      [hora, company, origen, cargo, unit_qty || 0, pallet_qty || 0, tipo, estatus, req.params.id],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/recepciones/:id', auth, async (req, res) => {
+app.delete("/api/recepciones/:id", auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM recepciones WHERE id=$1', [req.params.id]);
+    await pool.query("DELETE FROM recepciones WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── RECHAZOS EXTERNOS ─────────────────────────────────────────
-app.get('/api/rechazos-externos', auth, async (req, res) => {
+app.get("/api/rechazos-externos", auth, async (req, res) => {
   try {
-    const page    = Math.max(1, parseInt(req.query.page  || '1',  10));
-    const limit   = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
-    const offset  = (page - 1) * limit;
-    const estatus = req.query.estatus || '';
-    const search  = (req.query.search || '').trim();
+    const page = Math.max(1, parseInt(req.query.page || "1", 10));
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "20", 10)));
+    const offset = (page - 1) * limit;
+    const estatus = req.query.estatus || "";
+    const search = (req.query.search || "").trim();
 
     const conditions = [];
-    const params     = [];
+    const params = [];
 
     if (estatus) {
       params.push(estatus);
@@ -767,20 +883,23 @@ app.get('/api/rechazos-externos', auth, async (req, res) => {
     if (search) {
       params.push(`%${search}%`);
       const n = params.length;
-      conditions.push(`(re.return_order ILIKE $${n} OR re.license_plate ILIKE $${n} OR re.classification ILIKE $${n})`);
+      conditions.push(
+        `(re.return_order ILIKE $${n} OR re.license_plate ILIKE $${n} OR re.classification ILIKE $${n})`,
+      );
     }
 
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const countParams = [...params];
     const { rows: countRows } = await pool.query(
       `SELECT COUNT(*) AS total FROM rechazos_externos re ${where}`,
-      countParams
+      countParams,
     );
     const total = parseInt(countRows[0].total, 10);
 
     params.push(limit, offset);
-    const { rows } = await pool.query(`
+    const { rows } = await pool.query(
+      `
       SELECT re.*,
         (SELECT COUNT(*) FROM re_problem_descriptions WHERE rechazo_id = re.id) AS cnt_problemas,
         (SELECT COUNT(*) FROM re_corrective_actions   WHERE rechazo_id = re.id) AS cnt_acciones,
@@ -790,45 +909,68 @@ app.get('/api/rechazos-externos', auth, async (req, res) => {
       ${where}
       ORDER BY re.created_at DESC
       LIMIT $${params.length - 1} OFFSET $${params.length}
-    `, params);
+    `,
+      params,
+    );
 
     res.json({ data: rows, total, page, limit });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/rechazos-externos/:id', auth, async (req, res) => {
+app.get("/api/rechazos-externos/:id", auth, async (req, res) => {
   try {
-    const { rows: [re] } = await pool.query('SELECT * FROM rechazos_externos WHERE id=$1', [req.params.id]);
-    if (!re) return res.status(404).json({ error: 'Registro no encontrado' });
+    const {
+      rows: [re],
+    } = await pool.query("SELECT * FROM rechazos_externos WHERE id=$1", [req.params.id]);
+    if (!re) return res.status(404).json({ error: "Registro no encontrado" });
     const { rows: probs } = await pool.query(
-      'SELECT * FROM re_problem_descriptions WHERE rechazo_id=$1 ORDER BY orden',
-      [req.params.id]
+      "SELECT * FROM re_problem_descriptions WHERE rechazo_id=$1 ORDER BY orden",
+      [req.params.id],
     );
     const { rows: accs } = await pool.query(
-      'SELECT * FROM re_corrective_actions WHERE rechazo_id=$1 ORDER BY departamento, orden',
-      [req.params.id]
+      "SELECT * FROM re_corrective_actions WHERE rechazo_id=$1 ORDER BY departamento, orden",
+      [req.params.id],
     );
     const { rows: imgs } = await pool.query(
-      'SELECT * FROM re_images WHERE rechazo_id=$1 ORDER BY id',
-      [req.params.id]
+      "SELECT * FROM re_images WHERE rechazo_id=$1 ORDER BY id",
+      [req.params.id],
     );
     res.json({ ...re, problem_descriptions: probs, corrective_actions: accs, images: imgs });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/rechazos-externos', auth, async (req, res) => {
+app.post("/api/rechazos-externos", auth, async (req, res) => {
   const {
-    return_order, license_plate, classification, inches, sales_channel,
-    sku, brand, modelo = '', pulgada = '', descripcion = '',
-    plant_entry, plant_exit, total_time_minutes, outbound_order,
-    processed_by, registration_date, sale_price, estatus,
+    return_order,
+    license_plate,
+    classification,
+    inches,
+    sales_channel,
+    sku,
+    brand,
+    modelo = "",
+    pulgada = "",
+    descripcion = "",
+    plant_entry,
+    plant_exit,
+    total_time_minutes,
+    outbound_order,
+    processed_by,
+    registration_date,
+    sale_price,
+    estatus,
     problems = [],
-    problem_descriptions = [], corrective_actions = []
+    problem_descriptions = [],
+    corrective_actions = [],
   } = req.body;
   const registrado_por = req.session.usuario.nombre;
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
     const { rows } = await client.query(
       `INSERT INTO rechazos_externos
          (return_order, license_plate, classification, inches, sales_channel,
@@ -837,56 +979,89 @@ app.post('/api/rechazos-externos', auth, async (req, res) => {
           outbound_order, processed_by, registration_date, sale_price, estatus, registrado_por)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        RETURNING *`,
-      [return_order, license_plate, classification || '', inches || '', sales_channel || '',
-       sku || '', brand || '', modelo, pulgada, descripcion,
-       plant_entry, plant_exit || null, total_time_minutes || null,
-       outbound_order || '', processed_by || '', registration_date || null,
-       sale_price || null, estatus || 'Pendiente', registrado_por]
+      [
+        return_order,
+        license_plate,
+        classification || "",
+        inches || "",
+        sales_channel || "",
+        sku || "",
+        brand || "",
+        modelo,
+        pulgada,
+        descripcion,
+        plant_entry,
+        plant_exit || null,
+        total_time_minutes || null,
+        outbound_order || "",
+        processed_by || "",
+        registration_date || null,
+        sale_price || null,
+        estatus || "Pendiente",
+        registrado_por,
+      ],
     );
     const id = rows[0].id;
     for (let i = 0; i < problems.length; i++) {
       const p = problems[i];
       await client.query(
-        'INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)',
-        [id, i + 1, p.descripcion || '']
+        "INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)",
+        [id, i + 1, p.descripcion || ""],
       );
       await client.query(
-        'INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)',
-        [id, 'General', i + 1, p.accion || '']
+        "INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)",
+        [id, "General", i + 1, p.accion || ""],
       );
     }
     for (const p of problem_descriptions) {
       await client.query(
-        'INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)',
-        [id, p.orden, p.descripcion]
+        "INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)",
+        [id, p.orden, p.descripcion],
       );
     }
     for (const a of corrective_actions) {
       await client.query(
-        'INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)',
-        [id, a.departamento, a.orden, a.accion]
+        "INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)",
+        [id, a.departamento, a.orden, a.accion],
       );
     }
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     res.json(rows[0]);
   } catch (e) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     res.status(500).json({ error: e.message });
-  } finally { client.release(); }
+  } finally {
+    client.release();
+  }
 });
 
-app.put('/api/rechazos-externos/:id', auth, async (req, res) => {
+app.put("/api/rechazos-externos/:id", auth, async (req, res) => {
   const {
-    return_order, license_plate, classification, inches, sales_channel,
-    sku, brand, modelo = '', pulgada = '', descripcion = '',
-    plant_entry, plant_exit, total_time_minutes, outbound_order,
-    processed_by, registration_date, sale_price, estatus,
+    return_order,
+    license_plate,
+    classification,
+    inches,
+    sales_channel,
+    sku,
+    brand,
+    modelo = "",
+    pulgada = "",
+    descripcion = "",
+    plant_entry,
+    plant_exit,
+    total_time_minutes,
+    outbound_order,
+    processed_by,
+    registration_date,
+    sale_price,
+    estatus,
     problems = [],
-    problem_descriptions = [], corrective_actions = []
+    problem_descriptions = [],
+    corrective_actions = [],
   } = req.body;
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
     const { rows } = await client.query(
       `UPDATE rechazos_externos SET
          return_order=$1, license_plate=$2, classification=$3, inches=$4, sales_channel=$5,
@@ -894,125 +1069,175 @@ app.put('/api/rechazos-externos/:id', auth, async (req, res) => {
          plant_entry=$11, plant_exit=$12, total_time_minutes=$13,
          outbound_order=$14, processed_by=$15, registration_date=$16, sale_price=$17, estatus=$18
        WHERE id=$19 RETURNING *`,
-      [return_order, license_plate, classification || '', inches || '', sales_channel || '',
-       sku || '', brand || '', modelo, pulgada, descripcion,
-       plant_entry, plant_exit || null, total_time_minutes || null,
-       outbound_order || '', processed_by || '', registration_date || null,
-       sale_price || null, estatus || 'Pendiente', req.params.id]
+      [
+        return_order,
+        license_plate,
+        classification || "",
+        inches || "",
+        sales_channel || "",
+        sku || "",
+        brand || "",
+        modelo,
+        pulgada,
+        descripcion,
+        plant_entry,
+        plant_exit || null,
+        total_time_minutes || null,
+        outbound_order || "",
+        processed_by || "",
+        registration_date || null,
+        sale_price || null,
+        estatus || "Pendiente",
+        req.params.id,
+      ],
     );
-    await client.query('DELETE FROM re_problem_descriptions WHERE rechazo_id=$1', [req.params.id]);
-    await client.query('DELETE FROM re_corrective_actions WHERE rechazo_id=$1', [req.params.id]);
+    await client.query("DELETE FROM re_problem_descriptions WHERE rechazo_id=$1", [req.params.id]);
+    await client.query("DELETE FROM re_corrective_actions WHERE rechazo_id=$1", [req.params.id]);
     for (let i = 0; i < problems.length; i++) {
       const p = problems[i];
       await client.query(
-        'INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)',
-        [req.params.id, i + 1, p.descripcion || '']
+        "INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)",
+        [req.params.id, i + 1, p.descripcion || ""],
       );
       await client.query(
-        'INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)',
-        [req.params.id, 'General', i + 1, p.accion || '']
+        "INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)",
+        [req.params.id, "General", i + 1, p.accion || ""],
       );
     }
     for (const p of problem_descriptions) {
       await client.query(
-        'INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)',
-        [req.params.id, p.orden, p.descripcion]
+        "INSERT INTO re_problem_descriptions (rechazo_id, orden, descripcion) VALUES ($1,$2,$3)",
+        [req.params.id, p.orden, p.descripcion],
       );
     }
     for (const a of corrective_actions) {
       await client.query(
-        'INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)',
-        [req.params.id, a.departamento, a.orden, a.accion]
+        "INSERT INTO re_corrective_actions (rechazo_id, departamento, orden, accion) VALUES ($1,$2,$3,$4)",
+        [req.params.id, a.departamento, a.orden, a.accion],
       );
     }
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     res.json(rows[0]);
   } catch (e) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     res.status(500).json({ error: e.message });
-  } finally { client.release(); }
+  } finally {
+    client.release();
+  }
 });
 
-app.post('/api/rechazos-externos/:id/images', auth, upload.array('images', 10), async (req, res) => {
-  if (!req.files?.length) return res.status(400).json({ error: 'No se enviaron imagenes.' });
-  try {
-    const saved = [];
-    for (const file of req.files) {
-      const { rows } = await pool.query(
-        'INSERT INTO re_images (rechazo_id, filename) VALUES ($1,$2) RETURNING *',
-        [req.params.id, file.filename]
-      );
-      saved.push(rows[0]);
+app.post(
+  "/api/rechazos-externos/:id/images",
+  auth,
+  upload.array("images", 10),
+  async (req, res) => {
+    if (!req.files?.length) return res.status(400).json({ error: "No se enviaron imagenes." });
+    try {
+      const saved = [];
+      for (const file of req.files) {
+        const { rows } = await pool.query(
+          "INSERT INTO re_images (rechazo_id, filename) VALUES ($1,$2) RETURNING *",
+          [req.params.id, file.filename],
+        );
+        saved.push(rows[0]);
+      }
+      res.json(saved);
+    } catch (e) {
+      req.files.forEach((f) => fs.unlink(f.path, () => {}));
+      res.status(500).json({ error: e.message });
     }
-    res.json(saved);
+  },
+);
+
+app.delete("/api/rechazos-externos/:id/images/:imageId", auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "DELETE FROM re_images WHERE id=$1 AND rechazo_id=$2 RETURNING filename",
+      [req.params.imageId, req.params.id],
+    );
+    if (rows.length) fs.unlink(path.join(uploadsDir, rows[0].filename), () => {});
+    res.json({ ok: true });
   } catch (e) {
-    req.files.forEach(f => fs.unlink(f.path, () => {}));
     res.status(500).json({ error: e.message });
   }
 });
 
-app.delete('/api/rechazos-externos/:id/images/:imageId', auth, async (req, res) => {
+app.delete("/api/rechazos-externos/:id", auth, async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      'DELETE FROM re_images WHERE id=$1 AND rechazo_id=$2 RETURNING filename',
-      [req.params.imageId, req.params.id]
-    );
-    if (rows.length) fs.unlink(path.join(uploadsDir, rows[0].filename), () => {});
+    const { rows: imgs } = await pool.query("SELECT filename FROM re_images WHERE rechazo_id=$1", [
+      req.params.id,
+    ]);
+    imgs.forEach((img) => fs.unlink(path.join(uploadsDir, img.filename), () => {}));
+    await pool.query("DELETE FROM re_images WHERE rechazo_id=$1", [req.params.id]);
+    await pool.query("DELETE FROM re_problem_descriptions WHERE rechazo_id=$1", [req.params.id]);
+    await pool.query("DELETE FROM re_corrective_actions WHERE rechazo_id=$1", [req.params.id]);
+    await pool.query("DELETE FROM rechazos_externos WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/rechazos-externos/:id', auth, async (req, res) => {
-  try {
-    const { rows: imgs } = await pool.query('SELECT filename FROM re_images WHERE rechazo_id=$1', [req.params.id]);
-    imgs.forEach(img => fs.unlink(path.join(uploadsDir, img.filename), () => {}));
-    await pool.query('DELETE FROM re_images WHERE rechazo_id=$1', [req.params.id]);
-    await pool.query('DELETE FROM re_problem_descriptions WHERE rechazo_id=$1', [req.params.id]);
-    await pool.query('DELETE FROM re_corrective_actions WHERE rechazo_id=$1', [req.params.id]);
-    await pool.query('DELETE FROM rechazos_externos WHERE id=$1', [req.params.id]);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get('/api/rechazos-externos/:id/pdf', auth, async (req, res) => {
+app.get("/api/rechazos-externos/:id/pdf", auth, async (req, res) => {
   let browser;
   try {
-    const { rows: [re] } = await pool.query('SELECT * FROM rechazos_externos WHERE id=$1', [req.params.id]);
-    if (!re) return res.status(404).json({ error: 'Registro no encontrado' });
+    const {
+      rows: [re],
+    } = await pool.query("SELECT * FROM rechazos_externos WHERE id=$1", [req.params.id]);
+    if (!re) return res.status(404).json({ error: "Registro no encontrado" });
 
     const [{ rows: probs }, { rows: accs }, { rows: imgs }] = await Promise.all([
-      pool.query('SELECT * FROM re_problem_descriptions WHERE rechazo_id=$1 ORDER BY orden', [req.params.id]),
-      pool.query('SELECT * FROM re_corrective_actions WHERE rechazo_id=$1 ORDER BY departamento, orden', [req.params.id]),
-      pool.query('SELECT * FROM re_images WHERE rechazo_id=$1 ORDER BY id', [req.params.id]),
+      pool.query("SELECT * FROM re_problem_descriptions WHERE rechazo_id=$1 ORDER BY orden", [
+        req.params.id,
+      ]),
+      pool.query(
+        "SELECT * FROM re_corrective_actions WHERE rechazo_id=$1 ORDER BY departamento, orden",
+        [req.params.id],
+      ),
+      pool.query("SELECT * FROM re_images WHERE rechazo_id=$1 ORDER BY id", [req.params.id]),
     ]);
 
-    const logoPath = path.join(__dirname, 'public', 'QC_logo_sin_fondo.png');
+    const logoPath = path.join(__dirname, "public", "QC_logo_sin_fondo.png");
     const logoB64 = fs.existsSync(logoPath)
-      ? `data:image/png;base64,${fs.readFileSync(logoPath).toString('base64')}`
-      : '';
+      ? `data:image/png;base64,${fs.readFileSync(logoPath).toString("base64")}`
+      : "";
 
-    const imgsB64 = imgs.map(img => {
-      const p = path.join(uploadsDir, img.filename);
-      if (!fs.existsSync(p)) return null;
-      const ext = path.extname(img.filename).slice(1).toLowerCase();
-      const mime = ext === 'jpg' ? 'jpeg' : (ext || 'jpeg');
-      return `data:image/${mime};base64,${fs.readFileSync(p).toString('base64')}`;
-    }).filter(Boolean);
+    const imgsB64 = imgs
+      .map((img) => {
+        const p = path.join(uploadsDir, img.filename);
+        if (!fs.existsSync(p)) return null;
+        const ext = path.extname(img.filename).slice(1).toLowerCase();
+        const mime = ext === "jpg" ? "jpeg" : ext || "jpeg";
+        return `data:image/${mime};base64,${fs.readFileSync(p).toString("base64")}`;
+      })
+      .filter(Boolean);
 
     const depts = {};
-    accs.forEach(a => { if (!depts[a.departamento]) depts[a.departamento] = []; depts[a.departamento].push(a.accion); });
+    accs.forEach((a) => {
+      if (!depts[a.departamento]) depts[a.departamento] = [];
+      depts[a.departamento].push(a.accion);
+    });
 
-    const puppeteer = require('puppeteer');
-    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const puppeteer = require("puppeteer");
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
     const page = await browser.newPage();
-    await page.setContent(buildNcrHtml({ re, probs, depts, imgsB64, logoB64 }), { waitUntil: 'load' });
-    const pdf = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '0', right: '0', bottom: '0', left: '0' } });
+    await page.setContent(buildNcrHtml({ re, probs, depts, imgsB64, logoB64 }), {
+      waitUntil: "load",
+    });
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "0", right: "0", bottom: "0", left: "0" },
+    });
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="NCR-${re.license_plate}.pdf"`);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="NCR-${re.license_plate}.pdf"`);
     res.send(Buffer.from(pdf));
   } catch (e) {
-    console.error('Error generando PDF:', e.message, e.stack);
+    console.error("Error generando PDF:", e.message, e.stack);
     res.status(500).json({ error: e.message });
   } finally {
     if (browser) await browser.close();
@@ -1020,47 +1245,81 @@ app.get('/api/rechazos-externos/:id/pdf', auth, async (req, res) => {
 });
 
 function buildNcrHtml({ re, probs, depts, imgsB64, logoB64 }) {
-  const esc = s => String(s ?? '—').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const fmtTs = ts => {
-    if (!ts) return '—';
-    return new Date(ts).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true });
+  const esc = (s) =>
+    String(s ?? "—")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  const fmtTs = (ts) => {
+    if (!ts) return "—";
+    return new Date(ts).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
   };
-  const fmtDate = d => d ? String(d).slice(0,10) : '—';
-  const fmtMins = m => {
-    if (m == null) return '—';
-    const h = Math.floor(m / 60), min = m % 60;
+  const fmtDate = (d) => (d ? String(d).slice(0, 10) : "—");
+  const fmtMins = (m) => {
+    if (m == null) return "—";
+    const h = Math.floor(m / 60),
+      min = m % 60;
     return `${h}h ${min}m`;
   };
-  const fmtPrice = p => p != null ? '$' + parseFloat(p).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }) : '—';
+  const fmtPrice = (p) =>
+    p != null
+      ? "$" +
+        parseFloat(p).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : "—";
 
-  const di = (label, val) => `<div class="di"><label>${label}</label><span>${esc(val)}</span></div>`;
+  const di = (label, val) =>
+    `<div class="di"><label>${label}</label><span>${esc(val)}</span></div>`;
 
-  const photosHtml = imgsB64.length ? `
+  const photosHtml = imgsB64.length
+    ? `
     <div class="section">
       <div class="sec-title">Photographic Evidence</div>
       <div class="photo-box">
-        <div class="photos-wrap">${imgsB64.map(src => `<div class="photo-item"><img src="${src}"></div>`).join('')}</div>
+        <div class="photos-wrap">${imgsB64.map((src) => `<div class="photo-item"><img src="${src}"></div>`).join("")}</div>
         <p class="photo-cap">${esc(re.license_plate)} — Visual evidence</p>
       </div>
-    </div>` : '';
+    </div>`
+    : "";
 
-  const probsHtml = probs.length ? `
+  const probsHtml = probs.length
+    ? `
     <div class="section">
       <div class="sec-title">Problem Description</div>
-      ${probs.map((p,i) => `<div class="prob-item"><div class="prob-num">${i+1}</div><div class="prob-text">${esc(p.descripcion)}</div></div>`).join('')}
-    </div>` : '';
+      ${probs.map((p, i) => `<div class="prob-item"><div class="prob-num">${i + 1}</div><div class="prob-text">${esc(p.descripcion)}</div></div>`).join("")}
+    </div>`
+    : "";
 
-  const accsHtml = Object.keys(depts).length ? `
+  const accsHtml = Object.keys(depts).length
+    ? `
     <div class="section">
       <div class="sec-title">Corrective Actions</div>
-      ${Object.entries(depts).map(([dept, acts]) => `
+      ${Object.entries(depts)
+        .map(
+          ([dept, acts]) => `
         <div class="dept-block">
           <div class="dept-hdr">${esc(dept)}</div>
-          ${acts.map((a,i) => `<div class="act-item"><div class="act-num">${i+1}</div><div class="act-text">${esc(a)}</div></div>`).join('')}
-        </div>`).join('')}
-    </div>` : '';
+          ${acts.map((a, i) => `<div class="act-item"><div class="act-num">${i + 1}</div><div class="act-text">${esc(a)}</div></div>`).join("")}
+        </div>`,
+        )
+        .join("")}
+    </div>`
+    : "";
 
-  const today = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  const today = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
@@ -1093,7 +1352,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#222;background
 </style></head><body>
 
 <div class="header">
-  ${logoB64 ? `<img src="${logoB64}" style="height:40px">` : '<div></div>'}
+  ${logoB64 ? `<img src="${logoB64}" style="height:40px">` : "<div></div>"}
   <div class="header-right">ISO 9001:2015<br>Non-Conformance Report</div>
 </div>
 
@@ -1106,13 +1365,13 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#222;background
   <div class="sec-title">Product Information</div>
   <div class="data-box">
     <div class="data-grid">
-      ${di('Return Order', re.return_order)}
-      ${di('Sales Channel', re.sales_channel)}
-      ${di('License Plate', re.license_plate)}
-      ${di('SKU', re.sku)}
-      ${di('Classification', re.classification)}
-      ${di('Brand', re.brand)}
-      ${di('Inches', re.inches)}
+      ${di("Return Order", re.return_order)}
+      ${di("Sales Channel", re.sales_channel)}
+      ${di("License Plate", re.license_plate)}
+      ${di("SKU", re.sku)}
+      ${di("Classification", re.classification)}
+      ${di("Brand", re.brand)}
+      ${di("Inches", re.inches)}
       <div class="di"><label>Sale Price</label><span>${fmtPrice(re.sale_price)}</span></div>
     </div>
   </div>
@@ -1127,8 +1386,8 @@ ${photosHtml}
       <div class="di"><label>Plant Entry</label><span>${fmtTs(re.plant_entry)}</span></div>
       <div class="di"><label>Plant Exit</label><span>${fmtTs(re.plant_exit)}</span></div>
       <div class="di"><label>Total Time in Plant</label><span>${fmtMins(re.total_time_minutes)}</span></div>
-      ${di('Processed By', re.processed_by)}
-      ${di('Outbound Order', re.outbound_order)}
+      ${di("Processed By", re.processed_by)}
+      ${di("Outbound Order", re.outbound_order)}
       <div class="di"><label>Registration Date</label><span>${fmtDate(re.registration_date)}</span></div>
     </div>
   </div>
@@ -1147,69 +1406,91 @@ ${accsHtml}
 }
 
 // ── RECHAZOS INTERNOS ─────────────────────────────────────────
-app.get('/api/rechazos-internos', auth, async (req, res) => {
+app.get("/api/rechazos-internos", auth, async (req, res) => {
   try {
-    const page   = Math.max(1, parseInt(req.query.page  || '1',  10));
-    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
+    const page = Math.max(1, parseInt(req.query.page || "1", 10));
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "20", 10)));
     const offset = (page - 1) * limit;
-    const search = (req.query.search || '').trim();
-    const estatus = (req.query.estatus || '').trim();
+    const search = (req.query.search || "").trim();
+    const estatus = (req.query.estatus || "").trim();
 
     const conditions = [];
     const params = [];
 
     if (search) {
       params.push(`%${search}%`);
-      conditions.push(`(ri.license_plate ILIKE $${params.length} OR ri.sku ILIKE $${params.length} OR ri.defecto ILIKE $${params.length})`);
+      conditions.push(
+        `(ri.license_plate ILIKE $${params.length} OR ri.sku ILIKE $${params.length} OR ri.defecto ILIKE $${params.length})`,
+      );
     }
-    if (estatus && estatus !== 'Todas') {
+    if (estatus && estatus !== "Todas") {
       params.push(estatus);
       conditions.push(`ri.estatus = $${params.length}`);
     }
 
-    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    const where = conditions.length ? "WHERE " + conditions.join(" AND ") : "";
 
     const countRes = await pool.query(
       `SELECT COUNT(*) AS total FROM rechazos_internos ri ${where}`,
-      params
+      params,
     );
     const total = parseInt(countRes.rows[0].total, 10);
 
     params.push(limit);
     params.push(offset);
-    const { rows } = await pool.query(`
+    const { rows } = await pool.query(
+      `
       SELECT ri.*,
         (SELECT COUNT(*) FROM ri_images WHERE rechazo_id = ri.id) AS cnt_images
       FROM rechazos_internos ri
       ${where}
       ORDER BY ri.fecha_registro DESC, ri.created_at DESC
       LIMIT $${params.length - 1} OFFSET $${params.length}
-    `, params);
+    `,
+      params,
+    );
 
     res.json({ data: rows, total, page, limit });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/rechazos-internos/:id', auth, async (req, res) => {
+app.get("/api/rechazos-internos/:id", auth, async (req, res) => {
   try {
     const [rec, imgs] = await Promise.all([
-      pool.query('SELECT * FROM rechazos_internos WHERE id=$1', [req.params.id]),
-      pool.query('SELECT * FROM ri_images WHERE rechazo_id=$1 ORDER BY id', [req.params.id]),
+      pool.query("SELECT * FROM rechazos_internos WHERE id=$1", [req.params.id]),
+      pool.query("SELECT * FROM ri_images WHERE rechazo_id=$1 ORDER BY id", [req.params.id]),
     ]);
-    if (!rec.rows.length) return res.status(404).json({ error: 'No encontrado' });
-    const images = imgs.rows.map(img => ({
-      id:       String(img.id),
+    if (!rec.rows.length) return res.status(404).json({ error: "No encontrado" });
+    const images = imgs.rows.map((img) => ({
+      id: String(img.id),
       filename: img.filename,
-      url:      `/uploads/rechazos-internos/${img.filename}`,
+      url: `/uploads/rechazos-internos/${img.filename}`,
     }));
     res.json({ data: { ...rec.rows[0], images } });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/rechazos-internos', auth, async (req, res) => {
-  const { fecha_registro, license_plate, sku, marca, modelo, pulgada, descripcion,
-          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector,
-          observaciones, firma_digital } = req.body;
+app.post("/api/rechazos-internos", auth, async (req, res) => {
+  const {
+    fecha_registro,
+    license_plate,
+    sku,
+    marca,
+    modelo,
+    pulgada,
+    descripcion,
+    defecto,
+    actividad_realizar,
+    costo_no_calidad,
+    origen_hallazgo,
+    inspector,
+    observaciones,
+    firma_digital,
+  } = req.body;
   const registrado_por = req.session.usuario.nombre;
   try {
     const { rows } = await pool.query(
@@ -1218,19 +1499,47 @@ app.post('/api/rechazos-internos', auth, async (req, res) => {
           defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector,
           observaciones, firma_digital, registrado_por)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
-      [fecha_registro, license_plate, sku || '', marca || '', modelo || '', pulgada || '', descripcion || '',
-       defecto, actividad_realizar || '', costo_no_calidad || 0,
-       origen_hallazgo || '', inspector || registrado_por,
-       observaciones || '', firma_digital || '', registrado_por]
+      [
+        fecha_registro,
+        license_plate,
+        sku || "",
+        marca || "",
+        modelo || "",
+        pulgada || "",
+        descripcion || "",
+        defecto,
+        actividad_realizar || "",
+        costo_no_calidad || 0,
+        origen_hallazgo || "",
+        inspector || registrado_por,
+        observaciones || "",
+        firma_digital || "",
+        registrado_por,
+      ],
     );
     res.json({ data: rows[0] });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.put('/api/rechazos-internos/:id', auth, async (req, res) => {
-  const { fecha_registro, license_plate, sku, marca, modelo, pulgada, descripcion,
-          defecto, actividad_realizar, costo_no_calidad, origen_hallazgo, inspector,
-          observaciones, firma_digital } = req.body;
+app.put("/api/rechazos-internos/:id", auth, async (req, res) => {
+  const {
+    fecha_registro,
+    license_plate,
+    sku,
+    marca,
+    modelo,
+    pulgada,
+    descripcion,
+    defecto,
+    actividad_realizar,
+    costo_no_calidad,
+    origen_hallazgo,
+    inspector,
+    observaciones,
+    firma_digital,
+  } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE rechazos_internos SET
@@ -1239,90 +1548,122 @@ app.put('/api/rechazos-internos/:id', auth, async (req, res) => {
          costo_no_calidad=$10, origen_hallazgo=$11, inspector=$12,
          observaciones=$13, firma_digital=$14
        WHERE id=$15 RETURNING *`,
-      [fecha_registro, license_plate, sku || '', marca || '', modelo || '', pulgada || '', descripcion || '',
-       defecto, actividad_realizar || '', costo_no_calidad || 0,
-       origen_hallazgo || '', inspector || '', observaciones || '',
-       firma_digital || '', req.params.id]
+      [
+        fecha_registro,
+        license_plate,
+        sku || "",
+        marca || "",
+        modelo || "",
+        pulgada || "",
+        descripcion || "",
+        defecto,
+        actividad_realizar || "",
+        costo_no_calidad || 0,
+        origen_hallazgo || "",
+        inspector || "",
+        observaciones || "",
+        firma_digital || "",
+        req.params.id,
+      ],
     );
     res.json({ data: rows[0] });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/rechazos-internos/:id/images', auth, uploadInt.array('images', 10), async (req, res) => {
-  if (!req.files?.length) return res.status(400).json({ error: 'No se recibieron imágenes.' });
-  try {
-    const inserted = [];
-    for (const file of req.files) {
-      const { rows } = await pool.query(
-        'INSERT INTO ri_images (rechazo_id, filename) VALUES ($1,$2) RETURNING *',
-        [req.params.id, file.filename]
-      );
-      inserted.push({
-        id:       String(rows[0].id),
-        filename: rows[0].filename,
-        url:      `/uploads/rechazos-internos/${rows[0].filename}`,
-      });
+app.post(
+  "/api/rechazos-internos/:id/images",
+  auth,
+  uploadInt.array("images", 10),
+  async (req, res) => {
+    if (!req.files?.length) return res.status(400).json({ error: "No se recibieron imágenes." });
+    try {
+      const inserted = [];
+      for (const file of req.files) {
+        const { rows } = await pool.query(
+          "INSERT INTO ri_images (rechazo_id, filename) VALUES ($1,$2) RETURNING *",
+          [req.params.id, file.filename],
+        );
+        inserted.push({
+          id: String(rows[0].id),
+          filename: rows[0].filename,
+          url: `/uploads/rechazos-internos/${rows[0].filename}`,
+        });
+      }
+      res.json({ ok: true, count: inserted.length, images: inserted });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
     }
-    res.json({ ok: true, count: inserted.length, images: inserted });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+  },
+);
 
-app.post('/api/rechazos-internos/:id/firma', auth, uploadInt.single('firma'), async (req, res) => {
+app.post("/api/rechazos-internos/:id/firma", auth, uploadInt.single("firma"), async (req, res) => {
   try {
     if (req.file) {
       // Multipart file upload (legacy SPA)
-      const { rows: [old] } = await pool.query(
-        'SELECT firma_filename FROM rechazos_internos WHERE id=$1', [req.params.id]
-      );
+      const {
+        rows: [old],
+      } = await pool.query("SELECT firma_filename FROM rechazos_internos WHERE id=$1", [
+        req.params.id,
+      ]);
       if (old?.firma_filename) fs.unlink(path.join(uploadsIntDir, old.firma_filename), () => {});
-      await pool.query(
-        'UPDATE rechazos_internos SET firma_filename=$1 WHERE id=$2',
-        [req.file.filename, req.params.id]
-      );
+      await pool.query("UPDATE rechazos_internos SET firma_filename=$1 WHERE id=$2", [
+        req.file.filename,
+        req.params.id,
+      ]);
       return res.json({ firma_filename: req.file.filename });
     }
     // JSON base64 body (React SPA)
     const { firma_digital } = req.body;
-    if (!firma_digital) return res.status(400).json({ error: 'No se recibió firma.' });
-    await pool.query(
-      'UPDATE rechazos_internos SET firma_digital=$1 WHERE id=$2',
-      [firma_digital, req.params.id]
-    );
+    if (!firma_digital) return res.status(400).json({ error: "No se recibió firma." });
+    await pool.query("UPDATE rechazos_internos SET firma_digital=$1 WHERE id=$2", [
+      firma_digital,
+      req.params.id,
+    ]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/rechazos-internos/:id/images/:imgId', auth, async (req, res) => {
+app.delete("/api/rechazos-internos/:id/images/:imgId", auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'DELETE FROM ri_images WHERE id=$1 AND rechazo_id=$2 RETURNING filename',
-      [req.params.imgId, req.params.id]
+      "DELETE FROM ri_images WHERE id=$1 AND rechazo_id=$2 RETURNING filename",
+      [req.params.imgId, req.params.id],
     );
     if (rows.length) fs.unlink(path.join(uploadsIntDir, rows[0].filename), () => {});
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/rechazos-internos/:id', auth, async (req, res) => {
+app.delete("/api/rechazos-internos/:id", auth, async (req, res) => {
   try {
-    const { rows: imgs } = await pool.query(
-      'SELECT filename FROM ri_images WHERE rechazo_id=$1', [req.params.id]
-    );
-    imgs.forEach(img => fs.unlink(path.join(uploadsIntDir, img.filename), () => {}));
-    const { rows: [rec] } = await pool.query(
-      'SELECT firma_filename FROM rechazos_internos WHERE id=$1', [req.params.id]
-    );
+    const { rows: imgs } = await pool.query("SELECT filename FROM ri_images WHERE rechazo_id=$1", [
+      req.params.id,
+    ]);
+    imgs.forEach((img) => fs.unlink(path.join(uploadsIntDir, img.filename), () => {}));
+    const {
+      rows: [rec],
+    } = await pool.query("SELECT firma_filename FROM rechazos_internos WHERE id=$1", [
+      req.params.id,
+    ]);
     if (rec?.firma_filename) fs.unlink(path.join(uploadsIntDir, rec.firma_filename), () => {});
-    await pool.query('DELETE FROM rechazos_internos WHERE id=$1', [req.params.id]);
+    await pool.query("DELETE FROM rechazos_internos WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── CATÁLOGO SKU ──────────────────────────────────────────────
 // Búsqueda parcial por prefijo — devuelve hasta 10 resultados
-app.get('/api/catalogo-sku', auth, async (req, res) => {
+app.get("/api/catalogo-sku", auth, async (req, res) => {
   try {
-    const q = (req.query.q || '').trim();
+    const q = (req.query.q || "").trim();
     if (q.length < 3) return res.json([]);
     const { rows } = await pool.query(
       `SELECT sku, marca, modelo, pulgada, descripcion
@@ -1330,33 +1671,37 @@ app.get('/api/catalogo-sku', auth, async (req, res) => {
        WHERE UPPER(sku) LIKE UPPER($1)
        ORDER BY sku
        LIMIT 10`,
-      [q.toUpperCase() + '%']
+      [q.toUpperCase() + "%"],
     );
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Búsqueda exacta por SKU
-app.get('/api/catalogo-sku/:sku', auth, async (req, res) => {
+app.get("/api/catalogo-sku/:sku", auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT marca, modelo, descripcion, pulgada FROM catalogo_sku WHERE UPPER(sku) = UPPER($1)',
-      [req.params.sku.trim()]
+      "SELECT marca, modelo, descripcion, pulgada FROM catalogo_sku WHERE UPPER(sku) = UPPER($1)",
+      [req.params.sku.trim()],
     );
-    if (!rows.length) return res.status(404).json({ error: 'SKU no encontrado' });
+    if (!rows.length) return res.status(404).json({ error: "SKU no encontrado" });
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── AQL ───────────────────────────────────────────────────────
-app.get('/api/aql', auth, async (req, res) => {
+app.get("/api/aql", auth, async (req, res) => {
   try {
     const { estado, search, page = 1, limit = 20 } = req.query;
     const conditions = [];
     const params = [];
     let idx = 1;
 
-    if (estado && estado !== 'Todas') {
+    if (estado && estado !== "Todas") {
       conditions.push(`estado_aql = $${idx++}`);
       params.push(estado);
     }
@@ -1366,422 +1711,660 @@ app.get('/api/aql', auth, async (req, res) => {
       idx++;
     }
 
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    const countRes = await pool.query(`SELECT COUNT(*) AS total FROM aql_registros ${where}`, params);
-    const total    = parseInt(countRes.rows[0].total, 10);
+    const countRes = await pool.query(
+      `SELECT COUNT(*) AS total FROM aql_registros ${where}`,
+      params,
+    );
+    const total = parseInt(countRes.rows[0].total, 10);
 
-    const pageNum  = Math.max(1, parseInt(page, 10) || 1);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const pageSize = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
-    const offset   = (pageNum - 1) * pageSize;
+    const offset = (pageNum - 1) * pageSize;
 
     const dataParams = [...params, pageSize, offset];
     const { rows } = await pool.query(
       `SELECT * FROM aql_registros ${where} ORDER BY fecha_registro DESC, created_at DESC LIMIT $${idx++} OFFSET $${idx++}`,
-      dataParams
+      dataParams,
     );
 
     // Counts for tabs
     const [cAll, cAcep, cRech] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM aql_registros'),
+      pool.query("SELECT COUNT(*) FROM aql_registros"),
       pool.query("SELECT COUNT(*) FROM aql_registros WHERE estado_aql='Aceptado'"),
       pool.query("SELECT COUNT(*) FROM aql_registros WHERE estado_aql='Rechazado'"),
     ]);
 
     res.json({
-      data: rows, total, page: pageNum, pageSize,
+      data: rows,
+      total,
+      page: pageNum,
+      pageSize,
       counts: {
-        todas:     parseInt(cAll.rows[0].count),
-        aceptado:  parseInt(cAcep.rows[0].count),
+        todas: parseInt(cAll.rows[0].count),
+        aceptado: parseInt(cAcep.rows[0].count),
         rechazado: parseInt(cRech.rows[0].count),
       },
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/aql/:id', auth, async (req, res) => {
+app.get("/api/aql/:id", auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM aql_registros WHERE id=$1', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    const { rows } = await pool.query("SELECT * FROM aql_registros WHERE id=$1", [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: "No encontrado" });
     const { rows: checklist } = await pool.query(
-      'SELECT * FROM aql_checklist WHERE aql_id=$1 ORDER BY item_number',
-      [req.params.id]
+      "SELECT * FROM aql_checklist WHERE aql_id=$1 ORDER BY item_number",
+      [req.params.id],
     );
     res.json({ ...rows[0], checklist });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/aql', auth, async (req, res) => {
+app.post("/api/aql", auth, async (req, res) => {
   const u = req.session.usuario;
   const {
-    fecha_registro, order_id, sku, marca, modelo, pulgada, descripcion,
-    lote, muestra_total, defectos_encontrados, observaciones, checklist,
+    fecha_registro,
+    order_id,
+    sku,
+    marca,
+    modelo,
+    pulgada,
+    descripcion,
+    lote,
+    muestra_total,
+    defectos_encontrados,
+    observaciones,
+    checklist,
     // legacy fields kept for backward compat
-    license_plate, clasificacion,
+    license_plate,
+    clasificacion,
   } = req.body;
   const defectos = parseInt(defectos_encontrados) || 0;
-  const estado_aql = defectos === 0 ? 'Aceptado' : 'Rechazado';
+  const estado_aql = defectos === 0 ? "Aceptado" : "Rechazado";
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-    const { rows: [r] } = await client.query(`
+    await client.query("BEGIN");
+    const {
+      rows: [r],
+    } = await client.query(
+      `
       INSERT INTO aql_registros
         (fecha_registro, order_id, license_plate, clasificacion, sku, marca, modelo, pulgada, descripcion,
          lote, muestra_total, defectos_encontrados, observaciones, estado_aql, inspector, registrado_por)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING *`,
-      [fecha_registro,
-       order_id||'', license_plate||order_id||'', clasificacion||'',
-       sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
-       lote||'', parseInt(muestra_total)||0, defectos, observaciones||'',
-       estado_aql, u.nombre, u.nombre]
+      [
+        fecha_registro,
+        order_id || "",
+        license_plate || order_id || "",
+        clasificacion || "",
+        sku || "",
+        marca || "",
+        modelo || "",
+        pulgada || "",
+        descripcion || "",
+        lote || "",
+        parseInt(muestra_total) || 0,
+        defectos,
+        observaciones || "",
+        estado_aql,
+        u.nombre,
+        u.nombre,
+      ],
     );
     if (Array.isArray(checklist)) {
       for (const item of checklist) {
         await client.query(
-          'INSERT INTO aql_checklist (aql_id, item_number, descripcion, estado) VALUES ($1,$2,$3,$4)',
-          [r.id, item.item_number, item.descripcion||'', item.estado||'pass']
+          "INSERT INTO aql_checklist (aql_id, item_number, descripcion, estado) VALUES ($1,$2,$3,$4)",
+          [r.id, item.item_number, item.descripcion || "", item.estado || "pass"],
         );
       }
     }
-    await client.query('COMMIT');
-    const { rows: cl } = await pool.query('SELECT * FROM aql_checklist WHERE aql_id=$1 ORDER BY item_number', [r.id]);
+    await client.query("COMMIT");
+    const { rows: cl } = await pool.query(
+      "SELECT * FROM aql_checklist WHERE aql_id=$1 ORDER BY item_number",
+      [r.id],
+    );
     res.status(201).json({ ...r, checklist: cl });
-  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
-  finally { client.release(); }
+  } catch (e) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
 });
 
-app.put('/api/aql/:id', auth, async (req, res) => {
+app.put("/api/aql/:id", auth, async (req, res) => {
   const {
-    fecha_registro, order_id, sku, marca, modelo, pulgada, descripcion,
-    lote, muestra_total, defectos_encontrados, observaciones, checklist,
-    license_plate, clasificacion,
+    fecha_registro,
+    order_id,
+    sku,
+    marca,
+    modelo,
+    pulgada,
+    descripcion,
+    lote,
+    muestra_total,
+    defectos_encontrados,
+    observaciones,
+    checklist,
+    license_plate,
+    clasificacion,
   } = req.body;
   const defectos = parseInt(defectos_encontrados) || 0;
-  const estado_aql = defectos === 0 ? 'Aceptado' : 'Rechazado';
+  const estado_aql = defectos === 0 ? "Aceptado" : "Rechazado";
   const cid = req.params.id;
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-    const { rows: [r] } = await client.query(`
+    await client.query("BEGIN");
+    const {
+      rows: [r],
+    } = await client.query(
+      `
       UPDATE aql_registros SET
         fecha_registro=$1, order_id=$2, license_plate=$3, clasificacion=$4,
         sku=$5, marca=$6, modelo=$7, pulgada=$8, descripcion=$9,
         lote=$10, muestra_total=$11, defectos_encontrados=$12, observaciones=$13, estado_aql=$14
       WHERE id=$15 RETURNING *`,
-      [fecha_registro,
-       order_id||'', license_plate||order_id||'', clasificacion||'',
-       sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
-       lote||'', parseInt(muestra_total)||0, defectos, observaciones||'',
-       estado_aql, cid]
+      [
+        fecha_registro,
+        order_id || "",
+        license_plate || order_id || "",
+        clasificacion || "",
+        sku || "",
+        marca || "",
+        modelo || "",
+        pulgada || "",
+        descripcion || "",
+        lote || "",
+        parseInt(muestra_total) || 0,
+        defectos,
+        observaciones || "",
+        estado_aql,
+        cid,
+      ],
     );
-    if (!r) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'No encontrado' }); }
-    await client.query('DELETE FROM aql_checklist WHERE aql_id=$1', [cid]);
+    if (!r) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "No encontrado" });
+    }
+    await client.query("DELETE FROM aql_checklist WHERE aql_id=$1", [cid]);
     if (Array.isArray(checklist)) {
       for (const item of checklist) {
         await client.query(
-          'INSERT INTO aql_checklist (aql_id, item_number, descripcion, estado) VALUES ($1,$2,$3,$4)',
-          [cid, item.item_number, item.descripcion||'', item.estado||'pass']
+          "INSERT INTO aql_checklist (aql_id, item_number, descripcion, estado) VALUES ($1,$2,$3,$4)",
+          [cid, item.item_number, item.descripcion || "", item.estado || "pass"],
         );
       }
     }
-    await client.query('COMMIT');
-    const { rows: cl } = await pool.query('SELECT * FROM aql_checklist WHERE aql_id=$1 ORDER BY item_number', [cid]);
+    await client.query("COMMIT");
+    const { rows: cl } = await pool.query(
+      "SELECT * FROM aql_checklist WHERE aql_id=$1 ORDER BY item_number",
+      [cid],
+    );
     res.json({ ...r, checklist: cl });
-  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
-  finally { client.release(); }
+  } catch (e) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
 });
 
-app.post('/api/aql/:id/foto-lpn', auth, uploadAql.single('foto'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
+app.post("/api/aql/:id/foto-lpn", auth, uploadAql.single("foto"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No se recibió archivo." });
   try {
-    const { rows: [old] } = await pool.query('SELECT foto_lpn_filename FROM aql_registros WHERE id=$1', [req.params.id]);
-    if (old?.foto_lpn_filename) fs.unlink(path.join(uploadsAqlDir, old.foto_lpn_filename), () => {});
-    await pool.query('UPDATE aql_registros SET foto_lpn_filename=$1 WHERE id=$2', [req.file.filename, req.params.id]);
+    const {
+      rows: [old],
+    } = await pool.query("SELECT foto_lpn_filename FROM aql_registros WHERE id=$1", [
+      req.params.id,
+    ]);
+    if (old?.foto_lpn_filename)
+      fs.unlink(path.join(uploadsAqlDir, old.foto_lpn_filename), () => {});
+    await pool.query("UPDATE aql_registros SET foto_lpn_filename=$1 WHERE id=$2", [
+      req.file.filename,
+      req.params.id,
+    ]);
     res.json({ foto_lpn_filename: req.file.filename });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/aql/:id/foto-pantalla', auth, uploadAql.single('foto'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
+app.post("/api/aql/:id/foto-pantalla", auth, uploadAql.single("foto"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No se recibió archivo." });
   try {
-    const { rows: [old] } = await pool.query('SELECT foto_pantalla_filename FROM aql_registros WHERE id=$1', [req.params.id]);
-    if (old?.foto_pantalla_filename) fs.unlink(path.join(uploadsAqlDir, old.foto_pantalla_filename), () => {});
-    await pool.query('UPDATE aql_registros SET foto_pantalla_filename=$1 WHERE id=$2', [req.file.filename, req.params.id]);
+    const {
+      rows: [old],
+    } = await pool.query("SELECT foto_pantalla_filename FROM aql_registros WHERE id=$1", [
+      req.params.id,
+    ]);
+    if (old?.foto_pantalla_filename)
+      fs.unlink(path.join(uploadsAqlDir, old.foto_pantalla_filename), () => {});
+    await pool.query("UPDATE aql_registros SET foto_pantalla_filename=$1 WHERE id=$2", [
+      req.file.filename,
+      req.params.id,
+    ]);
     res.json({ foto_pantalla_filename: req.file.filename });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/aql/:id', auth, async (req, res) => {
+app.delete("/api/aql/:id", auth, async (req, res) => {
   try {
-    const { rows: [rec] } = await pool.query('SELECT foto_lpn_filename, foto_pantalla_filename FROM aql_registros WHERE id=$1', [req.params.id]);
-    if (rec?.foto_lpn_filename)      fs.unlink(path.join(uploadsAqlDir, rec.foto_lpn_filename),      () => {});
-    if (rec?.foto_pantalla_filename) fs.unlink(path.join(uploadsAqlDir, rec.foto_pantalla_filename), () => {});
-    await pool.query('DELETE FROM aql_checklist WHERE aql_id=$1', [req.params.id]);
-    await pool.query('DELETE FROM aql_registros WHERE id=$1', [req.params.id]);
+    const {
+      rows: [rec],
+    } = await pool.query(
+      "SELECT foto_lpn_filename, foto_pantalla_filename FROM aql_registros WHERE id=$1",
+      [req.params.id],
+    );
+    if (rec?.foto_lpn_filename)
+      fs.unlink(path.join(uploadsAqlDir, rec.foto_lpn_filename), () => {});
+    if (rec?.foto_pantalla_filename)
+      fs.unlink(path.join(uploadsAqlDir, rec.foto_pantalla_filename), () => {});
+    await pool.query("DELETE FROM aql_checklist WHERE aql_id=$1", [req.params.id]);
+    await pool.query("DELETE FROM aql_registros WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── CAPAS (Acciones Correctivas y Preventivas) ────────────────
-app.get('/api/capas', auth, async (req, res) => {
+app.get("/api/capas", auth, async (req, res) => {
   try {
-    const { busqueda = '', estatus = '', tipo = '', page = '1', limit = '20' } = req.query;
-    const pageN  = Math.max(1, parseInt(page)  || 1);
+    const { busqueda = "", estatus = "", tipo = "", page = "1", limit = "20" } = req.query;
+    const pageN = Math.max(1, parseInt(page) || 1);
     const limitN = Math.min(100, parseInt(limit) || 20);
     const offset = (pageN - 1) * limitN;
-    const conds = []; const vals = []; let idx = 1;
-    if (estatus) { conds.push(`c.estatus = $${idx++}`); vals.push(estatus); }
-    if (tipo)    { conds.push(`COALESCE(c.tipo,'Correctiva') = $${idx++}`); vals.push(tipo); }
+    const conds = [];
+    const vals = [];
+    let idx = 1;
+    if (estatus) {
+      conds.push(`c.estatus = $${idx++}`);
+      vals.push(estatus);
+    }
+    if (tipo) {
+      conds.push(`COALESCE(c.tipo,'Correctiva') = $${idx++}`);
+      vals.push(tipo);
+    }
     if (busqueda.trim()) {
       const q = `%${busqueda.trim()}%`;
-      conds.push(`(c.descripcion_problema ILIKE $${idx} OR c.responsable ILIKE $${idx} OR c.titulo ILIKE $${idx})`);
-      vals.push(q); idx++;
+      conds.push(
+        `(c.descripcion_problema ILIKE $${idx} OR c.responsable ILIKE $${idx} OR c.titulo ILIKE $${idx})`,
+      );
+      vals.push(q);
+      idx++;
     }
-    const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+    const where = conds.length ? "WHERE " + conds.join(" AND ") : "";
     const [rowsRes, countRes] = await Promise.all([
       pool.query(
         `SELECT c.*, COALESCE(c.tipo,'Correctiva') AS tipo FROM capas c ${where}
-         ORDER BY c.created_at DESC LIMIT $${idx} OFFSET $${idx+1}`,
-        [...vals, limitN, offset]
+         ORDER BY c.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...vals, limitN, offset],
       ),
       pool.query(`SELECT COUNT(*) AS total FROM capas c ${where}`, vals),
     ]);
-    res.json({ rows: rowsRes.rows, total: parseInt(countRes.rows[0].total), page: pageN, limit: limitN });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    res.json({
+      rows: rowsRes.rows,
+      total: parseInt(countRes.rows[0].total),
+      page: pageN,
+      limit: limitN,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/capas/conteos', auth, async (req, res) => {
+app.get("/api/capas/conteos", auth, async (req, res) => {
   try {
-    const { rows } = await pool.query(`SELECT estatus, COUNT(*) AS cnt FROM capas GROUP BY estatus`);
-    const map = { total: 0, Abierta: 0, 'En Progreso': 0, Cerrada: 0 };
-    rows.forEach(r => {
-      const k = r.estatus === 'En proceso' ? 'En Progreso' : r.estatus;
+    const { rows } = await pool.query(
+      `SELECT estatus, COUNT(*) AS cnt FROM capas GROUP BY estatus`,
+    );
+    const map = { total: 0, Abierta: 0, "En Progreso": 0, Cerrada: 0 };
+    rows.forEach((r) => {
+      const k = r.estatus === "En proceso" ? "En Progreso" : r.estatus;
       map[k] = (map[k] || 0) + parseInt(r.cnt);
       map.total += parseInt(r.cnt);
     });
     res.json(map);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/capas/:id', auth, async (req, res) => {
+app.get("/api/capas/:id", auth, async (req, res) => {
   try {
     const id = req.params.id;
     const [resCapa, resPorques, resIshikawa, resAcciones] = await Promise.all([
-      pool.query(`SELECT c.*, COALESCE(c.tipo,'Correctiva') AS tipo FROM capas c WHERE c.id=$1`, [id]),
-      pool.query('SELECT * FROM capa_5porques WHERE capa_id=$1 ORDER BY orden', [id]),
-      pool.query('SELECT * FROM capa_ishikawa  WHERE capa_id=$1', [id]),
-      pool.query('SELECT * FROM capa_acciones  WHERE capa_id=$1 ORDER BY id', [id]),
+      pool.query(`SELECT c.*, COALESCE(c.tipo,'Correctiva') AS tipo FROM capas c WHERE c.id=$1`, [
+        id,
+      ]),
+      pool.query("SELECT * FROM capa_5porques WHERE capa_id=$1 ORDER BY orden", [id]),
+      pool.query("SELECT * FROM capa_ishikawa  WHERE capa_id=$1", [id]),
+      pool.query("SELECT * FROM capa_acciones  WHERE capa_id=$1 ORDER BY id", [id]),
     ]);
-    if (!resCapa.rows[0]) return res.status(404).json({ error: 'CAPA no encontrada' });
-    res.json({ ...resCapa.rows[0], porques: resPorques.rows, ishikawa: resIshikawa.rows, acciones: resAcciones.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    if (!resCapa.rows[0]) return res.status(404).json({ error: "CAPA no encontrada" });
+    res.json({
+      ...resCapa.rows[0],
+      porques: resPorques.rows,
+      ishikawa: resIshikawa.rows,
+      acciones: resAcciones.rows,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/capas', auth, async (req, res) => {
-  const { tipo = 'Correctiva', descripcion, responsable, fecha_limite, estatus = 'Abierta',
-          metodo_analisis = '5porques', porques = [], ishikawa = {} } = req.body;
+app.post("/api/capas", auth, async (req, res) => {
+  const {
+    tipo = "Correctiva",
+    descripcion,
+    responsable,
+    fecha_limite,
+    estatus = "Abierta",
+    metodo_analisis = "5porques",
+    porques = [],
+    ishikawa = {},
+  } = req.body;
   const registrado_por = req.session.usuario.nombre;
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-    const { rows: [capa] } = await client.query(
+    await client.query("BEGIN");
+    const {
+      rows: [capa],
+    } = await client.query(
       `INSERT INTO capas (tipo, titulo, descripcion_problema, metodo_analisis,
          responsable, fecha_apertura, fecha_compromiso, estatus, registrado_por, origen_tipo, origen_id)
        VALUES ($1,$2,$3,$4,$5,CURRENT_DATE,$6,$7,$8,'manual',0) RETURNING id`,
-      [tipo, (descripcion||'').slice(0,80), descripcion||'', metodo_analisis,
-       responsable||'', fecha_limite||null, estatus, registrado_por]
+      [
+        tipo,
+        (descripcion || "").slice(0, 80),
+        descripcion || "",
+        metodo_analisis,
+        responsable || "",
+        fecha_limite || null,
+        estatus,
+        registrado_por,
+      ],
     );
     const cid = capa.id;
-    if (metodo_analisis === '5porques' && Array.isArray(porques)) {
+    if (metodo_analisis === "5porques" && Array.isArray(porques)) {
       for (const p of porques) {
-        if ((p.pregunta||'').trim() || (p.respuesta||'').trim())
+        if ((p.pregunta || "").trim() || (p.respuesta || "").trim())
           await client.query(
-            'INSERT INTO capa_5porques (capa_id,orden,pregunta,respuesta) VALUES ($1,$2,$3,$4)',
-            [cid, p.nivel||p.orden||1, p.pregunta||'', p.respuesta||'']);
+            "INSERT INTO capa_5porques (capa_id,orden,pregunta,respuesta) VALUES ($1,$2,$3,$4)",
+            [cid, p.nivel || p.orden || 1, p.pregunta || "", p.respuesta || ""],
+          );
       }
     }
-    if (metodo_analisis === 'ishikawa') {
-      const cats = ['hombre','maquina','metodo','material','medicion','medio_ambiente'];
-      const src = Array.isArray(ishikawa) ? {} : (ishikawa || {});
+    if (metodo_analisis === "ishikawa") {
+      const cats = ["hombre", "maquina", "metodo", "material", "medicion", "medio_ambiente"];
+      const src = Array.isArray(ishikawa) ? {} : ishikawa || {};
       for (const cat of cats) {
-        const val = (src[cat] || '').trim();
-        if (val) await client.query(
-          'INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)', [cid, cat, val]);
+        const val = (src[cat] || "").trim();
+        if (val)
+          await client.query(
+            "INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)",
+            [cid, cat, val],
+          );
       }
     }
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     res.status(201).json({ id: cid });
-  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
-  finally { client.release(); }
+  } catch (e) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
 });
 
-app.put('/api/capas/:id', auth, async (req, res) => {
-  const { tipo, descripcion, responsable, fecha_limite, estatus,
-          metodo_analisis = '5porques', porques = [], ishikawa = {} } = req.body;
+app.put("/api/capas/:id", auth, async (req, res) => {
+  const {
+    tipo,
+    descripcion,
+    responsable,
+    fecha_limite,
+    estatus,
+    metodo_analisis = "5porques",
+    porques = [],
+    ishikawa = {},
+  } = req.body;
   const cid = req.params.id;
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
     await client.query(
       `UPDATE capas SET tipo=$1, titulo=$2, descripcion_problema=$3, metodo_analisis=$4,
          responsable=$5, fecha_compromiso=$6, estatus=$7 WHERE id=$8`,
-      [tipo||'Correctiva', (descripcion||'').slice(0,80), descripcion||'', metodo_analisis,
-       responsable||'', fecha_limite||null, estatus||'Abierta', cid]
+      [
+        tipo || "Correctiva",
+        (descripcion || "").slice(0, 80),
+        descripcion || "",
+        metodo_analisis,
+        responsable || "",
+        fecha_limite || null,
+        estatus || "Abierta",
+        cid,
+      ],
     );
-    await client.query('DELETE FROM capa_5porques WHERE capa_id=$1', [cid]);
-    await client.query('DELETE FROM capa_ishikawa  WHERE capa_id=$1', [cid]);
-    if (metodo_analisis === '5porques' && Array.isArray(porques)) {
+    await client.query("DELETE FROM capa_5porques WHERE capa_id=$1", [cid]);
+    await client.query("DELETE FROM capa_ishikawa  WHERE capa_id=$1", [cid]);
+    if (metodo_analisis === "5porques" && Array.isArray(porques)) {
       for (const p of porques) {
-        if ((p.pregunta||'').trim() || (p.respuesta||'').trim())
+        if ((p.pregunta || "").trim() || (p.respuesta || "").trim())
           await client.query(
-            'INSERT INTO capa_5porques (capa_id,orden,pregunta,respuesta) VALUES ($1,$2,$3,$4)',
-            [cid, p.nivel||p.orden||1, p.pregunta||'', p.respuesta||'']);
+            "INSERT INTO capa_5porques (capa_id,orden,pregunta,respuesta) VALUES ($1,$2,$3,$4)",
+            [cid, p.nivel || p.orden || 1, p.pregunta || "", p.respuesta || ""],
+          );
       }
     }
-    if (metodo_analisis === 'ishikawa') {
-      const cats = ['hombre','maquina','metodo','material','medicion','medio_ambiente'];
-      const src = Array.isArray(ishikawa) ? {} : (ishikawa || {});
+    if (metodo_analisis === "ishikawa") {
+      const cats = ["hombre", "maquina", "metodo", "material", "medicion", "medio_ambiente"];
+      const src = Array.isArray(ishikawa) ? {} : ishikawa || {};
       for (const cat of cats) {
-        const val = (src[cat] || '').trim();
-        if (val) await client.query(
-          'INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)', [cid, cat, val]);
+        const val = (src[cat] || "").trim();
+        if (val)
+          await client.query(
+            "INSERT INTO capa_ishikawa (capa_id,categoria,causa) VALUES ($1,$2,$3)",
+            [cid, cat, val],
+          );
       }
     }
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     res.json({ ok: true });
-  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
-  finally { client.release(); }
+  } catch (e) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
 });
 
-app.patch('/api/capas/:id/estatus', auth, async (req, res) => {
+app.patch("/api/capas/:id/estatus", auth, async (req, res) => {
   const { estatus, verificado_por, observaciones } = req.body;
   try {
-    const fechaCierre = estatus === 'Cerrada' ? new Date().toISOString().slice(0,10) : null;
+    const fechaCierre = estatus === "Cerrada" ? new Date().toISOString().slice(0, 10) : null;
     await pool.query(
       `UPDATE capas SET estatus=$1, verificado_por=COALESCE($2,verificado_por),
          observaciones=COALESCE($3,observaciones),
          fecha_cierre=CASE WHEN $1='Cerrada' THEN $4::date ELSE fecha_cierre END WHERE id=$5`,
-      [estatus, verificado_por||null, observaciones||null, fechaCierre, req.params.id]
+      [estatus, verificado_por || null, observaciones || null, fechaCierre, req.params.id],
     );
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Acciones de seguimiento individuales
-app.post('/api/capas/:id/acciones', auth, async (req, res) => {
-  const { descripcion, responsable, fecha_limite, estatus = 'Abierta' } = req.body;
-  if (!(descripcion||'').trim()) return res.status(400).json({ error: 'Descripcion requerida' });
+app.post("/api/capas/:id/acciones", auth, async (req, res) => {
+  const { descripcion, responsable, fecha_limite, estatus = "Abierta" } = req.body;
+  if (!(descripcion || "").trim()) return res.status(400).json({ error: "Descripcion requerida" });
   try {
-    const { rows: [a] } = await pool.query(
+    const {
+      rows: [a],
+    } = await pool.query(
       `INSERT INTO capa_acciones (capa_id,accion,descripcion,responsable,fecha_compromiso,estatus)
        VALUES ($1,$2,$2,$3,$4,$5) RETURNING *`,
-      [req.params.id, descripcion.trim(), responsable||'', fecha_limite||null, estatus]
+      [req.params.id, descripcion.trim(), responsable || "", fecha_limite || null, estatus],
     );
     res.status(201).json(a);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.put('/api/capas/:id/acciones/:aid', auth, async (req, res) => {
+app.put("/api/capas/:id/acciones/:aid", auth, async (req, res) => {
   const { descripcion, responsable, fecha_limite, estatus } = req.body;
   try {
     await pool.query(
       `UPDATE capa_acciones SET accion=$1,descripcion=$1,responsable=$2,fecha_compromiso=$3,estatus=$4
        WHERE id=$5 AND capa_id=$6`,
-      [descripcion||'', responsable||'', fecha_limite||null, estatus||'Abierta',
-       req.params.aid, req.params.id]
+      [
+        descripcion || "",
+        responsable || "",
+        fecha_limite || null,
+        estatus || "Abierta",
+        req.params.aid,
+        req.params.id,
+      ],
     );
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.patch('/api/capas/:id/acciones/:aid', auth, async (req, res) => {
+app.patch("/api/capas/:id/acciones/:aid", auth, async (req, res) => {
   const { estatus } = req.body;
   try {
-    await pool.query('UPDATE capa_acciones SET estatus=$1 WHERE id=$2 AND capa_id=$3',
-      [estatus, req.params.aid, req.params.id]);
+    await pool.query("UPDATE capa_acciones SET estatus=$1 WHERE id=$2 AND capa_id=$3", [
+      estatus,
+      req.params.aid,
+      req.params.id,
+    ]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/capas/:id/acciones/:aid', auth, async (req, res) => {
+app.delete("/api/capas/:id/acciones/:aid", auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM capa_acciones WHERE id=$1 AND capa_id=$2',
-      [req.params.aid, req.params.id]);
+    await pool.query("DELETE FROM capa_acciones WHERE id=$1 AND capa_id=$2", [
+      req.params.aid,
+      req.params.id,
+    ]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/capas/:id', auth, async (req, res) => {
+app.delete("/api/capas/:id", auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM capa_5porques WHERE capa_id=$1', [req.params.id]);
-    await pool.query('DELETE FROM capa_ishikawa  WHERE capa_id=$1', [req.params.id]);
-    await pool.query('DELETE FROM capa_acciones  WHERE capa_id=$1', [req.params.id]);
-    await pool.query('DELETE FROM capas WHERE id=$1', [req.params.id]);
+    await pool.query("DELETE FROM capa_5porques WHERE capa_id=$1", [req.params.id]);
+    await pool.query("DELETE FROM capa_ishikawa  WHERE capa_id=$1", [req.params.id]);
+    await pool.query("DELETE FROM capa_acciones  WHERE capa_id=$1", [req.params.id]);
+    await pool.query("DELETE FROM capas WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── DASHBOARD ─────────────────────────────────────────────────
-app.get('/api/dashboard', auth, async (req, res) => {
+app.get("/api/dashboard", auth, async (req, res) => {
   try {
-    const { periodo = 'mes', anio, mes } = req.query;
+    const { periodo = "mes", anio, mes } = req.query;
     const anioN = parseInt(anio) || new Date().getFullYear();
-    const mesN  = parseInt(mes)  || (new Date().getMonth() + 1);
+    const mesN = parseInt(mes) || new Date().getMonth() + 1;
 
     let whereRE, whereNC, whereRI, params;
-    if (periodo === 'ytd') {
+    if (periodo === "ytd") {
       whereRE = `EXTRACT(year FROM registration_date) = $1`;
       whereNC = `EXTRACT(year FROM fecha) = $1`;
       whereRI = `EXTRACT(year FROM fecha_registro) = $1`;
-      params  = [anioN];
+      params = [anioN];
     } else {
       whereRE = `DATE_TRUNC('month', registration_date) = make_date($1,$2,1)`;
       whereNC = `DATE_TRUNC('month', fecha) = make_date($1,$2,1)`;
       whereRI = `DATE_TRUNC('month', fecha_registro) = make_date($1,$2,1)`;
-      params  = [anioN, mesN];
+      params = [anioN, mesN];
     }
 
     const [resRE, resMarca, resClasif, resNcTotal, resNcSev, resNcArea, resColabs, resRI] =
       await Promise.all([
-        pool.query(`SELECT COALESCE(SUM(sale_price),0) AS total_price, COUNT(*) AS total_rechazos
-                    FROM rechazos_externos WHERE ${whereRE}`, params),
-        pool.query(`SELECT COALESCE(brand,'Sin marca') AS brand,
+        pool.query(
+          `SELECT COALESCE(SUM(sale_price),0) AS total_price, COUNT(*) AS total_rechazos
+                    FROM rechazos_externos WHERE ${whereRE}`,
+          params,
+        ),
+        pool.query(
+          `SELECT COALESCE(brand,'Sin marca') AS brand,
                            COALESCE(SUM(sale_price),0) AS total, COUNT(*) AS cnt
                     FROM rechazos_externos WHERE ${whereRE}
-                    GROUP BY brand ORDER BY total DESC LIMIT 6`, params),
-        pool.query(`SELECT COALESCE(NULLIF(TRIM(classification),''),'Sin clasificación') AS classification,
+                    GROUP BY brand ORDER BY total DESC LIMIT 6`,
+          params,
+        ),
+        pool.query(
+          `SELECT COALESCE(NULLIF(TRIM(classification),''),'Sin clasificación') AS classification,
                            COUNT(*) AS cnt
                     FROM rechazos_externos WHERE ${whereRE}
-                    GROUP BY classification ORDER BY cnt DESC LIMIT 6`, params),
-        pool.query(`SELECT COUNT(*) AS abiertas FROM no_conformidades
-                    WHERE estatus = 'Abierta' AND ${whereNC}`, params),
-        pool.query(`SELECT severidad, COUNT(*) AS cnt FROM no_conformidades
-                    WHERE ${whereNC} GROUP BY severidad`, params),
-        pool.query(`SELECT area, COUNT(*) AS cnt FROM no_conformidades
-                    WHERE ${whereNC} GROUP BY area ORDER BY cnt DESC LIMIT 6`, params),
+                    GROUP BY classification ORDER BY cnt DESC LIMIT 6`,
+          params,
+        ),
+        pool.query(
+          `SELECT COUNT(*) AS abiertas FROM no_conformidades
+                    WHERE estatus = 'Abierta' AND ${whereNC}`,
+          params,
+        ),
+        pool.query(
+          `SELECT severidad, COUNT(*) AS cnt FROM no_conformidades
+                    WHERE ${whereNC} GROUP BY severidad`,
+          params,
+        ),
+        pool.query(
+          `SELECT area, COUNT(*) AS cnt FROM no_conformidades
+                    WHERE ${whereNC} GROUP BY area ORDER BY cnt DESC LIMIT 6`,
+          params,
+        ),
         pool.query(`SELECT COUNT(*) AS activos FROM organigrama_qc WHERE estatus = 'activo'`),
-        pool.query(`SELECT COALESCE(SUM(costo_no_calidad),0) AS total_copq, COUNT(*) AS total_ri
-                    FROM rechazos_internos WHERE ${whereRI}`, params),
+        pool.query(
+          `SELECT COALESCE(SUM(costo_no_calidad),0) AS total_copq, COUNT(*) AS total_ri
+                    FROM rechazos_internos WHERE ${whereRI}`,
+          params,
+        ),
       ]);
 
-    const extPrice  = parseFloat(resRE.rows[0].total_price);
-    const intCopq   = parseFloat(resRI.rows[0].total_copq);
+    const extPrice = parseFloat(resRE.rows[0].total_price);
+    const intCopq = parseFloat(resRI.rows[0].total_copq);
 
     res.json({
-      sale_price_total:      extPrice,
-      copq_interno_total:    intCopq,
-      total_rejects_cost:    extPrice + intCopq,
-      rechazos_total:        parseInt(resRE.rows[0].total_rechazos),
+      sale_price_total: extPrice,
+      copq_interno_total: intCopq,
+      total_rejects_cost: extPrice + intCopq,
+      rechazos_total: parseInt(resRE.rows[0].total_rechazos),
       rechazos_internos_total: parseInt(resRI.rows[0].total_ri),
-      nc_abiertas:           parseInt(resNcTotal.rows[0].abiertas),
+      nc_abiertas: parseInt(resNcTotal.rows[0].abiertas),
       colaboradores_activos: parseInt(resColabs.rows[0].activos),
-      sale_price_por_marca:  resMarca.rows,
-      rechazos_por_clasif:   resClasif.rows,
-      nc_por_severidad:      resNcSev.rows,
-      nc_por_area:           resNcArea.rows,
+      sale_price_por_marca: resMarca.rows,
+      rechazos_por_clasif: resClasif.rows,
+      nc_por_severidad: resNcSev.rows,
+      nc_por_area: resNcArea.rows,
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── ORGANIGRAMA QC ────────────────────────────────────────────
@@ -1793,37 +2376,77 @@ const ORDEN_PUESTO = `CASE puesto
   WHEN 'Inspector de Calidad'   THEN 4
   ELSE 5 END`;
 
-app.get('/api/organigrama-qc', auth, async (req, res) => {
+app.get("/api/organigrama-qc", auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT * FROM organigrama_qc ORDER BY ${ORDEN_PUESTO}, nombre_completo`
+      `SELECT * FROM organigrama_qc ORDER BY ${ORDEN_PUESTO}, nombre_completo`,
     );
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/organigrama-qc', auth, async (req, res) => {
-  const { nombre_completo, no_empleado, puesto, area, turno, estatus,
-          fecha_ingreso, telefono, correo, sexo, fecha_nacimiento,
-          contacto_emergencia, tel_emergencia } = req.body;
+app.post("/api/organigrama-qc", auth, async (req, res) => {
+  const {
+    nombre_completo,
+    no_empleado,
+    puesto,
+    area,
+    turno,
+    estatus,
+    fecha_ingreso,
+    telefono,
+    correo,
+    sexo,
+    fecha_nacimiento,
+    contacto_emergencia,
+    tel_emergencia,
+  } = req.body;
   try {
     const { rows } = await pool.query(
       `INSERT INTO organigrama_qc
        (nombre_completo,no_empleado,puesto,area,turno,estatus,fecha_ingreso,
         telefono,correo,sexo,fecha_nacimiento,contacto_emergencia,tel_emergencia)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [nombre_completo, no_empleado||'', puesto, area||'', turno||'', estatus||'activo',
-       fecha_ingreso||null, telefono||'', correo||'', sexo||'',
-       fecha_nacimiento||null, contacto_emergencia||'', tel_emergencia||'']
+      [
+        nombre_completo,
+        no_empleado || "",
+        puesto,
+        area || "",
+        turno || "",
+        estatus || "activo",
+        fecha_ingreso || null,
+        telefono || "",
+        correo || "",
+        sexo || "",
+        fecha_nacimiento || null,
+        contacto_emergencia || "",
+        tel_emergencia || "",
+      ],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.put('/api/organigrama-qc/:id', auth, async (req, res) => {
-  const { nombre_completo, no_empleado, puesto, area, turno, estatus,
-          fecha_ingreso, telefono, correo, sexo, fecha_nacimiento,
-          contacto_emergencia, tel_emergencia } = req.body;
+app.put("/api/organigrama-qc/:id", auth, async (req, res) => {
+  const {
+    nombre_completo,
+    no_empleado,
+    puesto,
+    area,
+    turno,
+    estatus,
+    fecha_ingreso,
+    telefono,
+    correo,
+    sexo,
+    fecha_nacimiento,
+    contacto_emergencia,
+    tel_emergencia,
+  } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE organigrama_qc SET
@@ -1831,48 +2454,75 @@ app.put('/api/organigrama-qc/:id', auth, async (req, res) => {
        fecha_ingreso=$7, telefono=$8, correo=$9, sexo=$10, fecha_nacimiento=$11,
        contacto_emergencia=$12, tel_emergencia=$13
        WHERE id=$14 RETURNING *`,
-      [nombre_completo, no_empleado||'', puesto, area||'', turno||'', estatus||'activo',
-       fecha_ingreso||null, telefono||'', correo||'', sexo||'',
-       fecha_nacimiento||null, contacto_emergencia||'', tel_emergencia||'',
-       req.params.id]
+      [
+        nombre_completo,
+        no_empleado || "",
+        puesto,
+        area || "",
+        turno || "",
+        estatus || "activo",
+        fecha_ingreso || null,
+        telefono || "",
+        correo || "",
+        sexo || "",
+        fecha_nacimiento || null,
+        contacto_emergencia || "",
+        tel_emergencia || "",
+        req.params.id,
+      ],
     );
-    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    if (!rows.length) return res.status(404).json({ error: "No encontrado" });
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.patch('/api/organigrama-qc/:id/estatus', auth, async (req, res) => {
+app.patch("/api/organigrama-qc/:id/estatus", auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `UPDATE organigrama_qc SET estatus = CASE WHEN estatus='activo' THEN 'inactivo' ELSE 'activo' END
        WHERE id=$1 RETURNING estatus`,
-      [req.params.id]
+      [req.params.id],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/organigrama-qc/:id/foto', auth, uploadOrg.single('foto'), async (req, res) => {
+app.post("/api/organigrama-qc/:id/foto", auth, uploadOrg.single("foto"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No se recibió imagen.' });
-    const { rows: [old] } = await pool.query('SELECT foto_filename FROM organigrama_qc WHERE id=$1', [req.params.id]);
+    if (!req.file) return res.status(400).json({ error: "No se recibió imagen." });
+    const {
+      rows: [old],
+    } = await pool.query("SELECT foto_filename FROM organigrama_qc WHERE id=$1", [req.params.id]);
     if (old?.foto_filename) fs.unlink(path.join(uploadsOrgDir, old.foto_filename), () => {});
-    await pool.query('UPDATE organigrama_qc SET foto_filename=$1 WHERE id=$2', [req.file.filename, req.params.id]);
+    await pool.query("UPDATE organigrama_qc SET foto_filename=$1 WHERE id=$2", [
+      req.file.filename,
+      req.params.id,
+    ]);
     res.json({ foto_filename: req.file.filename });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/organigrama-qc/:id', auth, async (req, res) => {
+app.delete("/api/organigrama-qc/:id", auth, async (req, res) => {
   try {
-    const { rows: [rec] } = await pool.query('SELECT foto_filename FROM organigrama_qc WHERE id=$1', [req.params.id]);
+    const {
+      rows: [rec],
+    } = await pool.query("SELECT foto_filename FROM organigrama_qc WHERE id=$1", [req.params.id]);
     if (rec?.foto_filename) fs.unlink(path.join(uploadsOrgDir, rec.foto_filename), () => {});
-    await pool.query('DELETE FROM organigrama_qc WHERE id=$1', [req.params.id]);
+    await pool.query("DELETE FROM organigrama_qc WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── CALENDARIO ────────────────────────────────────────────────
-app.get('/api/calendario', auth, async (req, res) => {
+app.get("/api/calendario", auth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT cs.*, oq.nombre_completo, oq.area, oq.puesto
@@ -1881,24 +2531,36 @@ app.get('/api/calendario', auth, async (req, res) => {
       ORDER BY cs.fecha_inicio DESC
     `);
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/calendario', auth, async (req, res) => {
+app.post("/api/calendario", auth, async (req, res) => {
   const { colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles, motivo, estatus } = req.body;
   try {
     const { rows } = await pool.query(
       `INSERT INTO calendario_solicitudes
        (colaborador_id,tipo,fecha_inicio,fecha_fin,dias_habiles,motivo,estatus,registrado_por)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles||1, motivo||'',
-       estatus||'pendiente', req.session.usuario?.nombre||'']
+      [
+        colaborador_id,
+        tipo,
+        fecha_inicio,
+        fecha_fin,
+        dias_habiles || 1,
+        motivo || "",
+        estatus || "pendiente",
+        req.session.usuario?.nombre || "",
+      ],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.put('/api/calendario/:id', auth, async (req, res) => {
+app.put("/api/calendario/:id", auth, async (req, res) => {
   const { colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles, motivo, estatus } = req.body;
   try {
     const { rows } = await pool.query(
@@ -1906,57 +2568,83 @@ app.put('/api/calendario/:id', auth, async (req, res) => {
        colaborador_id=$1,tipo=$2,fecha_inicio=$3,fecha_fin=$4,
        dias_habiles=$5,motivo=$6,estatus=$7
        WHERE id=$8 RETURNING *`,
-      [colaborador_id, tipo, fecha_inicio, fecha_fin, dias_habiles||1,
-       motivo||'', estatus||'pendiente', req.params.id]
+      [
+        colaborador_id,
+        tipo,
+        fecha_inicio,
+        fecha_fin,
+        dias_habiles || 1,
+        motivo || "",
+        estatus || "pendiente",
+        req.params.id,
+      ],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.patch('/api/calendario/:id/estatus', auth, async (req, res) => {
+app.patch("/api/calendario/:id/estatus", auth, async (req, res) => {
   const { estatus, observaciones, motivo_rechazo } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE calendario_solicitudes SET estatus=$1, observaciones=$2, aprobado_por=$3, motivo_rechazo=$4 WHERE id=$5 RETURNING *`,
-      [estatus, observaciones||'', req.session.usuario?.nombre||'', motivo_rechazo||'', req.params.id]
+      [
+        estatus,
+        observaciones || "",
+        req.session.usuario?.nombre || "",
+        motivo_rechazo || "",
+        req.params.id,
+      ],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/calendario/:id', auth, async (req, res) => {
+app.delete("/api/calendario/:id", auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM calendario_solicitudes WHERE id=$1', [req.params.id]);
+    await pool.query("DELETE FROM calendario_solicitudes WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/calendario/festivos', auth, async (req, res) => {
+app.get("/api/calendario/festivos", auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM calendario_festivos ORDER BY fecha');
+    const { rows } = await pool.query("SELECT * FROM calendario_festivos ORDER BY fecha");
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/calendario/festivos', auth, async (req, res) => {
+app.post("/api/calendario/festivos", auth, async (req, res) => {
   const { nombre, fecha, recurrente } = req.body;
   try {
     const { rows } = await pool.query(
-      'INSERT INTO calendario_festivos (nombre,fecha,recurrente) VALUES ($1,$2,$3) RETURNING *',
-      [nombre, fecha, recurrente !== false]
+      "INSERT INTO calendario_festivos (nombre,fecha,recurrente) VALUES ($1,$2,$3) RETURNING *",
+      [nombre, fecha, recurrente !== false],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/calendario/festivos/:id', auth, async (req, res) => {
+app.delete("/api/calendario/festivos/:id", auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM calendario_festivos WHERE id=$1', [req.params.id]);
+    await pool.query("DELETE FROM calendario_festivos WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/calendario/saldo', auth, async (req, res) => {
+app.get("/api/calendario/saldo", auth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT cs.*, oq.nombre_completo, oq.area
@@ -1965,10 +2653,12 @@ app.get('/api/calendario/saldo', auth, async (req, res) => {
       ORDER BY oq.nombre_completo
     `);
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/calendario/saldo', auth, async (req, res) => {
+app.post("/api/calendario/saldo", auth, async (req, res) => {
   const { colaborador_id, anio, dias_asignados } = req.body;
   try {
     const { rows } = await pool.query(
@@ -1976,102 +2666,126 @@ app.post('/api/calendario/saldo', auth, async (req, res) => {
        VALUES ($1,$2,$3)
        ON CONFLICT (colaborador_id,anio) DO UPDATE SET dias_asignados=$3
        RETURNING *`,
-      [colaborador_id, anio, dias_asignados]
+      [colaborador_id, anio, dias_asignados],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/calendario/:id', auth, async (req, res) => {
+app.get("/api/calendario/:id", auth, async (req, res) => {
   try {
-    const { rows } = await pool.query(`
+    const { rows } = await pool.query(
+      `
       SELECT cs.*, oq.nombre_completo, oq.area, oq.puesto
       FROM calendario_solicitudes cs
       JOIN organigrama_qc oq ON cs.colaborador_id = oq.id
       WHERE cs.id = $1
-    `, [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    `,
+      [req.params.id],
+    );
+    if (!rows.length) return res.status(404).json({ error: "No encontrado" });
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── USUARIOS ───────────────────────────────────────────────────
-app.get('/api/usuarios', auth, admin, async (req, res) => {
+app.get("/api/usuarios", auth, admin, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, nombre, usuario, rol, area, activo FROM usuarios ORDER BY id'
+      "SELECT id, nombre, usuario, rol, area, activo FROM usuarios ORDER BY id",
     );
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/usuarios', auth, admin, async (req, res) => {
+app.post("/api/usuarios", auth, admin, async (req, res) => {
   const { nombre, usuario, password, rol, area } = req.body;
   try {
-    const existe = await pool.query('SELECT id FROM usuarios WHERE usuario=$1', [usuario]);
-    if (existe.rows.length) return res.status(400).json({ error: 'El nombre de usuario ya existe.' });
+    const existe = await pool.query("SELECT id FROM usuarios WHERE usuario=$1", [usuario]);
+    if (existe.rows.length)
+      return res.status(400).json({ error: "El nombre de usuario ya existe." });
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await pool.query(
       `INSERT INTO usuarios (nombre, usuario, password_hash, rol, area, activo)
        VALUES ($1,$2,$3,$4,$5,true)
        RETURNING id, nombre, usuario, rol, area, activo`,
-      [nombre, usuario.toLowerCase(), hash, rol, area]
+      [nombre, usuario.toLowerCase(), hash, rol, area],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.put('/api/usuarios/:id', auth, admin, async (req, res) => {
+app.put("/api/usuarios/:id", auth, admin, async (req, res) => {
   const { nombre, usuario, password, rol, area } = req.body;
   const id = parseInt(req.params.id);
   try {
-    const existe = await pool.query(
-      'SELECT id FROM usuarios WHERE usuario=$1 AND id!=$2', [usuario, id]
-    );
-    if (existe.rows.length) return res.status(400).json({ error: 'El nombre de usuario ya existe.' });
+    const existe = await pool.query("SELECT id FROM usuarios WHERE usuario=$1 AND id!=$2", [
+      usuario,
+      id,
+    ]);
+    if (existe.rows.length)
+      return res.status(400).json({ error: "El nombre de usuario ya existe." });
     let result;
     if (password) {
       const hash = await bcrypt.hash(password, 10);
       result = await pool.query(
         `UPDATE usuarios SET nombre=$1, usuario=$2, password_hash=$3, rol=$4, area=$5
          WHERE id=$6 RETURNING id, nombre, usuario, rol, area, activo`,
-        [nombre, usuario.toLowerCase(), hash, rol, area, id]
+        [nombre, usuario.toLowerCase(), hash, rol, area, id],
       );
     } else {
       result = await pool.query(
         `UPDATE usuarios SET nombre=$1, usuario=$2, rol=$3, area=$4
          WHERE id=$5 RETURNING id, nombre, usuario, rol, area, activo`,
-        [nombre, usuario.toLowerCase(), rol, area, id]
+        [nombre, usuario.toLowerCase(), rol, area, id],
       );
     }
     if (req.session.usuario.id === id) {
-      req.session.usuario = { ...req.session.usuario, nombre: result.rows[0].nombre, rol: result.rows[0].rol };
+      req.session.usuario = {
+        ...req.session.usuario,
+        nombre: result.rows[0].nombre,
+        rol: result.rows[0].rol,
+      };
     }
     res.json(result.rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.patch('/api/usuarios/:id/toggle', auth, admin, async (req, res) => {
+app.patch("/api/usuarios/:id/toggle", auth, admin, async (req, res) => {
   const id = parseInt(req.params.id);
   if (req.session.usuario.id === id)
-    return res.status(400).json({ error: 'No puedes cambiar el estatus de tu propia cuenta.' });
+    return res.status(400).json({ error: "No puedes cambiar el estatus de tu propia cuenta." });
   try {
     const { rows } = await pool.query(
-      'UPDATE usuarios SET activo = NOT activo WHERE id=$1 RETURNING id, nombre, usuario, rol, area, activo',
-      [id]
+      "UPDATE usuarios SET activo = NOT activo WHERE id=$1 RETURNING id, nombre, usuario, rol, area, activo",
+      [id],
     );
     res.json(rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/usuarios/:id', auth, admin, async (req, res) => {
+app.delete("/api/usuarios/:id", auth, admin, async (req, res) => {
   const id = parseInt(req.params.id);
   if (req.session.usuario.id === id)
-    return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta.' });
+    return res.status(400).json({ error: "No puedes eliminar tu propia cuenta." });
   try {
-    await pool.query('DELETE FROM usuarios WHERE id=$1', [id]);
+    await pool.query("DELETE FROM usuarios WHERE id=$1", [id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── LIBERACIÓN SHIPPING ───────────────────────────────────────
@@ -2080,68 +2794,90 @@ app.delete('/api/usuarios/:id', auth, admin, async (req, res) => {
 function _normalizeLsRow(r) {
   if (!r) return r;
   r.fotos = {
-    contenedor_vacio:   r.foto_contenedor_vacio   || '',
-    contenedor_cargado: r.foto_contenedor_cargado || '',
-    caja_sellada:       r.foto_caja_sellada       || '',
-    placas:             r.foto_placas             || '',
-    manifiesto:         r.foto_manifiesto         || '',
+    contenedor_vacio: r.foto_contenedor_vacio || "",
+    contenedor_cargado: r.foto_contenedor_cargado || "",
+    caja_sellada: r.foto_caja_sellada || "",
+    placas: r.foto_placas || "",
+    manifiesto: r.foto_manifiesto || "",
   };
   return r;
 }
 
-app.get('/api/liberacion-shipping', auth, async (req, res) => {
+app.get("/api/liberacion-shipping", auth, async (req, res) => {
   try {
     const { q, estatus, page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const params = [];
-    const conds  = [];
+    const conds = [];
 
     if (q) {
       params.push(`%${q}%`);
       conds.push(`(order_id ILIKE $${params.length} OR destino ILIKE $${params.length})`);
     }
-    if (estatus && estatus !== 'Todas') {
+    if (estatus && estatus !== "Todas") {
       params.push(estatus);
       conds.push(`estatus = $${params.length}`);
     }
 
-    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+    const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
     const countSql = `SELECT COUNT(*) FROM liberacion_shipping ${where}`;
-    const dataSql  = `SELECT * FROM liberacion_shipping ${where} ORDER BY fecha DESC, created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    const dataSql = `SELECT * FROM liberacion_shipping ${where} ORDER BY fecha DESC, created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
 
     const [countRes, dataRes] = await Promise.all([
       pool.query(countSql, params),
-      pool.query(dataSql,  [...params, parseInt(limit), offset]),
+      pool.query(dataSql, [...params, parseInt(limit), offset]),
     ]);
 
     res.json({
-      data:  dataRes.rows.map(_normalizeLsRow),
+      data: dataRes.rows.map(_normalizeLsRow),
       total: parseInt(countRes.rows[0].count),
-      page:  parseInt(page),
+      page: parseInt(page),
       limit: parseInt(limit),
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/liberacion-shipping/:id', auth, async (req, res) => {
+app.get("/api/liberacion-shipping/:id", auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM liberacion_shipping WHERE id=$1', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
+    const { rows } = await pool.query("SELECT * FROM liberacion_shipping WHERE id=$1", [
+      req.params.id,
+    ]);
+    if (!rows.length) return res.status(404).json({ error: "No encontrado" });
     res.json(_normalizeLsRow(rows[0]));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/liberacion-shipping', auth, async (req, res) => {
+app.post("/api/liberacion-shipping", auth, async (req, res) => {
   const u = req.session.usuario;
   const {
-    fecha, order_id, destino, referencia,
-    sku, marca, modelo, pulgada, descripcion,
-    numero_contenedor, tipo_contenedor, peso_total, volumen_cubico,
-    bill_of_lading, pro_number, purchase_order,
-    observaciones, estatus,
+    fecha,
+    order_id,
+    destino,
+    referencia,
+    sku,
+    marca,
+    modelo,
+    pulgada,
+    descripcion,
+    numero_contenedor,
+    tipo_contenedor,
+    peso_total,
+    volumen_cubico,
+    bill_of_lading,
+    pro_number,
+    purchase_order,
+    observaciones,
+    estatus,
   } = req.body;
   try {
-    const { rows: [r] } = await pool.query(`
+    const {
+      rows: [r],
+    } = await pool.query(
+      `
       INSERT INTO liberacion_shipping
         (fecha, order_id, destino, referencia,
          sku, marca, modelo, pulgada, descripcion,
@@ -2151,29 +2887,59 @@ app.post('/api/liberacion-shipping', auth, async (req, res) => {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
       RETURNING *`,
       [
-        fecha, order_id||'', destino||'', referencia||null,
-        sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
-        numero_contenedor||'', tipo_contenedor||'',
+        fecha,
+        order_id || "",
+        destino || "",
+        referencia || null,
+        sku || "",
+        marca || "",
+        modelo || "",
+        pulgada || "",
+        descripcion || "",
+        numero_contenedor || "",
+        tipo_contenedor || "",
         peso_total != null ? parseFloat(peso_total) : null,
         volumen_cubico != null ? parseFloat(volumen_cubico) : null,
-        bill_of_lading||null, pro_number||null, purchase_order||null,
-        observaciones||null, estatus||'Programado', u.nombre,
-      ]
+        bill_of_lading || null,
+        pro_number || null,
+        purchase_order || null,
+        observaciones || null,
+        estatus || "Programado",
+        u.nombre,
+      ],
     );
     res.status(201).json(_normalizeLsRow(r));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.put('/api/liberacion-shipping/:id', auth, async (req, res) => {
+app.put("/api/liberacion-shipping/:id", auth, async (req, res) => {
   const {
-    fecha, order_id, destino, referencia,
-    sku, marca, modelo, pulgada, descripcion,
-    numero_contenedor, tipo_contenedor, peso_total, volumen_cubico,
-    bill_of_lading, pro_number, purchase_order,
-    observaciones, estatus,
+    fecha,
+    order_id,
+    destino,
+    referencia,
+    sku,
+    marca,
+    modelo,
+    pulgada,
+    descripcion,
+    numero_contenedor,
+    tipo_contenedor,
+    peso_total,
+    volumen_cubico,
+    bill_of_lading,
+    pro_number,
+    purchase_order,
+    observaciones,
+    estatus,
   } = req.body;
   try {
-    const { rows: [r] } = await pool.query(`
+    const {
+      rows: [r],
+    } = await pool.query(
+      `
       UPDATE liberacion_shipping SET
         fecha=$1, order_id=$2, destino=$3, referencia=$4,
         sku=$5, marca=$6, modelo=$7, pulgada=$8, descripcion=$9,
@@ -2182,51 +2948,109 @@ app.put('/api/liberacion-shipping/:id', auth, async (req, res) => {
         observaciones=$17, estatus=$18
       WHERE id=$19 RETURNING *`,
       [
-        fecha, order_id||'', destino||'', referencia||null,
-        sku||'', marca||'', modelo||'', pulgada||'', descripcion||'',
-        numero_contenedor||'', tipo_contenedor||'',
+        fecha,
+        order_id || "",
+        destino || "",
+        referencia || null,
+        sku || "",
+        marca || "",
+        modelo || "",
+        pulgada || "",
+        descripcion || "",
+        numero_contenedor || "",
+        tipo_contenedor || "",
         peso_total != null ? parseFloat(peso_total) : null,
         volumen_cubico != null ? parseFloat(volumen_cubico) : null,
-        bill_of_lading||null, pro_number||null, purchase_order||null,
-        observaciones||null, estatus||'Programado',
+        bill_of_lading || null,
+        pro_number || null,
+        purchase_order || null,
+        observaciones || null,
+        estatus || "Programado",
         req.params.id,
-      ]
+      ],
     );
-    if (!r) return res.status(404).json({ error: 'No encontrado' });
+    if (!r) return res.status(404).json({ error: "No encontrado" });
     res.json(_normalizeLsRow(r));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.delete('/api/liberacion-shipping/:id', auth, async (req, res) => {
+app.delete("/api/liberacion-shipping/:id", auth, async (req, res) => {
   try {
-    const { rows: [rec] } = await pool.query('SELECT * FROM liberacion_shipping WHERE id=$1', [req.params.id]);
-    const fotos = ['foto_contenedor_vacio','foto_contenedor_cargado','foto_caja_sellada','foto_placas','foto_manifiesto'];
-    if (rec) fotos.forEach(f => { if (rec[f]) fs.unlink(path.join(uploadsShipDir, rec[f]), () => {}); });
-    await pool.query('DELETE FROM liberacion_shipping WHERE id=$1', [req.params.id]);
+    const {
+      rows: [rec],
+    } = await pool.query("SELECT * FROM liberacion_shipping WHERE id=$1", [req.params.id]);
+    const fotos = [
+      "foto_contenedor_vacio",
+      "foto_contenedor_cargado",
+      "foto_caja_sellada",
+      "foto_placas",
+      "foto_manifiesto",
+    ];
+    if (rec)
+      fotos.forEach((f) => {
+        if (rec[f]) fs.unlink(path.join(uploadsShipDir, rec[f]), () => {});
+      });
+    await pool.query("DELETE FROM liberacion_shipping WHERE id=$1", [req.params.id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Endpoints de fotos — patrón: borrar anterior, guardar nuevo
 const _shipFotoEndpoint = (col) => async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo.' });
+  if (!req.file) return res.status(400).json({ error: "No se recibió archivo." });
   try {
-    const { rows: [old] } = await pool.query(`SELECT ${col} FROM liberacion_shipping WHERE id=$1`, [req.params.id]);
+    const {
+      rows: [old],
+    } = await pool.query(`SELECT ${col} FROM liberacion_shipping WHERE id=$1`, [req.params.id]);
     if (old?.[col]) fs.unlink(path.join(uploadsShipDir, old[col]), () => {});
-    await pool.query(`UPDATE liberacion_shipping SET ${col}=$1 WHERE id=$2`, [req.file.filename, req.params.id]);
+    await pool.query(`UPDATE liberacion_shipping SET ${col}=$1 WHERE id=$2`, [
+      req.file.filename,
+      req.params.id,
+    ]);
     res.json({ [col]: req.file.filename });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 };
 
-app.post('/api/liberacion-shipping/:id/foto-contenedor-vacio',   auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_contenedor_vacio'));
-app.post('/api/liberacion-shipping/:id/foto-contenedor-cargado', auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_contenedor_cargado'));
-app.post('/api/liberacion-shipping/:id/foto-caja-sellada',       auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_caja_sellada'));
-app.post('/api/liberacion-shipping/:id/foto-placas',             auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_placas'));
-app.post('/api/liberacion-shipping/:id/foto-manifiesto',         auth, uploadShip.single('foto'), _shipFotoEndpoint('foto_manifiesto'));
+app.post(
+  "/api/liberacion-shipping/:id/foto-contenedor-vacio",
+  auth,
+  uploadShip.single("foto"),
+  _shipFotoEndpoint("foto_contenedor_vacio"),
+);
+app.post(
+  "/api/liberacion-shipping/:id/foto-contenedor-cargado",
+  auth,
+  uploadShip.single("foto"),
+  _shipFotoEndpoint("foto_contenedor_cargado"),
+);
+app.post(
+  "/api/liberacion-shipping/:id/foto-caja-sellada",
+  auth,
+  uploadShip.single("foto"),
+  _shipFotoEndpoint("foto_caja_sellada"),
+);
+app.post(
+  "/api/liberacion-shipping/:id/foto-placas",
+  auth,
+  uploadShip.single("foto"),
+  _shipFotoEndpoint("foto_placas"),
+);
+app.post(
+  "/api/liberacion-shipping/:id/foto-manifiesto",
+  auth,
+  uploadShip.single("foto"),
+  _shipFotoEndpoint("foto_manifiesto"),
+);
 
 // ── Catch-all SPA ─────────────────────────────────────────────
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // ── Arranque ───────────────────────────────────────────────────
@@ -2236,7 +3060,7 @@ initDB()
       console.log(`\n Control de Calidad corriendo en → http://localhost:${PORT}\n`);
     });
   })
-  .catch(err => {
-    console.error('Error al inicializar la base de datos:', err.message);
+  .catch((err) => {
+    console.error("Error al inicializar la base de datos:", err.message);
     process.exit(1);
   });

@@ -6,9 +6,9 @@
  * Uses createPortal so it always renders above every other layer.
  */
 
-import { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import type { Toast } from '../types';
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import type { Toast } from "../types";
 
 // ── Single toast item ──────────────────────────────────────────────────────────
 
@@ -33,16 +33,16 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     };
   }, [toast.id, toast.duration, onDismiss]);
 
-  const bgMap: Record<Toast['type'], string> = {
-    success: '#0d2b4e',
-    error:   '#c0392b',
-    warning: '#8a6a00',
+  const bgMap: Record<Toast["type"], string> = {
+    success: "#0d2b4e",
+    error: "#c0392b",
+    warning: "#8a6a00",
   };
 
-  const iconMap: Record<Toast['type'], string> = {
-    success: '✓',
-    error:   '✕',
-    warning: '⚠',
+  const iconMap: Record<Toast["type"], string> = {
+    success: "✓",
+    error: "✕",
+    warning: "⚠",
   };
 
   return (
@@ -50,24 +50,22 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
       role="alert"
       aria-live="assertive"
       style={{
-        display: 'flex',
-        alignItems: 'flex-start',
+        display: "flex",
+        alignItems: "flex-start",
         gap: 10,
         width: 320,
-        padding: '12px 18px',
+        padding: "12px 18px",
         background: bgMap[toast.type],
-        color: '#fff',
+        color: "#fff",
         fontSize: 13,
-        border: 'none',
+        border: "none",
       }}
     >
       {/* Icon */}
-      <span style={{ flexShrink: 0, fontWeight: 700 }}>
-        {iconMap[toast.type]}
-      </span>
+      <span style={{ flexShrink: 0, fontWeight: 700 }}>{iconMap[toast.type]}</span>
 
       {/* Message */}
-      <p style={{ flex: 1, margin: 0, wordBreak: 'break-word', lineHeight: 1.4 }}>
+      <p style={{ flex: 1, margin: 0, wordBreak: "break-word", lineHeight: 1.4 }}>
         {toast.message}
       </p>
 
@@ -77,10 +75,10 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
         aria-label="Cerrar notificación"
         style={{
           flexShrink: 0,
-          background: 'none',
-          border: 'none',
-          color: '#fff',
-          cursor: 'pointer',
+          background: "none",
+          border: "none",
+          color: "#fff",
+          cursor: "pointer",
           fontSize: 18,
           lineHeight: 1,
           opacity: 0.75,
@@ -111,18 +109,18 @@ export default function Notify({ toasts, onDismiss }: NotifyProps) {
     <div
       aria-label="Notificaciones"
       style={{
-        position: 'fixed',
+        position: "fixed",
         top: 20,
         right: 20,
         zIndex: 500,
-        display: 'flex',
-        flexDirection: 'column',
+        display: "flex",
+        flexDirection: "column",
         gap: 8,
-        pointerEvents: 'none',
+        pointerEvents: "none",
       }}
     >
       {toasts.map((toast) => (
-        <div key={toast.id} style={{ pointerEvents: 'auto' }}>
+        <div key={toast.id} style={{ pointerEvents: "auto" }}>
           <ToastItem toast={toast} onDismiss={onDismiss} />
         </div>
       ))}

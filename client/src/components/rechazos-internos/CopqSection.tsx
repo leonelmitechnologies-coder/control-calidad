@@ -11,10 +11,10 @@
  *   - Visual mapping badge: "Defecto → Actividad → Costo"
  */
 
-import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { RI_DEFECTOS, DEFECTO_NAMES, getCopqMapping } from '../../data/copq-mapping';
-import { formatCurrency } from '../../utils/formatters';
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { DEFECTO_NAMES, getCopqMapping, RI_DEFECTOS } from "../../data/copq-mapping";
+import { formatCurrency } from "../../utils/formatters";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ export default function CopqSection({
   const { t } = useTranslation();
 
   // Track "original" COPQ values from the mapping so manual override can revert
-  const [originalActividad, setOriginalActividad] = useState('');
+  const [originalActividad, setOriginalActividad] = useState("");
   const [originalCosto, setOriginalCosto] = useState(0);
 
   // Sync originals when defecto changes
@@ -57,7 +57,7 @@ export default function CopqSection({
       setOriginalActividad(entry.actividad);
       setOriginalCosto(entry.costo);
     } else {
-      setOriginalActividad('');
+      setOriginalActividad("");
       setOriginalCosto(0);
     }
   }, [values.defecto]);
@@ -71,16 +71,16 @@ export default function CopqSection({
         ...values,
         defecto,
         actividad_realizar: entry.actividad,
-        costo_no_calidad:   entry.costo,
-        manual_override:    false, // reset override on new defecto
+        costo_no_calidad: entry.costo,
+        manual_override: false, // reset override on new defecto
       });
     } else {
       onChange({
         ...values,
         defecto,
-        actividad_realizar: '',
-        costo_no_calidad:   0,
-        manual_override:    false,
+        actividad_realizar: "",
+        costo_no_calidad: 0,
+        manual_override: false,
       });
     }
   }
@@ -100,9 +100,9 @@ export default function CopqSection({
       const entry = getCopqMapping(values.defecto);
       onChange({
         ...values,
-        manual_override:    false,
+        manual_override: false,
         actividad_realizar: entry ? entry.actividad : originalActividad,
-        costo_no_calidad:   entry ? entry.costo    : originalCosto,
+        costo_no_calidad: entry ? entry.costo : originalCosto,
       });
     } else {
       onChange({ ...values, manual_override: true });
@@ -115,19 +115,18 @@ export default function CopqSection({
 
   return (
     <div>
-
       {/* Defecto select */}
       <div style={{ marginBottom: 12 }}>
         <label>
-          {t('rechazos_internos.form.defecto')}
-          <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
+          {t("rechazos_internos.form.defecto")}
+          <span style={{ color: "#c0392b", marginLeft: 2 }}>*</span>
         </label>
         <select
           id="ri-defecto"
           value={values.defecto}
           onChange={(e) => handleDefectoChange(e.target.value)}
           disabled={disabled}
-          style={errors.defecto ? { borderColor: '#c0392b' } : undefined}
+          style={errors.defecto ? { borderColor: "#c0392b" } : undefined}
         >
           <option value="">— Seleccionar defecto —</option>
           {DEFECTO_NAMES.map((name) => (
@@ -139,12 +138,11 @@ export default function CopqSection({
         {errors.defecto && <span className="form-error">{errors.defecto}</span>}
       </div>
 
-
       {/* Actividad Realizar */}
       <div style={{ marginBottom: 12 }}>
         <label>
-          {t('rechazos_internos.form.actividad_realizar')}
-          <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
+          {t("rechazos_internos.form.actividad_realizar")}
+          <span style={{ color: "#c0392b", marginLeft: 2 }}>*</span>
         </label>
         <textarea
           id="ri-actividad"
@@ -154,21 +152,33 @@ export default function CopqSection({
           readOnly={isLocked}
           disabled={disabled}
           style={{
-            ...(isLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : {}),
-            ...(errors.actividad_realizar ? { borderColor: '#c0392b' } : {}),
+            ...(isLocked ? { background: "#f4f6f9", color: "#777", cursor: "not-allowed" } : {}),
+            ...(errors.actividad_realizar ? { borderColor: "#c0392b" } : {}),
           }}
         />
-        {errors.actividad_realizar && <span className="form-error">{errors.actividad_realizar}</span>}
+        {errors.actividad_realizar && (
+          <span className="form-error">{errors.actividad_realizar}</span>
+        )}
       </div>
 
       {/* Costo No Calidad */}
       <div style={{ marginBottom: 12 }}>
         <label>
-          {t('rechazos_internos.form.costo_no_calidad')}
-          <span style={{ color: '#c0392b', marginLeft: 2 }}>*</span>
+          {t("rechazos_internos.form.costo_no_calidad")}
+          <span style={{ color: "#c0392b", marginLeft: 2 }}>*</span>
         </label>
-        <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: 13 }}>
+        <div style={{ position: "relative" }}>
+          <span
+            style={{
+              position: "absolute",
+              left: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "#777",
+              pointerEvents: "none",
+              fontSize: 13,
+            }}
+          >
             $
           </span>
           <input
@@ -183,17 +193,28 @@ export default function CopqSection({
             style={{
               paddingLeft: 22,
               paddingRight: 48,
-              ...(isLocked ? { background: '#f4f6f9', color: '#777', cursor: 'not-allowed' } : {}),
-              ...(errors.costo_no_calidad ? { borderColor: '#c0392b' } : {}),
+              ...(isLocked ? { background: "#f4f6f9", color: "#777", cursor: "not-allowed" } : {}),
+              ...(errors.costo_no_calidad ? { borderColor: "#c0392b" } : {}),
             }}
           />
-          <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, fontWeight: 600, color: '#777', pointerEvents: 'none' }}>
+          <span
+            style={{
+              position: "absolute",
+              right: 10,
+              top: "50%",
+              transform: "translateY(-50%)",
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#777",
+              pointerEvents: "none",
+            }}
+          >
             MXN
           </span>
         </div>
         {/* Formatted display */}
         {values.costo_no_calidad > 0 && (
-          <p style={{ marginTop: 4, fontSize: 12, color: '#0d2b4e', fontWeight: 700 }}>
+          <p style={{ marginTop: 4, fontSize: 12, color: "#0d2b4e", fontWeight: 700 }}>
             {formatCurrency(values.costo_no_calidad)}
           </p>
         )}
@@ -201,24 +222,49 @@ export default function CopqSection({
       </div>
 
       {/* Manual Override checkbox */}
-      <div style={{ background: '#fffbf0', border: '1px solid #e2e2e2', padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div
+        style={{
+          background: "#fffbf0",
+          border: "1px solid #e2e2e2",
+          padding: "10px 14px",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 10,
+        }}
+      >
         <input
           id="ri-manual-override"
           type="checkbox"
           checked={values.manual_override}
           onChange={(e) => handleOverrideChange(e.target.checked)}
           disabled={disabled || !values.defecto}
-          style={{ width: 'auto', marginTop: 2, cursor: disabled || !values.defecto ? 'not-allowed' : 'pointer' }}
+          style={{
+            width: "auto",
+            marginTop: 2,
+            cursor: disabled || !values.defecto ? "not-allowed" : "pointer",
+          }}
         />
-        <label htmlFor="ri-manual-override" style={{ cursor: 'pointer', margin: 0, textTransform: 'none', fontSize: 13, fontWeight: 600, color: '#856404', letterSpacing: 0 }}>
-          {t('rechazos_internos.form.manual_override')}
-          <span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: '#777', marginTop: 2 }}>
-            Desbloquea los campos de actividad y costo para edición manual.
-            Al desmarcar, los valores originales del COPQ se restauran.
+        <label
+          htmlFor="ri-manual-override"
+          style={{
+            cursor: "pointer",
+            margin: 0,
+            textTransform: "none",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#856404",
+            letterSpacing: 0,
+          }}
+        >
+          {t("rechazos_internos.form.manual_override")}
+          <span
+            style={{ display: "block", fontSize: 11, fontWeight: 400, color: "#777", marginTop: 2 }}
+          >
+            Desbloquea los campos de actividad y costo para edición manual. Al desmarcar, los
+            valores originales del COPQ se restauran.
           </span>
         </label>
       </div>
-
     </div>
   );
 }

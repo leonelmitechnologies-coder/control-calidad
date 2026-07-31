@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Section {
   id: string;
@@ -9,23 +9,63 @@ interface Section {
 }
 
 const SECTIONS: Section[] = [
-  { id: 'intro',      titleKey: 'manual.sections.intro',      icon: '📋', contentKey: 'manual.content.intro' },
-  { id: 'login',      titleKey: 'manual.sections.login',      icon: '🔐', contentKey: 'manual.content.login' },
-  { id: 'dashboard',  titleKey: 'manual.sections.dashboard',  icon: '📊', contentKey: 'manual.content.dashboard' },
-  { id: 'nc',         titleKey: 'manual.sections.nc',         icon: '⚠️', contentKey: 'manual.content.nc' },
-  { id: 'recepciones',titleKey: 'manual.sections.recepciones',icon: '📦', contentKey: 'manual.content.recepciones' },
-  { id: 're',         titleKey: 'manual.sections.re',         icon: '↩️', contentKey: 'manual.content.re' },
-  { id: 'ri',         titleKey: 'manual.sections.ri',         icon: '🔍', contentKey: 'manual.content.ri' },
-  { id: 'capa',       titleKey: 'manual.sections.capa',       icon: '✅', contentKey: 'manual.content.capa' },
-  { id: 'aql',        titleKey: 'manual.sections.aql',        icon: '🔬', contentKey: 'manual.content.aql' },
-  { id: 'shipping',   titleKey: 'manual.sections.shipping',   icon: '🚚', contentKey: 'manual.content.shipping' },
-  { id: 'organigrama',titleKey: 'manual.sections.organigrama',icon: '👥', contentKey: 'manual.content.organigrama' },
-  { id: 'calendario', titleKey: 'manual.sections.calendario', icon: '📅', contentKey: 'manual.content.calendario' },
-  { id: 'glosario',   titleKey: 'manual.sections.glosario',   icon: '📖', contentKey: 'manual.content.glosario' },
+  {
+    id: "intro",
+    titleKey: "manual.sections.intro",
+    icon: "📋",
+    contentKey: "manual.content.intro",
+  },
+  {
+    id: "login",
+    titleKey: "manual.sections.login",
+    icon: "🔐",
+    contentKey: "manual.content.login",
+  },
+  {
+    id: "dashboard",
+    titleKey: "manual.sections.dashboard",
+    icon: "📊",
+    contentKey: "manual.content.dashboard",
+  },
+  { id: "nc", titleKey: "manual.sections.nc", icon: "⚠️", contentKey: "manual.content.nc" },
+  {
+    id: "recepciones",
+    titleKey: "manual.sections.recepciones",
+    icon: "📦",
+    contentKey: "manual.content.recepciones",
+  },
+  { id: "re", titleKey: "manual.sections.re", icon: "↩️", contentKey: "manual.content.re" },
+  { id: "ri", titleKey: "manual.sections.ri", icon: "🔍", contentKey: "manual.content.ri" },
+  { id: "capa", titleKey: "manual.sections.capa", icon: "✅", contentKey: "manual.content.capa" },
+  { id: "aql", titleKey: "manual.sections.aql", icon: "🔬", contentKey: "manual.content.aql" },
+  {
+    id: "shipping",
+    titleKey: "manual.sections.shipping",
+    icon: "🚚",
+    contentKey: "manual.content.shipping",
+  },
+  {
+    id: "organigrama",
+    titleKey: "manual.sections.organigrama",
+    icon: "👥",
+    contentKey: "manual.content.organigrama",
+  },
+  {
+    id: "calendario",
+    titleKey: "manual.sections.calendario",
+    icon: "📅",
+    contentKey: "manual.content.calendario",
+  },
+  {
+    id: "glosario",
+    titleKey: "manual.sections.glosario",
+    icon: "📖",
+    contentKey: "manual.content.glosario",
+  },
 ];
 
 const CONTENT: Record<string, Record<string, string>> = {
-  'es-MX': {
+  "es-MX": {
     intro: `El Sistema de Control de Calidad de MI Technologies es una herramienta interna orientada a la certificación ISO 9001:2015. Permite registrar, dar seguimiento y analizar todas las operaciones de calidad del área de warehouse y logística.\n\n**Módulos disponibles:**\n- Dashboard con KPIs en tiempo real\n- No Conformidades (NC)\n- Recepciones de carga\n- Rechazos Externos (Return Orders)\n- Rechazos Internos con COPQ\n- Acciones Correctivas (CAPA)\n- Inspecciones AQL\n- Liberación de Shipping\n- Organigrama del equipo QC\n- Calendario de permisos y vacaciones`,
     login: `**Acceso al sistema**\n\nURL: La que te proporcionó tu administrador\nSesión: 8 horas de duración\n\n**Inicio de sesión:**\nEl sistema usa el Single Sign-On (SSO) de MI Technologies. Ingresa con tu cuenta corporativa de Nextcloud.\n\n**Cierre de sesión:**\nHaz clic en tu nombre en la esquina superior derecha → Cerrar sesión.\n\n**Si no puedes ingresar:**\nContacta al administrador del sistema para verificar que tu cuenta esté activa.`,
     dashboard: `**Dashboard — KPIs en tiempo real**\n\nMuestra los indicadores principales del área de calidad.\n\n**KPIs mostrados:**\n- External Rejects Cost (suma de precios de rechazos externos)\n- Internal Rejects Cost (suma COPQ en MXN)\n- Total Rejects Cost (suma de ambos)\n- NCs Abiertas (No Conformidades sin cerrar)\n- Colaboradores Activos (equipo QC)\n- Total Rechazos Externos del período\n\n**Filtros:**\n- Toggle Mes / YTD (Year to Date)\n- Selector de año\n\n**Gráficas:**\n- Sale Price por Marca (top 6)\n- Rechazos por Clasificación (top 6)\n- NCs por Severidad (Alta/Media/Baja)\n- NCs por Área (top 6)`,
@@ -40,7 +80,7 @@ const CONTENT: Record<string, Record<string, string>> = {
     calendario: `**Calendario de Permisos y Vacaciones**\n\n**Solicitar ausencia:**\n1. Selecciona el colaborador\n2. Elige el tipo: Vacaciones, Permiso, Incapacidad o Capacitación\n3. Selecciona fechas de inicio y fin\n4. Los días hábiles se calculan automáticamente (excluye fines de semana y festivos)\n5. Agrega el motivo y envía la solicitud\n\n**Aprobación:** Solo el administrador puede aprobar o rechazar solicitudes.\n\n**Saldo Vacacional:** Gestiona los días asignados por colaborador y por año en la pestaña de Saldo.\n\n**Festivos:** El sistema incluye los festivos oficiales de México. El administrador puede agregar festivos adicionales.`,
     glosario: `**Glosario de términos**\n\n**NC / NCR:** No Conformidad / Non-Conformance Report — registro de un incumplimiento a los estándares de calidad.\n\n**CAPA:** Corrective and Preventive Action — acción correctiva y preventiva para eliminar la causa raíz de un problema.\n\n**COPQ:** Cost of Poor Quality — costo de la no calidad, expresado en pesos mexicanos (MXN).\n\n**AQL:** Acceptable Quality Level — nivel de calidad aceptable, estándar de muestreo para inspección.\n\n**SKU:** Stock Keeping Unit — código único de identificación de producto.\n\n**KPI:** Key Performance Indicator — indicador clave de desempeño.\n\n**YTD:** Year to Date — acumulado del año en curso.\n\n**5 Por Qués:** Método de análisis de causa raíz que consiste en preguntar "¿Por qué?" cinco veces de forma sucesiva.\n\n**Ishikawa:** Diagrama de causa-efecto (también llamado espina de pescado) con 6 categorías de análisis.\n\n**Return Order:** Orden de devolución de mercancía — asociada a los Rechazos Externos.\n\n**LPN:** License Plate Number — etiqueta de identificación de pallet o caja.`,
   },
-  'en': {
+  en: {
     intro: `The MI Technologies Quality Control System is an internal tool oriented towards ISO 9001:2015 certification. It enables registering, tracking, and analyzing all quality operations in the warehouse and logistics area.\n\n**Available modules:**\n- Real-time KPI Dashboard\n- Non-Conformances (NC)\n- Cargo Receptions\n- External Rejections (Return Orders)\n- Internal Rejections with COPQ\n- Corrective Actions (CAPA)\n- AQL Inspections\n- Shipping Release\n- QC Team Organigram\n- Permissions and Vacation Calendar`,
     login: `**System Access**\n\nURL: As provided by your administrator\nSession: 8-hour duration\n\n**Login:**\nThe system uses MI Technologies Single Sign-On (SSO). Log in with your Nextcloud corporate account.\n\n**Logout:**\nClick your name in the top-right corner → Log out.\n\n**If you can't log in:**\nContact the system administrator to verify your account is active.`,
     dashboard: `**Dashboard — Real-time KPIs**\n\nShows the main quality area indicators.\n\n**KPIs shown:**\n- External Rejects Cost (sum of external rejection prices)\n- Internal Rejects Cost (COPQ sum in MXN)\n- Total Rejects Cost (sum of both)\n- Open NCs (Non-Conformances not yet closed)\n- Active Collaborators (QC team)\n- Total External Rejections for the period\n\n**Filters:** Month / YTD toggle and year selector\n\n**Charts:** Sale Price by Brand, Rejections by Classification, NCs by Severity, NCs by Area`,
@@ -55,7 +95,7 @@ const CONTENT: Record<string, Record<string, string>> = {
     calendario: `**Permissions & Vacation Calendar**\n\nManage vacation, permission, disability, and training requests. Business days are automatically calculated excluding weekends and official holidays.`,
     glosario: `**Glossary**\n\n**NC/NCR:** Non-Conformance / Non-Conformance Report\n**CAPA:** Corrective and Preventive Action\n**COPQ:** Cost of Poor Quality (in MXN)\n**AQL:** Acceptable Quality Level\n**SKU:** Stock Keeping Unit\n**KPI:** Key Performance Indicator\n**YTD:** Year to Date\n**5 Whys:** Root cause analysis method\n**Ishikawa:** Fishbone/cause-effect diagram\n**Return Order:** Merchandise return order\n**LPN:** License Plate Number`,
   },
-  'zh-CN': {
+  "zh-CN": {
     intro: `MI Technologies质量控制系统是一个面向ISO 9001:2015认证的内部工具，用于记录、跟踪和分析仓库及物流区域的所有质量操作。\n\n**可用模块：**\n- 实时KPI仪表板\n- 不合格品(NC)\n- 货物接收\n- 外部拒收(退货单)\n- 内部拒收与COPQ\n- 纠正措施(CAPA)\n- AQL检验\n- 发货放行\n- QC团队组织架构\n- 假期与休假日历`,
     login: `**系统访问**\n\n使用您的Nextcloud企业账户登录。会话时长为8小时。如无法登录，请联系系统管理员。`,
     dashboard: `**仪表板 — 实时KPI**\n\n显示主要质量指标：外部拒收成本、内部拒收成本(COPQ)、NC数量、活跃员工数和期间总拒收量。`,
@@ -74,31 +114,38 @@ const CONTENT: Record<string, Record<string, string>> = {
 
 export default function Manual() {
   const { t, i18n } = useTranslation();
-  const [activeSection, setActiveSection] = useState('intro');
-  const [search, setSearch] = useState('');
+  const [activeSection, setActiveSection] = useState("intro");
+  const [search, setSearch] = useState("");
 
-  const lang = i18n.language?.startsWith('zh') ? 'zh-CN'
-    : i18n.language?.startsWith('es') ? 'es-MX'
-    : 'en';
+  const lang = i18n.language?.startsWith("zh")
+    ? "zh-CN"
+    : i18n.language?.startsWith("es")
+      ? "es-MX"
+      : "en";
 
-  const content = CONTENT[lang] ?? CONTENT['es-MX'];
+  const content = CONTENT[lang] ?? CONTENT["es-MX"];
 
   const filtered = search.trim()
-    ? SECTIONS.filter(s =>
-        t(s.titleKey).toLowerCase().includes(search.toLowerCase()) ||
-        (content[s.id] ?? '').toLowerCase().includes(search.toLowerCase())
+    ? SECTIONS.filter(
+        (s) =>
+          t(s.titleKey).toLowerCase().includes(search.toLowerCase()) ||
+          (content[s.id] ?? "").toLowerCase().includes(search.toLowerCase()),
       )
     : SECTIONS;
 
-  const current = SECTIONS.find(s => s.id === activeSection) ?? SECTIONS[0];
-  const currentContent = content[current.id] ?? '';
+  const current = SECTIONS.find((s) => s.id === activeSection) ?? SECTIONS[0];
+  const currentContent = content[current.id] ?? "";
 
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="bg-white border-b px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-800">{t('manual.title', 'Manual de Usuario')}</h1>
-        <p className="text-sm text-gray-500 mt-1">{t('manual.subtitle', 'Sistema de Control de Calidad — MI Technologies')}</p>
+        <h1 className="text-2xl font-bold text-gray-800">
+          {t("manual.title", "Manual de Usuario")}
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">
+          {t("manual.subtitle", "Sistema de Control de Calidad — MI Technologies")}
+        </p>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -107,21 +154,24 @@ export default function Manual() {
           <div className="p-3 border-b">
             <input
               type="text"
-              placeholder={t('manual.search', 'Buscar...')}
+              placeholder={t("manual.search", "Buscar...")}
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-            {filtered.map(section => (
+            {filtered.map((section) => (
               <button
                 key={section.id}
-                onClick={() => { setActiveSection(section.id); setSearch(''); }}
+                onClick={() => {
+                  setActiveSection(section.id);
+                  setSearch("");
+                }}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors ${
                   activeSection === section.id
-                    ? 'bg-blue-100 text-blue-700 font-medium'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? "bg-blue-100 text-blue-700 font-medium"
+                    : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 <span>{section.icon}</span>
@@ -130,7 +180,7 @@ export default function Manual() {
             ))}
             {filtered.length === 0 && (
               <p className="text-xs text-gray-400 px-3 py-4 text-center">
-                {t('manual.noResults', 'Sin resultados')}
+                {t("manual.noResults", "Sin resultados")}
               </p>
             )}
           </nav>
@@ -144,14 +194,22 @@ export default function Manual() {
               <h2 className="text-xl font-bold text-gray-800">{t(current.titleKey)}</h2>
             </div>
             <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
-              {currentContent.split('\n').map((line, i) => {
-                if (line.startsWith('**') && line.endsWith('**')) {
-                  return <p key={i} className="font-semibold text-gray-900 mt-4 mb-1">{line.slice(2, -2)}</p>;
+              {currentContent.split("\n").map((line, i) => {
+                if (line.startsWith("**") && line.endsWith("**")) {
+                  return (
+                    <p key={i} className="font-semibold text-gray-900 mt-4 mb-1">
+                      {line.slice(2, -2)}
+                    </p>
+                  );
                 }
-                if (line.startsWith('- ')) {
-                  return <p key={i} className="ml-4 text-gray-700">• {line.slice(2)}</p>;
+                if (line.startsWith("- ")) {
+                  return (
+                    <p key={i} className="ml-4 text-gray-700">
+                      • {line.slice(2)}
+                    </p>
+                  );
                 }
-                if (line.trim() === '') {
+                if (line.trim() === "") {
                   return <div key={i} className="h-2" />;
                 }
                 // Inline bold
@@ -159,9 +217,11 @@ export default function Manual() {
                 return (
                   <p key={i} className="text-gray-700">
                     {parts.map((part, j) =>
-                      part.startsWith('**') && part.endsWith('**')
-                        ? <strong key={j}>{part.slice(2, -2)}</strong>
-                        : part
+                      part.startsWith("**") && part.endsWith("**") ? (
+                        <strong key={j}>{part.slice(2, -2)}</strong>
+                      ) : (
+                        part
+                      ),
                     )}
                   </p>
                 );

@@ -3,20 +3,20 @@
  * Handle logout and OIDC callback operations
  */
 
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from "../config/api";
 
 export interface ModuloPermisos {
-  ver:      boolean;
-  editar:   boolean;
+  ver: boolean;
+  editar: boolean;
   eliminar: boolean;
 }
 
 export interface User {
-  id:       string;
-  name:     string;
-  email:    string;
+  id: string;
+  name: string;
+  email: string;
   picture?: string;
-  rol?:     string;
+  rol?: string;
   usuario?: string;
   permisos?: Record<string, ModuloPermisos> | null;
 }
@@ -33,7 +33,7 @@ export interface AuthState {
 export async function fetchCurrentUser(): Promise<User | null> {
   try {
     const response = await fetch(API_ENDPOINTS.auth.me, {
-      credentials: 'include',
+      credentials: "include",
     });
 
     if (!response.ok) {
@@ -47,16 +47,16 @@ export async function fetchCurrentUser(): Promise<User | null> {
 
     // El servidor devuelve { id, nombre, usuario, rol } — mapeamos a User
     return {
-      id:       String(data.id),
-      name:     data.nombre ?? data.name ?? data.usuario ?? '',
-      email:    data.email  ?? data.usuario ?? '',
-      picture:  data.picture,
-      rol:      data.rol,
-      usuario:  data.usuario,
+      id: String(data.id),
+      name: data.nombre ?? data.name ?? data.usuario ?? "",
+      email: data.email ?? data.usuario ?? "",
+      picture: data.picture,
+      rol: data.rol,
+      usuario: data.usuario,
       permisos: data.permisos ?? null,
     } as User;
   } catch (error) {
-    console.error('Error fetching current user:', error);
+    console.error("Error fetching current user:", error);
     return null;
   }
 }
@@ -67,7 +67,7 @@ export async function fetchCurrentUser(): Promise<User | null> {
  * so the Nextcloud SSO session is also cleared.
  */
 export function logout(): void {
-  window.location.href = '/api/auth/logout';
+  window.location.href = "/api/auth/logout";
 }
 
 /**
@@ -76,19 +76,19 @@ export function logout(): void {
 export async function handleOIDCCallback(): Promise<User | null> {
   try {
     const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state');
+    const code = params.get("code");
+    const state = params.get("state");
 
     if (!code || !state) {
-      throw new Error('Missing OAuth code or state');
+      throw new Error("Missing OAuth code or state");
     }
 
     const response = await fetch(API_ENDPOINTS.auth.callback, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      credentials: 'include',
+      credentials: "include",
       body: JSON.stringify({ code, state }),
     });
 
@@ -99,7 +99,7 @@ export async function handleOIDCCallback(): Promise<User | null> {
     const data = await response.json();
     return data.user || null;
   } catch (error) {
-    console.error('Error handling OIDC callback:', error);
+    console.error("Error handling OIDC callback:", error);
     return null;
   }
 }
@@ -108,5 +108,5 @@ export async function handleOIDCCallback(): Promise<User | null> {
  * Redirect to OIDC login provider
  */
 export function redirectToLogin(): void {
-  window.location.href = '/api/auth/login';
+  window.location.href = "/api/auth/login";
 }

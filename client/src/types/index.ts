@@ -8,7 +8,7 @@
 export interface Toast {
   id: string;
   message: string;
-  type: 'success' | 'error' | 'warning';
+  type: "success" | "error" | "warning";
   duration?: number;
 }
 
@@ -51,20 +51,23 @@ export interface RI_COPQ {
 
 export interface NoConformidad {
   id: number;
-  fecha: string;          // DATE stored as ISO string "YYYY-MM-DD"
-  hora: string;           // TIME "HH:MM"
+  fecha: string; // DATE stored as ISO string "YYYY-MM-DD"
+  hora: string; // TIME "HH:MM"
   area: string;
   tipo: string;
   descripcion: string;
-  severidad: 'Crítica' | 'Mayor' | 'Menor';
+  severidad: "Crítica" | "Mayor" | "Menor";
   responsable: string;
   accion: string;
-  estatus: 'Abierta' | 'En Progreso' | 'Cerrada' | 'Rechazada';
+  estatus: "Abierta" | "En Progreso" | "Cerrada" | "Rechazada";
   registrado_por: string;
   cnt_capas?: number;
 }
 
-export type InsertNoConformidad = Omit<NoConformidad, 'id' | 'estatus' | 'registrado_por' | 'cnt_capas'>;
+export type InsertNoConformidad = Omit<
+  NoConformidad,
+  "id" | "estatus" | "registrado_por" | "cnt_capas"
+>;
 
 export interface NcListResponse {
   data: NoConformidad[];
@@ -84,8 +87,8 @@ export interface Recepcion {
   cargo: string;
   unit_qty: number;
   pallet_qty: number;
-  tipo: 'Import' | 'Export';
-  estatus: 'Confirmado' | 'En descarga' | 'Descargado' | 'Rechazado';
+  tipo: "Import" | "Export";
+  estatus: "Confirmado" | "En descarga" | "Descargado" | "Rechazado";
   registrado_por: string;
   fecha_actualizado: string;
   created_at?: string;
@@ -123,7 +126,7 @@ export interface RechazosInterno {
   observaciones: string;
   firma_filename: string;
   firma_digital: string;
-  estatus: 'Abierto' | 'Cerrado';
+  estatus: "Abierto" | "Cerrado";
   registrado_por: string;
   created_at: string;
   cnt_images?: number;
@@ -132,7 +135,7 @@ export interface RechazosInterno {
 
 export type InsertRechazosInterno = Omit<
   RechazosInterno,
-  'id' | 'registrado_por' | 'created_at' | 'cnt_images' | 'images' | 'firma_filename'
+  "id" | "registrado_por" | "created_at" | "cnt_images" | "images" | "firma_filename"
 >;
 
 export interface RiListResponse {
@@ -177,7 +180,7 @@ export interface RechazosExterno {
   processed_by: string;
   registration_date: string | null;
   sale_price: number | null;
-  estatus: 'Pendiente' | 'Aceptado' | 'Rechazado';
+  estatus: "Pendiente" | "Aceptado" | "Rechazado";
   registrado_por: string;
   created_at: string;
   // Aggregates from list endpoint
@@ -190,7 +193,7 @@ export interface RechazosExterno {
   images?: RechazosExternoImage[];
 }
 
-export type RechazosExternoEstatus = RechazosExterno['estatus'];
+export type RechazosExternoEstatus = RechazosExterno["estatus"];
 
 export interface ReListResponse {
   data: RechazosExterno[];
@@ -211,25 +214,25 @@ export interface OrganigramaQc {
   area: string;
   turno: string;
   fecha_ingreso: string;
-  estatus: string;          // lowercase: 'activo' | 'inactivo'
+  estatus: string; // lowercase: 'activo' | 'inactivo'
   telefono?: string;
   correo?: string;
   contactoEmergencia?: string;
   telEmergencia?: string;
-  foto_filename?: string;   // server stores filename, URL derived client-side
+  foto_filename?: string; // server stores filename, URL derived client-side
   created_at: string;
 }
 
-export type InsertOrganigramaQc = Omit<OrganigramaQc, 'id' | 'created_at'>;
+export type InsertOrganigramaQc = Omit<OrganigramaQc, "id" | "created_at">;
 
 // ── Liberación Shipping ──
 
 export interface LiberacionShippingFotos {
-  contenedor_vacio:   string;
+  contenedor_vacio: string;
   contenedor_cargado: string;
-  caja_sellada:       string;
-  placas:             string;
-  manifiesto:         string;
+  caja_sellada: string;
+  placas: string;
+  manifiesto: string;
 }
 
 export interface LiberacionShipping {
@@ -251,7 +254,7 @@ export interface LiberacionShipping {
   pro_number?: string;
   purchase_order?: string;
   observaciones?: string;
-  estatus: 'Programado' | 'En Tránsito' | 'Entregado' | 'Cancelado';
+  estatus: "Programado" | "En Tránsito" | "Entregado" | "Cancelado";
   registrado_por: string;
   created_at: string;
   fotos: LiberacionShippingFotos;
@@ -267,29 +270,29 @@ export interface LsListResponse {
 // ── B2C Dashboard ──
 
 export interface B2COrderItem {
-  WebSKU:              string;
-  MitSKU:              string;
-  LPN:                 string;
-  Clasificacion:       string;
+  WebSKU: string;
+  MitSKU: string;
+  LPN: string;
+  Clasificacion: string;
   DescripcionProducto: string;
-  Qty:                 number;
+  Qty: number;
 }
 
 export interface B2COrder {
-  OrderEntryID:            number;
-  OrderID:                 string;
-  FechaIngreso:            string;
-  ShipDate:                string | null;
-  AccountName:             string;
-  ShipBy:                  string;
-  CustomerShippingName:    string;
-  Items:                   B2COrderItem[];
-  Qty:                     number;
-  CanalVenta:              string;
-  Status:                  string;
-  Tracking:                string;
-  Shipment_ID:             string;
-  LocationName:            string;
+  OrderEntryID: number;
+  OrderID: string;
+  FechaIngreso: string;
+  ShipDate: string | null;
+  AccountName: string;
+  ShipBy: string;
+  CustomerShippingName: string;
+  Items: B2COrderItem[];
+  Qty: number;
+  CanalVenta: string;
+  Status: string;
+  Tracking: string;
+  Shipment_ID: string;
+  LocationName: string;
 }
 
 // ── API generic envelope ──

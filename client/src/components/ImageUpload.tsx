@@ -8,9 +8,9 @@
  * whenever it changes (add or delete).
  */
 
-import { useState, useRef, useCallback, DragEvent, ChangeEvent } from 'react';
-import { useTranslation } from 'react-i18next';
-import { formatFileSize } from '../utils/formatters';
+import { type ChangeEvent, type DragEvent, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatFileSize } from "../utils/formatters";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,23 +30,23 @@ interface PreviewFile {
 }
 
 const DEFAULT_MAX_FILES = 5;
-const DEFAULT_MAX_SIZE  = 10 * 1024 * 1024; // 10 MB
+const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ImageUpload({
   onFilesSelect,
-  maxFiles   = DEFAULT_MAX_FILES,
-  maxSize    = DEFAULT_MAX_SIZE,
-  preview    = true,
-  disabled   = false,
+  maxFiles = DEFAULT_MAX_FILES,
+  maxSize = DEFAULT_MAX_SIZE,
+  preview = true,
+  disabled = false,
   label,
 }: ImageUploadProps) {
   const { t } = useTranslation();
 
-  const [previews, setPreviews]   = useState<PreviewFile[]>([]);
-  const [errors, setErrors]       = useState<string[]>([]);
-  const [dragging, setDragging]   = useState(false);
+  const [previews, setPreviews] = useState<PreviewFile[]>([]);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [dragging, setDragging] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -55,17 +55,15 @@ export default function ImageUpload({
   const processFiles = useCallback(
     (incoming: FileList | File[]) => {
       const newErrors: string[] = [];
-      const accepted: File[]   = [];
+      const accepted: File[] = [];
 
       Array.from(incoming).forEach((file) => {
-        if (!file.type.startsWith('image/')) {
+        if (!file.type.startsWith("image/")) {
           newErrors.push(`"${file.name}" no es una imagen válida.`);
           return;
         }
         if (file.size > maxSize) {
-          newErrors.push(
-            `"${file.name}" supera el límite de ${formatFileSize(maxSize)}.`,
-          );
+          newErrors.push(`"${file.name}" supera el límite de ${formatFileSize(maxSize)}.`);
           return;
         }
         accepted.push(file);
@@ -77,9 +75,7 @@ export default function ImageUpload({
 
         const toAdd = accepted.slice(0, available);
         if (toAdd.length < accepted.length) {
-          newErrors.push(
-            t('upload.max_files', { count: maxFiles }),
-          );
+          newErrors.push(t("upload.max_files", { count: maxFiles }));
         }
 
         const newPreviews = toAdd.map((file) => ({
@@ -104,7 +100,7 @@ export default function ImageUpload({
     if (e.target.files && e.target.files.length > 0) {
       processFiles(e.target.files);
       // Reset input so re-selecting the same file triggers onChange again
-      e.target.value = '';
+      e.target.value = "";
     }
   };
 
@@ -144,11 +140,11 @@ export default function ImageUpload({
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const atMax   = previews.length >= maxFiles;
-  const canAdd  = !disabled && !atMax;
+  const atMax = previews.length >= maxFiles;
+  const canAdd = !disabled && !atMax;
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
       {/* Label */}
       {label && <p>{label}</p>}
 
@@ -158,12 +154,12 @@ export default function ImageUpload({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         style={{
-          border: `2px dashed ${dragging ? '#0d2b4e' : '#e2e2e2'}`,
-          background: dragging ? '#edf2f7' : '#f4f6f9',
-          padding: '20px 16px',
-          textAlign: 'center',
+          border: `2px dashed ${dragging ? "#0d2b4e" : "#e2e2e2"}`,
+          background: dragging ? "#edf2f7" : "#f4f6f9",
+          padding: "20px 16px",
+          textAlign: "center",
           opacity: disabled ? 0.5 : 1,
-          cursor: disabled ? 'not-allowed' : 'default',
+          cursor: disabled ? "not-allowed" : "default",
         }}
       >
         <input
@@ -174,12 +170,12 @@ export default function ImageUpload({
           disabled={!canAdd}
           onChange={handleInputChange}
           className="hidden"
-          aria-label={t('upload.select_photos')}
+          aria-label={t("upload.select_photos")}
         />
 
         {/* Icon */}
         <svg
-          style={{ display: 'block', margin: '0 auto 8px', height: 32, width: 32, color: '#aaa' }}
+          style={{ display: "block", margin: "0 auto 8px", height: 32, width: 32, color: "#aaa" }}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -194,17 +190,17 @@ export default function ImageUpload({
         </svg>
 
         {/* File count */}
-        <p style={{ marginBottom: 8, fontSize: 13, color: '#555' }}>
+        <p style={{ marginBottom: 8, fontSize: 13, color: "#555" }}>
           {previews.length} / {maxFiles}
           {atMax && (
-            <span style={{ marginLeft: 8, color: '#b45309', fontWeight: 600 }}>
-              {t('upload.max_files', { count: maxFiles })}
+            <span style={{ marginLeft: 8, color: "#b45309", fontWeight: 600 }}>
+              {t("upload.max_files", { count: maxFiles })}
             </span>
           )}
         </p>
 
         {/* Drag hint */}
-        <p style={{ marginBottom: 12, fontSize: 11, color: '#aaa' }}>{t('upload.drag_drop')}</p>
+        <p style={{ marginBottom: 12, fontSize: 11, color: "#aaa" }}>{t("upload.drag_drop")}</p>
 
         {/* Select button */}
         <button
@@ -212,18 +208,33 @@ export default function ImageUpload({
           disabled={!canAdd}
           onClick={() => inputRef.current?.click()}
           className="btn btn-secundario"
-          style={!canAdd ? { cursor: 'not-allowed', opacity: 0.5 } : undefined}
+          style={!canAdd ? { cursor: "not-allowed", opacity: 0.5 } : undefined}
         >
-          <svg style={{ height: 14, width: 14, display: 'inline', marginRight: 6 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg
+            style={{ height: 14, width: 14, display: "inline", marginRight: 6 }}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          {t('upload.select_photos')}
+          {t("upload.select_photos")}
         </button>
       </div>
 
       {/* Error messages */}
       {errors.length > 0 && (
-        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <ul
+          style={{
+            margin: 0,
+            padding: 0,
+            listStyle: "none",
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
           {errors.map((err, i) => (
             <li key={i} className="form-error">
               {err}
@@ -240,16 +251,12 @@ export default function ImageUpload({
               key={idx}
               className="group relative overflow-hidden"
               style={{
-                aspectRatio: '1 / 1',
-                border: '1px solid #e2e2e2',
-                background: '#f4f6f9',
+                aspectRatio: "1 / 1",
+                border: "1px solid #e2e2e2",
+                background: "#f4f6f9",
               }}
             >
-              <img
-                src={p.objectUrl}
-                alt={p.file.name}
-                className="h-full w-full object-cover"
-              />
+              <img src={p.objectUrl} alt={p.file.name} className="h-full w-full object-cover" />
 
               {/* Overlay on hover */}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/0 transition-colors group-hover:bg-black/40">
@@ -258,18 +265,29 @@ export default function ImageUpload({
                   type="button"
                   onClick={() => handleDelete(idx)}
                   disabled={disabled}
-                  title={t('upload.delete')}
-                  aria-label={t('upload.delete')}
+                  title={t("upload.delete")}
+                  aria-label={t("upload.delete")}
                   style={{
-                    background: 'rgba(255,255,255,0.9)',
-                    border: 'none',
-                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    background: "rgba(255,255,255,0.9)",
+                    border: "none",
+                    cursor: disabled ? "not-allowed" : "pointer",
                     padding: 4,
                   }}
                   className="opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <svg style={{ height: 14, width: 14, color: '#c0392b' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    style={{ height: 14, width: 14, color: "#c0392b" }}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -277,13 +295,13 @@ export default function ImageUpload({
               {/* File size badge */}
               <span
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   bottom: 4,
                   right: 4,
-                  background: 'rgba(0,0,0,0.5)',
-                  color: '#fff',
+                  background: "rgba(0,0,0,0.5)",
+                  color: "#fff",
                   fontSize: 10,
-                  padding: '1px 4px',
+                  padding: "1px 4px",
                 }}
               >
                 {formatFileSize(p.file.size)}

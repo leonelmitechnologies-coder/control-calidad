@@ -12,17 +12,17 @@ export interface CopqEntry {
 }
 
 export const RI_DEFECTOS: Record<string, CopqEntry> = {
-  'Duplicado':                 { actividad: 'Verificacion de LPN correcto y Reproceso en Linea', costo: 105.00 },
-  'Pulgada Incorrecta':        { actividad: 'Inspeccion de TV',                                  costo: 17.50  },
-  'Clasificacion Incorrecta':  { actividad: 'Inspeccion de TV y Reproceso en Linea',             costo: 17.50  },
-  'Marca Incorrecta':          { actividad: 'Inspeccion de TV',                                  costo: 17.50  },
-  'Pantalla Caida':            { actividad: 'Reproceso en Linea',                                costo: 43.75  },
-  'Etiqueta Quemada':          { actividad: 'Reimpresion de Etiqueta',                           costo: 5.83   },
-  'Sin Etiqueta':              { actividad: 'Reimpresion de Etiqueta',                           costo: 5.83   },
-  'Falta de Tape':             { actividad: 'Colocacion de Tape',                                costo: 5.83   },
-  'Falta de Limpieza en Caja': { actividad: 'Reproceso en Limpieza de Cajas',                   costo: 14.00  },
-  'Tv con Salida':             { actividad: 'Inspeccion de TV y Reproceso en Linea',             costo: 52.50  },
-  'Modelo Incorrecto':         { actividad: 'Inspeccion de TV',                                  costo: 35.00  },
+  Duplicado: { actividad: "Verificacion de LPN correcto y Reproceso en Linea", costo: 105.0 },
+  "Pulgada Incorrecta": { actividad: "Inspeccion de TV", costo: 17.5 },
+  "Clasificacion Incorrecta": { actividad: "Inspeccion de TV y Reproceso en Linea", costo: 17.5 },
+  "Marca Incorrecta": { actividad: "Inspeccion de TV", costo: 17.5 },
+  "Pantalla Caida": { actividad: "Reproceso en Linea", costo: 43.75 },
+  "Etiqueta Quemada": { actividad: "Reimpresion de Etiqueta", costo: 5.83 },
+  "Sin Etiqueta": { actividad: "Reimpresion de Etiqueta", costo: 5.83 },
+  "Falta de Tape": { actividad: "Colocacion de Tape", costo: 5.83 },
+  "Falta de Limpieza en Caja": { actividad: "Reproceso en Limpieza de Cajas", costo: 14.0 },
+  "Tv con Salida": { actividad: "Inspeccion de TV y Reproceso en Linea", costo: 52.5 },
+  "Modelo Incorrecto": { actividad: "Inspeccion de TV", costo: 35.0 },
 };
 
 /**

@@ -15,16 +15,9 @@
  *   if (ok) { ... }
  */
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
-import Confirm from '../components/Confirm';
-import type { ConfirmConfig } from '../types';
+import { createContext, type ReactNode, useCallback, useContext, useRef, useState } from "react";
+import Confirm from "../components/Confirm";
+import type { ConfirmConfig } from "../types";
 
 // ── Context shape ─────────────────────────────────────────────────────────────
 
@@ -40,8 +33,8 @@ interface DialogState {
 }
 
 const DEFAULT_CONFIG: ConfirmConfig = {
-  title: 'Confirmar',
-  message: '',
+  title: "Confirmar",
+  message: "",
 };
 
 // ── Provider ──────────────────────────────────────────────────────────────────
@@ -104,7 +97,7 @@ export function ConfirmProvider({ children }: ConfirmProviderProps) {
 export function useConfirm(): ConfirmFn {
   const ctx = useContext(ConfirmContext);
   if (ctx === null) {
-    throw new Error('useConfirm must be used inside <ConfirmProvider>');
+    throw new Error("useConfirm must be used inside <ConfirmProvider>");
   }
   return ctx;
 }

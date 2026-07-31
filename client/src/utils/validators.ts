@@ -8,7 +8,7 @@
  */
 export function validateRequired(value: unknown): boolean {
   if (value === null || value === undefined) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === "string") return value.trim().length > 0;
   return true;
 }
 
@@ -17,7 +17,7 @@ export function validateRequired(value: unknown): boolean {
  * Uses the standard HTML5 e-mail regex (RFC 5322 simplified).
  */
 export function validateEmail(email: string): boolean {
-  if (!email || typeof email !== 'string') return false;
+  if (!email || typeof email !== "string") return false;
   // Standard HTML5 email pattern
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email.trim());
@@ -29,9 +29,9 @@ export function validateEmail(email: string): boolean {
  * Examples: 5512345678, (55) 1234-5678, +52 55 1234 5678
  */
 export function validatePhone(phone: string): boolean {
-  if (!phone || typeof phone !== 'string') return false;
+  if (!phone || typeof phone !== "string") return false;
   // Strip all non-digit characters except leading +
-  const stripped = phone.replace(/[\s\-().]/g, '').replace(/^\+52/, '');
+  const stripped = phone.replace(/[\s\-().]/g, "").replace(/^\+52/, "");
   // Must end up with 10 digits
   return /^\d{10}$/.test(stripped);
 }
@@ -50,7 +50,7 @@ export function validateDate(date: string | Date | null | undefined): boolean {
  * Returns true when value (trimmed) has at least `min` characters.
  */
 export function validateMinLength(value: string, min: number): boolean {
-  if (!value || typeof value !== 'string') return false;
+  if (!value || typeof value !== "string") return false;
   return value.trim().length >= min;
 }
 
@@ -58,7 +58,7 @@ export function validateMinLength(value: string, min: number): boolean {
  * Returns true when value (trimmed) has at most `max` characters.
  */
 export function validateMaxLength(value: string, max: number): boolean {
-  if (!value || typeof value !== 'string') return false;
+  if (!value || typeof value !== "string") return false;
   return value.trim().length <= max;
 }
 
@@ -66,13 +66,13 @@ export function validateMaxLength(value: string, max: number): boolean {
  * Returns true when value falls within [min, max] (inclusive).
  */
 export function validateRange(value: number, min: number, max: number): boolean {
-  return typeof value === 'number' && !isNaN(value) && value >= min && value <= max;
+  return typeof value === "number" && !isNaN(value) && value >= min && value <= max;
 }
 
 /**
  * Returns true when value matches the supplied regex.
  */
 export function validatePattern(value: string, pattern: RegExp): boolean {
-  if (!value || typeof value !== 'string') return false;
+  if (!value || typeof value !== "string") return false;
   return pattern.test(value);
 }
