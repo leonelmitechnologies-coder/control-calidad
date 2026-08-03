@@ -12,10 +12,17 @@ import { and, asc, count, desc, eq, like, sql } from "drizzle-orm";
 // Import schema tables
 import * as schema from "../shared/schema.js";
 import {
+  canonicalizeEmail,
+  createAccessRequest,
+  decideAccessRequest,
   initializePassport,
+  latestAccessRequestFor,
   PassportUser,
   requireAdmin,
   requireAuth,
+  requireInternalToken,
+  SCOPE_DOMAINS,
+  SCOPE_LABELS,
   setupSession,
 } from "./auth.js";
 // Import local modules
@@ -212,6 +219,20 @@ app.post("/api/logout", (req: Request, res: Response) => {
 
 // GET /api/me - Get current user with fresh permisos from DB
 app.get("/api/me", async (req: Request, res: Response) => {
+  if (req.user?.pending) {
+    // GAC: signed in via SSO but not on the allowlist (no usuarios row, not a
+    // break-glass ADMIN_EMAILS admin). Client shows the Request Access page.
+    const existing = await latestAccessRequestFor(req.user.id).catch(() => null);
+    return res.json({
+      pending: true,
+      id: req.user.id,
+      nombre: req.user.name,
+      usuario: req.user.email,
+      requestStatus: existing?.status ?? null,
+      requestedScopes: existing?.requested_scopes ?? [],
+      requestNote: existing?.note ?? null,
+    });
+  }
   if (req.user) {
     const adminEmails = (process.env.ADMIN_EMAILS || "")
       .split(",")
@@ -267,6 +288,118 @@ app.get("/api/health", (_req: Request, res: Response) => {
   }
   res.json({ ok: appReady, status: appReady ? "ready" : "initializing" });
 });
+
+// ── GRANULAR ACCESS CONTROL (GAC) — request-access + admin review ────────
+// See server/auth.ts for the full design note. Core idea: a signed-in user
+// with no usuarios row (req.user.pending) can request access to specific
+// modules; a human approves/denies via #approvals (shared watcher cron) or
+// this app's own /admin/access page (full-scope admins only).
+
+app.get("/api/admin/scope-domains", requireAdmin, (_req: Request, res: Response) => {
+  res.json(SCOPE_DOMAINS.map((d) => ({ key: d, label: SCOPE_LABELS[d] })));
+});
+
+// Submitted by a pending (unlisted) signed-in user from the Request Access page.
+app.post("/api/auth/request-access", async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado" });
+  if (!req.user.pending) return res.json({ ok: true, alreadyGranted: true });
+
+  const body = req.body as { scopes?: unknown; note?: unknown };
+  const requested = Array.isArray(body.scopes)
+    ? body.scopes.filter(
+        (s): s is string =>
+          typeof s === "string" && (SCOPE_DOMAINS as readonly string[]).includes(s),
+      )
+    : [];
+  if (requested.length === 0) {
+    return res.status(400).json({ error: "Selecciona al menos un módulo" });
+  }
+  const note = typeof body.note === "string" ? body.note.slice(0, 500) : null;
+
+  try {
+    const result = await createAccessRequest(
+      req.user.id,
+      req.user.email,
+      req.user.name,
+      requested,
+      note,
+    );
+    res.json({ ok: true, ...result });
+  } catch (err: any) {
+    console.error("[GAC] request-access failed:", err);
+    res.status(500).json({ error: "Error al registrar la solicitud" });
+  }
+});
+
+// Called by the shared Mattermost access-request-watcher.py cron after a human
+// replies approve/deny in the #approvals thread. Not reachable from the browser.
+app.post(
+  "/internal/access-requests/:id/decide",
+  express.json(),
+  requireInternalToken,
+  async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid request id" });
+    const body = req.body as { action?: unknown; decidedBy?: unknown; scopes?: unknown };
+    if (body.action !== "approve" && body.action !== "deny") {
+      return res.status(400).json({ error: "action must be 'approve' or 'deny'" });
+    }
+    const decidedBy = typeof body.decidedBy === "string" ? body.decidedBy : "unknown";
+    const scopeOverride = Array.isArray(body.scopes)
+      ? body.scopes.filter((s): s is string => typeof s === "string")
+      : undefined;
+    try {
+      const result = await decideAccessRequest(id, body.action, decidedBy, scopeOverride);
+      if (!result.ok) return res.status(result.code).json({ error: result.error });
+      res.json(result);
+    } catch (err: any) {
+      console.error("[GAC] /internal/access-requests decide failed:", err);
+      res.status(500).json({ error: "internal error deciding request" });
+    }
+  },
+);
+
+// ── Admin-only (full/"*" or rol=Administrador) access-request review ──────
+app.get("/api/admin/access-requests", requireAdmin, async (req: Request, res: Response) => {
+  const status = typeof req.query.status === "string" ? req.query.status : undefined;
+  const rows = status
+    ? await pool.query(
+        "SELECT * FROM access_requests WHERE status = $1 ORDER BY requested_at DESC LIMIT 200",
+        [status],
+      )
+    : await pool.query("SELECT * FROM access_requests ORDER BY requested_at DESC LIMIT 200");
+  res.json(rows.rows);
+});
+
+app.post(
+  "/api/admin/access-requests/:id/decide",
+  express.json(),
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid request id" });
+    const body = req.body as { action?: unknown; scopes?: unknown };
+    if (body.action !== "approve" && body.action !== "deny") {
+      return res.status(400).json({ error: "action must be 'approve' or 'deny'" });
+    }
+    const scopeOverride = Array.isArray(body.scopes)
+      ? body.scopes.filter((s): s is string => typeof s === "string")
+      : undefined;
+    try {
+      const result = await decideAccessRequest(
+        id,
+        body.action,
+        req.user!.email || req.user!.id,
+        scopeOverride,
+      );
+      if (!result.ok) return res.status(result.code).json({ error: result.error });
+      res.json(result);
+    } catch (err: any) {
+      console.error("[GAC] admin decide failed:", err);
+      res.status(500).json({ error: "internal error deciding request" });
+    }
+  },
+);
 
 // ── NO CONFORMIDADES ────────────────────────────────────────────
 

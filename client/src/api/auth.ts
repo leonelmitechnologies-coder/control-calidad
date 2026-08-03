@@ -19,6 +19,12 @@ export interface User {
   rol?: string;
   usuario?: string;
   permisos?: Record<string, ModuloPermisos> | null;
+  /** GAC (2026-08-02): signed in via SSO but not on the allowlist yet — no usuarios
+   * row exists. See requestStatus/requestedScopes for their in-flight request, if any. */
+  pending?: boolean;
+  requestStatus?: "pending" | "approved" | "denied" | null;
+  requestedScopes?: string[];
+  requestNote?: string | null;
 }
 
 export interface AuthState {
@@ -46,6 +52,9 @@ export async function fetchCurrentUser(): Promise<User | null> {
     if (!data?.id) return null;
 
     // El servidor devuelve { id, nombre, usuario, rol } — mapeamos a User
+    // GAC (2026-08-02): a pending user has no rol/permisos yet — carry the
+    // pending flag + their request status through so the UI can show the
+    // Request Access page instead of the normal app shell.
     return {
       id: String(data.id),
       name: data.nombre ?? data.name ?? data.usuario ?? "",
@@ -54,6 +63,10 @@ export async function fetchCurrentUser(): Promise<User | null> {
       rol: data.rol,
       usuario: data.usuario,
       permisos: data.permisos ?? null,
+      pending: Boolean(data.pending),
+      requestStatus: data.requestStatus ?? null,
+      requestedScopes: data.requestedScopes ?? [],
+      requestNote: data.requestNote ?? null,
     } as User;
   } catch (error) {
     console.error("Error fetching current user:", error);

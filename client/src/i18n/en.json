@@ -511,5 +511,40 @@
       "nc_severidad": "NCs by Severity",
       "nc_area": "NCs by Area"
     }
+  },
+  "adminAccess": {
+    "title": "Access Control",
+    "sub": "Review requests to access Control Calidad QC modules. Approve, deny, or override the requested scopes.",
+    "pending": "Pending",
+    "approved": "Approved",
+    "denied": "Denied",
+    "all": "All",
+    "user": "User",
+    "requestedScopes": "Requested",
+    "reason": "Reason",
+    "requestedAt": "Requested",
+    "status": "Status",
+    "decidedBy": "Decided by",
+    "actions": "Actions",
+    "approve": "Approve",
+    "deny": "Deny",
+    "overrideScopes": "Override scopes",
+    "approveWithOverride": "Approve with selected scopes",
+    "fullAccess": "Full access (*)",
+    "noRequests": "No requests.",
+    "approvedMsg": "Request approved.",
+    "deniedMsg": "Request denied.",
+    "loadError": "Error loading requests.",
+    "decideError": "Error deciding request."
+  },
+  "requestAccess": {
+    "title": "Request Access",
+    "intro": "Your MI Technologies account isn't on the Control Calidad QC allowlist yet. Pick the module(s) you need — a request will be sent for approval.",
+    "pickOne": "Pick at least one module.",
+    "notePlaceholder": "Why do you need this? (optional)",
+    "submit": "Request Access",
+    "submitting": "Submitting...",
+    "pendingMsg": "Your access request has been submitted and is waiting on approval. You'll be able to sign in normally once it's approved — no need to request again.",
+    "deniedMsg": "Your previous request was denied. You can submit a new one below."
   }
 }
