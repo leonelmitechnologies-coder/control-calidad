@@ -27,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Organigrama QC", href: "/organigrama-qc" },
   { label: "Calendario", href: "/calendario" },
   { label: "Usuarios", href: "/usuarios" },
+  { label: "Control de Acceso", href: "/admin/access" },
   { label: "Manual", href: "/manual" },
 ];
 
@@ -42,6 +43,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/organigrama-qc": "Organigrama QC",
   "/calendario": "Calendario",
   "/usuarios": "Usuarios",
+  "/admin/access": "Control de Acceso",
   "/dashboard-b2c": "Dashboard B2C",
   "/dashboard-b2b": "Dashboard B2B",
   "/manual": "Manual de Usuario",
@@ -131,10 +133,13 @@ export default function Layout({ children }: LayoutProps) {
         <nav className="flex-1 overflow-y-auto py-2">
           {NAV_ITEMS.filter((item) => {
             if (user?.rol === "Administrador" || user?.permisos === null) return true;
-            if (item.href === "/usuarios") return false; // solo admin
+            if (item.href === "/usuarios" || item.href === "/admin/access") return false; // solo admin
             const key = item.href === "/" ? "" : item.href.slice(1);
             const p = user?.permisos?.[key];
-            return p ? p.ver : true; // sin entrada = visible por defecto
+            // GAC (2026-08-02): unlike before, an absent permisos entry now means
+            // "never granted this scope" (not "visible by default") — a listed
+            // non-admin user only sees modules they were actually granted.
+            return p ? p.ver : false;
           }).map((item) => {
             const active = location === item.href;
             return (

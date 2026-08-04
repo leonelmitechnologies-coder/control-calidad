@@ -697,8 +697,18 @@ export function registerRoutes(app: Express) {
   });
 
   // ── USUARIOS (admin only) ──────────────────────────────────────
+  // SECURITY FIX (2026-08-02, found during the GAC retrofit): these 5 routes
+  // were gated by requireAuth only (any logged-in "Usuario" could edit rol/
+  // permisos of ANY account, self-promote to Administrador, toggle anyone's
+  // activo, or delete any account outright) — the TODO comments below
+  // ("Check admin role from database") were never actually done. This is a
+  // separate, pre-existing bug from the GAC login-allowlist gap, but directly
+  // undermines the same admin/rol boundary GAC depends on, so it's fixed here
+  // too. GET /api/usuarios below is shadowed by index.ts's own admin-gated
+  // GET /api/usuarios (registered first, at module load) so this GET is dead
+  // code in practice — left requireAdmin'd anyway for correctness.
 
-  app.get("/api/usuarios", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/usuarios", requireAdmin, async (req: Request, res: Response) => {
     try {
       // TODO: Check admin role from database
       const result = await db
@@ -720,7 +730,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/usuarios", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/usuarios", requireAdmin, async (req: Request, res: Response) => {
     try {
       // TODO: Check admin role from database
       const { nombre, usuario, password, rol, area } = req.body;
@@ -758,7 +768,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.put("/api/usuarios/:id", requireAuth, async (req: Request, res: Response) => {
+  app.put("/api/usuarios/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { nombre, usuario, password, rol, area } = req.body;
@@ -793,7 +803,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/usuarios/:id/toggle", requireAuth, async (req: Request, res: Response) => {
+  app.patch("/api/usuarios/:id/toggle", requireAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -811,7 +821,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/usuarios/:id", requireAuth, async (req: Request, res: Response) => {
+  app.delete("/api/usuarios/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 

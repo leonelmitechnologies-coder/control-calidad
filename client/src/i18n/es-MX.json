@@ -511,5 +511,40 @@
       "nc_severidad": "NC por Severidad",
       "nc_area": "NC por Área"
     }
+  },
+  "adminAccess": {
+    "title": "Control de Acceso",
+    "sub": "Revisa las solicitudes de acceso a los módulos de Control de Calidad QC. Aprueba, rechaza u otorga alcances distintos a los solicitados.",
+    "pending": "Pendiente",
+    "approved": "Aprobada",
+    "denied": "Rechazada",
+    "all": "Todas",
+    "user": "Usuario",
+    "requestedScopes": "Solicitado",
+    "reason": "Motivo",
+    "requestedAt": "Solicitado",
+    "status": "Estatus",
+    "decidedBy": "Decidido por",
+    "actions": "Acciones",
+    "approve": "Aprobar",
+    "deny": "Rechazar",
+    "overrideScopes": "Cambiar alcances",
+    "approveWithOverride": "Aprobar con alcances seleccionados",
+    "fullAccess": "Acceso total (*)",
+    "noRequests": "No hay solicitudes.",
+    "approvedMsg": "Solicitud aprobada.",
+    "deniedMsg": "Solicitud rechazada.",
+    "loadError": "Error al cargar las solicitudes.",
+    "decideError": "Error al decidir la solicitud."
+  },
+  "requestAccess": {
+    "title": "Solicitar Acceso",
+    "intro": "Tu cuenta de MI Technologies aún no está en la lista de acceso de Control de Calidad QC. Elige el/los módulo(s) que necesitas — se enviará una solicitud para aprobación.",
+    "pickOne": "Selecciona al menos un módulo.",
+    "notePlaceholder": "¿Para qué lo necesitas? (opcional)",
+    "submit": "Solicitar Acceso",
+    "submitting": "Enviando...",
+    "pendingMsg": "Tu solicitud de acceso fue enviada y está pendiente de aprobación. Podrás iniciar sesión normalmente una vez aprobada — no es necesario volver a solicitar.",
+    "deniedMsg": "Tu solicitud anterior fue rechazada. Puedes enviar una nueva a continuación."
   }
 }

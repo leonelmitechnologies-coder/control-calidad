@@ -506,5 +506,40 @@
       "nc_severidad": "按严重程度不符合项",
       "nc_area": "按区域不符合项"
     }
+  },
+  "adminAccess": {
+    "title": "访问控制",
+    "sub": "审核对 Control Calidad QC 模块的访问申请。批准、拒绝或调整所申请的权限范围。",
+    "pending": "待处理",
+    "approved": "已批准",
+    "denied": "已拒绝",
+    "all": "全部",
+    "user": "用户",
+    "requestedScopes": "申请范围",
+    "reason": "原因",
+    "requestedAt": "申请时间",
+    "status": "状态",
+    "decidedBy": "处理人",
+    "actions": "操作",
+    "approve": "批准",
+    "deny": "拒绝",
+    "overrideScopes": "调整范围",
+    "approveWithOverride": "按所选范围批准",
+    "fullAccess": "完全访问（*）",
+    "noRequests": "暂无申请。",
+    "approvedMsg": "申请已批准。",
+    "deniedMsg": "申请已拒绝。",
+    "loadError": "加载申请失败。",
+    "decideError": "处理申请失败。"
+  },
+  "requestAccess": {
+    "title": "申请访问权限",
+    "intro": "您的 MI Technologies 账户尚未列入 Control Calidad QC 的访问名单。请选择您需要的模块——系统将发送申请以供批准。",
+    "pickOne": "请至少选择一个模块。",
+    "notePlaceholder": "为什么需要此权限？（可选）",
+    "submit": "申请访问",
+    "submitting": "提交中...",
+    "pendingMsg": "您的访问申请已提交，正在等待批准。批准后即可正常登录——无需重新申请。",
+    "deniedMsg": "您之前的申请已被拒绝。您可以在下方提交新的申请。"
   }
 }

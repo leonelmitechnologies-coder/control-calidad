@@ -306,7 +306,9 @@ export default function Usuarios() {
         <div>
           <h1 className="text-2xl font-bold">Usuarios del Sistema</h1>
           <p style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-            Los usuarios se registran automáticamente al iniciar sesión con SSO.
+            Un usuario aparece aquí sólo después de que su solicitud de acceso fue aprobada (ver{" "}
+            <a href="/admin/access">Control de Acceso</a>) — ya no se registran automáticamente al
+            iniciar sesión con SSO.
           </p>
         </div>
       </div>

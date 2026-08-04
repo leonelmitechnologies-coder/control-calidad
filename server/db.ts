@@ -55,6 +55,51 @@ export async function initDB() {
       END $$
     `);
 
+    // ── Granular Access Control (GAC) — 2026-08-02 ──────────────────────
+    // access_requests: a request for access filed by a signed-in-but-unlisted
+    // user (see server/auth.ts upsertOidcUser). Posted to #approvals for a
+    // human to approve/deny by chat reply; the shared watcher (or the
+    // /admin/access page) calls back into POST /internal/access-requests/:id/decide.
+    // usuarios itself remains the allowlist (a row = listed; no row = pending) —
+    // no separate allowed_users table, see auth.ts's design note.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS access_requests (
+        id                serial PRIMARY KEY,
+        oidc_id           text NOT NULL,
+        email             text NOT NULL,
+        name              text,
+        requested_scopes  text[] NOT NULL DEFAULT '{}',
+        status            text NOT NULL DEFAULT 'pending',
+        note              text,
+        mm_post_id        text,
+        decided_by        text,
+        decided_at        timestamptz,
+        requested_at      timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS access_requests_oidc_idx ON access_requests (oidc_id, requested_at DESC)`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS access_requests_status_idx ON access_requests (status)`,
+    );
+
+    // Seed the initial admin(s) so the allowlist switch-over cannot lock out
+    // real current users. leonel.hernandez already has a usuarios row (created
+    // 2026-07-01) — this just re-asserts full ("*"-equivalent, permisos=NULL)
+    // Administrador access explicitly in the DB, instead of relying solely on
+    // the ADMIN_EMAILS env break-glass. Idempotent: safe to re-run every boot.
+    await pool.query(
+      `UPDATE usuarios SET rol = 'Administrador', permisos = NULL, activo = true
+       WHERE oidc_id = 'leonel.hernandez'`,
+    );
+    // If that row somehow doesn't exist yet (fresh DB), seed it directly.
+    await pool.query(
+      `INSERT INTO usuarios (oidc_id, nombre, usuario, email, password_hash, activo, rol, permisos)
+       VALUES ('leonel.hernandez', 'Leonel Hernandez', 'leonel.hernandez', 'leonel.hernandez@miglobal.com.mx', '', true, 'Administrador', NULL)
+       ON CONFLICT (oidc_id) DO NOTHING`,
+    );
+
     // Create no_conformidades table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS no_conformidades (
