@@ -2538,6 +2538,90 @@ app.patch("/api/usuarios/:id", requireAdmin, async (req: Request, res: Response)
   }
 });
 
+// ── DASHBOARD ─────────────────────────────────────────────────────
+app.get("/api/dashboard", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { periodo, anio, mes } = req.query;
+
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+
+    const year = anio ? parseInt(anio as string) : currentYear;
+    const month = mes ? parseInt(mes as string) : currentMonth;
+
+    let reFilter: string;
+    let riFilter: string;
+    let ncFilter: string;
+
+    if (periodo === "ytd") {
+      reFilter = `EXTRACT(year FROM re.registration_date) = ${year}`;
+      riFilter = `EXTRACT(year FROM ri.fecha_registro) = ${year}`;
+      ncFilter = `EXTRACT(year FROM nc.fecha) = ${year}`;
+    } else {
+      reFilter = `EXTRACT(year FROM re.registration_date) = ${year} AND EXTRACT(month FROM re.registration_date) = ${month}`;
+      riFilter = `EXTRACT(year FROM ri.fecha_registro) = ${year} AND EXTRACT(month FROM ri.fecha_registro) = ${month}`;
+      ncFilter = `EXTRACT(year FROM nc.fecha) = ${year} AND EXTRACT(month FROM nc.fecha) = ${month}`;
+    }
+
+    const [dashboardData, marksQuery, clasifQuery, severityQuery, areaQuery] = await Promise.all([
+      pool.query(`
+        SELECT
+          (SELECT COALESCE(SUM(sale_price), 0) FROM rechazos_externos re WHERE ${reFilter}) as sale_price_total,
+          (SELECT COALESCE(SUM(costo_no_calidad), 0) FROM rechazos_internos ri WHERE ${riFilter}) as copq_interno_total,
+          (SELECT COUNT(*) FROM rechazos_externos re WHERE ${reFilter}) as rechazos_total,
+          (SELECT COUNT(*) FROM no_conformidades nc WHERE ${ncFilter} AND nc.estatus = 'Abierta') as nc_abiertas,
+          (SELECT COUNT(*) FROM organigrama_qc WHERE estatus = 'activo') as colaboradores_activos
+      `),
+      pool.query(`
+        SELECT brand, SUM(sale_price) as total
+        FROM rechazos_externos re
+        WHERE ${reFilter}
+        GROUP BY brand
+        ORDER BY total DESC
+        LIMIT 6
+      `),
+      pool.query(`
+        SELECT classification, COUNT(*) as count
+        FROM rechazos_externos re
+        WHERE ${reFilter}
+        GROUP BY classification
+        ORDER BY count DESC
+      `),
+      pool.query(`
+        SELECT severidad, COUNT(*) as count
+        FROM no_conformidades nc
+        WHERE ${ncFilter}
+        GROUP BY severidad
+      `),
+      pool.query(`
+        SELECT area, COUNT(*) as count
+        FROM no_conformidades nc
+        WHERE ${ncFilter}
+        GROUP BY area
+      `),
+    ]);
+
+    const metrics = dashboardData.rows[0];
+
+    res.json({
+      sale_price_total: parseFloat(metrics.sale_price_total) || 0,
+      copq_interno_total: parseFloat(metrics.copq_interno_total) || 0,
+      total_rejects_cost: parseFloat(metrics.sale_price_total) || 0,
+      rechazos_total: parseInt(metrics.rechazos_total) || 0,
+      nc_abiertas: parseInt(metrics.nc_abiertas) || 0,
+      colaboradores_activos: parseInt(metrics.colaboradores_activos) || 0,
+      sale_price_por_marca: marksQuery.rows,
+      rechazos_por_clasif: clasifQuery.rows,
+      nc_por_severidad: severityQuery.rows,
+      nc_por_area: areaQuery.rows,
+    });
+  } catch (err) {
+    console.error("[API] GET /api/dashboard error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── SPA Catch-all ────────────────────────────────────────────────
 // Serves index.html for all non-API routes (client-side routing via wouter).
 // Registered after all API routes so Express only reaches this for deep-links.
