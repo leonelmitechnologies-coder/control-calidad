@@ -66,7 +66,12 @@ function groupByWeek(rows: RechazosExterno[]): WeekGroup[] {
       key = "__no_date__";
       label = "Sin fecha de registro";
     } else {
-      const monday = weekMonday(new Date(row.registration_date));
+      // Parse date-only strings at local noon to avoid UTC-midnight → previous-day shift
+      // in UTC-X timezones (e.g. Monday "2026-08-03" becomes Sunday in UTC-5)
+      const dateStr = row.registration_date.includes("T")
+        ? row.registration_date
+        : row.registration_date + "T12:00:00";
+      const monday = weekMonday(new Date(dateStr));
       key = monday.toISOString().slice(0, 10);
       label = weekLabel(monday);
     }
