@@ -48,7 +48,11 @@ export function registerRoutes(app: Express) {
           schema.organigramaQc.nombreCompleto,
         );
 
-      res.json(result);
+      const withUrls = result.map((emp) => ({
+        ...emp,
+        fotoUrl: emp.fotoFilename ? s3.getFileUrl("organigrama", emp.fotoFilename) : null,
+      }));
+      res.json(withUrls);
     } catch (err) {
       console.error("[API] GET /api/organigrama-qc error:", err);
       res.status(500).json({ error: "Internal server error" });
