@@ -27,6 +27,7 @@ import OrganigramaQc from "./pages/OrganigramaQc";
 import Recepciones from "./pages/Recepciones";
 import RechazosExternos from "./pages/RechazosExternos";
 import RechazosInternos from "./pages/RechazosInternos";
+import RegistroComida from "./pages/RegistroComida";
 import RequestAccess from "./pages/RequestAccess";
 import Usuarios from "./pages/Usuarios";
 
@@ -181,6 +182,14 @@ function AppRoutes() {
         {() => (
           <Layout>
             <B2BDashboard />
+          </Layout>
+        )}
+      </Route>
+
+      <Route path="/registro-comida">
+        {() => (
+          <Layout>
+            <RegistroComida />
           </Layout>
         )}
       </Route>

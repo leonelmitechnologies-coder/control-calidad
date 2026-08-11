@@ -834,4 +834,98 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // ── REGISTRO COMIDA ──────────────────────────────────────────────
+
+  // GET /api/registro-comida — registros del día (o fecha filtrada) con datos del colaborador
+  app.get("/api/registro-comida", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { fecha, turno } = req.query as Record<string, string>;
+      const fechaFiltro = fecha || new Date().toISOString().slice(0, 10);
+
+      let query = `
+        SELECT rc.id, rc.colaborador_id, rc.fecha, rc.hora_registro, rc.turno,
+               rc.observaciones, rc.registrado_por, rc.created_at,
+               oq.nombre_completo, oq.area, oq.puesto, oq.turno AS turno_colaborador,
+               oq.foto_filename
+        FROM registro_comida rc
+        JOIN organigrama_qc oq ON oq.id = rc.colaborador_id
+        WHERE rc.fecha = $1
+      `;
+      const params: any[] = [fechaFiltro];
+
+      if (turno) {
+        query += ` AND rc.turno = $${params.length + 1}`;
+        params.push(turno);
+      }
+
+      query += " ORDER BY rc.hora_registro DESC, rc.id DESC";
+
+      const result = await pool.query(query, params);
+      res.json({ data: result.rows, total: result.rows.length, fecha: fechaFiltro });
+    } catch (err) {
+      console.error("[API] GET /api/registro-comida error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // GET /api/registro-comida/colaboradores — colaboradores activos del organigrama
+  app.get("/api/registro-comida/colaboradores", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const result = await pool.query(`
+        SELECT id, nombre_completo, area, puesto, turno, foto_filename
+        FROM organigrama_qc
+        WHERE estatus = 'activo'
+        ORDER BY nombre_completo ASC
+      `);
+      res.json(result.rows);
+    } catch (err) {
+      console.error("[API] GET /api/registro-comida/colaboradores error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/registro-comida — registrar entrada a comida
+  app.post("/api/registro-comida", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { colaborador_id, fecha, hora_registro, turno, observaciones } = req.body;
+      if (!colaborador_id || !fecha) {
+        return res.status(400).json({ error: "colaborador_id y fecha son requeridos" });
+      }
+
+      const registrado_por = (req.user as any)?.name || (req.user as any)?.email || "Sistema";
+      const hora = hora_registro || new Date().toTimeString().slice(0, 5);
+
+      const inserted = await pool.query(
+        `INSERT INTO registro_comida (colaborador_id, fecha, hora_registro, turno, observaciones, registrado_por)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [colaborador_id, fecha, hora, turno || "", observaciones || "", registrado_por],
+      );
+
+      const row = await pool.query(
+        `SELECT rc.*, oq.nombre_completo, oq.area, oq.puesto, oq.foto_filename
+         FROM registro_comida rc
+         JOIN organigrama_qc oq ON oq.id = rc.colaborador_id
+         WHERE rc.id = $1`,
+        [inserted.rows[0].id],
+      );
+
+      res.status(201).json(row.rows[0]);
+    } catch (err) {
+      console.error("[API] POST /api/registro-comida error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // DELETE /api/registro-comida/:id
+  app.delete("/api/registro-comida/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await pool.query("DELETE FROM registro_comida WHERE id = $1", [parseInt(id)]);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[API] DELETE /api/registro-comida/:id error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
 }

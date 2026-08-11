@@ -339,6 +339,28 @@ export const calendarioFestivos = pgTable("calendario_festivos", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ── REGISTRO COMIDA ────────────────────────────────────────────────
+export const registroComida = pgTable(
+  "registro_comida",
+  {
+    id: serial("id").primaryKey(),
+    colaboradorId: integer("colaborador_id").notNull(),
+    fecha: date("fecha").notNull(),
+    horaRegistro: varchar("hora_registro", { length: 8 }).notNull().default(""),
+    turno: varchar("turno", { length: 50 }).notNull().default(""),
+    observaciones: text("observaciones").notNull().default(""),
+    registradoPor: varchar("registrado_por", { length: 100 }).notNull().default(""),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    fkColaborador: foreignKey({
+      columns: [table.colaboradorId],
+      foreignColumns: [organigramaQc.id],
+      name: "registro_comida_colaborador_id_fk",
+    }).onDelete("cascade"),
+  }),
+);
+
 // ── CALENDARIO: SALDO ───────────────────────────────────────────────
 export const calendarioSaldo = pgTable(
   "calendario_saldo",

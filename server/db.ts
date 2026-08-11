@@ -47,6 +47,10 @@ export async function initDB() {
     await pool.query(
       `ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos JSONB NOT NULL DEFAULT '{}'`,
     );
+    // Admins have permisos = NULL (means "all access"). Drop NOT NULL if still set.
+    await pool.query(
+      `ALTER TABLE usuarios ALTER COLUMN permisos DROP NOT NULL`,
+    );
     await pool.query(`ALTER TABLE usuarios ALTER COLUMN password_hash SET DEFAULT ''`);
     await pool.query(`
       DO $$ BEGIN
@@ -462,6 +466,19 @@ export async function initDB() {
         estatus_carga VARCHAR(30) NOT NULL DEFAULT '',
         comentarios TEXT NOT NULL DEFAULT '',
         registrado_por VARCHAR(100),
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS registro_comida (
+        id SERIAL PRIMARY KEY,
+        colaborador_id INTEGER NOT NULL REFERENCES organigrama_qc(id) ON DELETE CASCADE,
+        fecha DATE NOT NULL,
+        hora_registro VARCHAR(8) NOT NULL DEFAULT '',
+        turno VARCHAR(50) NOT NULL DEFAULT '',
+        observaciones TEXT NOT NULL DEFAULT '',
+        registrado_por VARCHAR(100) NOT NULL DEFAULT '',
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);

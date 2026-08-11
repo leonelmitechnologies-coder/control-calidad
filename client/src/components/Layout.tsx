@@ -26,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Liberación Shipping", href: "/liberacion-shipping" },
   { label: "Organigrama QC", href: "/organigrama-qc" },
   { label: "Calendario", href: "/calendario" },
+  { label: "Registro Comida", href: "/registro-comida" },
   { label: "Usuarios", href: "/usuarios" },
   { label: "Control de Acceso", href: "/admin/access" },
   { label: "Manual", href: "/manual" },
@@ -46,6 +47,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/admin/access": "Control de Acceso",
   "/dashboard-b2c": "Dashboard B2C",
   "/dashboard-b2b": "Dashboard B2B",
+  "/registro-comida": "Registro de Comida",
   "/manual": "Manual de Usuario",
 };
 
