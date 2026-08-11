@@ -48,6 +48,7 @@ export interface OrgFormValues {
   correo: string;
   contacto_emergencia: string;
   tel_emergencia: string;
+  nfc_id: string;
 }
 
 interface FormErrors {
@@ -120,6 +121,7 @@ function emptyValues(): OrgFormValues {
     correo: "",
     contacto_emergencia: "",
     tel_emergencia: "",
+    nfc_id: "",
   };
 }
 
@@ -145,6 +147,7 @@ function fromEmployee(emp: OrganigramaQc): OrgFormValues {
     correo: str("correo", "correo"),
     contacto_emergencia: str("contacto_emergencia", "contactoEmergencia"),
     tel_emergencia: str("tel_emergencia", "telEmergencia"),
+    nfc_id: str("nfc_id", "nfcId"),
   };
 }
 
@@ -203,6 +206,9 @@ export default function OrgForm({ employee, isSubmitting, onSubmit, onCancel }: 
   const [errors, setErrors] = useState<FormErrors>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [touched, setTouched] = useState(false);
+  const [nfcScanning, setNfcScanning] = useState(false);
+  const [nfcError, setNfcError] = useState("");
+  const nfcSupported = typeof window !== "undefined" && "NDEFReader" in window;
 
   // Reset when employee prop changes (e.g., opening edit for a different person)
   useEffect(() => {
@@ -210,7 +216,31 @@ export default function OrgForm({ employee, isSubmitting, onSubmit, onCancel }: 
     setErrors({});
     setPhotoFile(null);
     setTouched(false);
+    setNfcScanning(false);
+    setNfcError("");
   }, [employee]);
+
+  const handleScanNfc = async () => {
+    if (!nfcSupported) return;
+    setNfcScanning(true);
+    setNfcError("");
+    try {
+      const ndef = new (window as any).NDEFReader();
+      await ndef.scan();
+      ndef.addEventListener("reading", (event: any) => {
+        const serial = event.serialNumber || "";
+        setValues((prev) => ({ ...prev, nfc_id: serial }));
+        setNfcScanning(false);
+      });
+      ndef.addEventListener("readingerror", () => {
+        setNfcError("No se pudo leer el tag. Intenta de nuevo.");
+        setNfcScanning(false);
+      });
+    } catch {
+      setNfcError("Permiso denegado o NFC no disponible.");
+      setNfcScanning(false);
+    }
+  };
 
   const handleChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -477,7 +507,59 @@ export default function OrgForm({ employee, isSubmitting, onSubmit, onCancel }: 
             </Field>
           </Section>
 
-          {/* Section 4: Foto */}
+          {/* Section 4: NFC */}
+          <div style={{ marginBottom: 24 }}>
+            <div className="seccion-titulo">Identificación NFC</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <input
+                  type="text"
+                  value={values.nfc_id || ""}
+                  readOnly={nfcSupported}
+                  onChange={nfcSupported ? undefined : (e) => setValues((p) => ({ ...p, nfc_id: e.target.value }))}
+                  placeholder={nfcSupported ? "Sin NFC registrado" : "Ingresa el ID del tag manualmente"}
+                  style={{ width: "100%", fontFamily: "monospace", fontSize: 13, background: nfcSupported ? "#f8fafc" : undefined }}
+                />
+              </div>
+              {nfcSupported ? (
+                <button
+                  type="button"
+                  className="btn btn-secundario"
+                  onClick={handleScanNfc}
+                  disabled={isSubmitting || nfcScanning}
+                  style={{ flexShrink: 0 }}
+                >
+                  {nfcScanning ? "Acerca el tag NFC…" : values.nfc_id ? "Re-escanear NFC" : "Escanear NFC"}
+                </button>
+              ) : (
+                <span style={{ fontSize: 12, color: "#999", flexShrink: 0 }}>
+                  Solo disponible en Android Chrome
+                </span>
+              )}
+            </div>
+            {nfcScanning && (
+              <div style={{ marginTop: 10, padding: "10px 14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 4, fontSize: 13, color: "#1d4ed8", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 20 }}>📡</span> Acerca el tag NFC al dispositivo…
+              </div>
+            )}
+            {nfcError && (
+              <div style={{ marginTop: 8, fontSize: 12, color: "#dc2626" }}>{nfcError}</div>
+            )}
+            {values.nfc_id && !nfcScanning && (
+              <div style={{ marginTop: 8, fontSize: 12, color: "#16a34a" }}>
+                ✓ NFC registrado: <span style={{ fontFamily: "monospace" }}>{values.nfc_id}</span>
+                <button
+                  type="button"
+                  onClick={() => setValues((p) => ({ ...p, nfc_id: "" }))}
+                  style={{ marginLeft: 8, background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 11 }}
+                >
+                  Quitar
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Section 5: Foto */}
           <div style={{ marginBottom: 24 }}>
             <div className="seccion-titulo">{t("organigrama.section_foto")}</div>
             <PhotoUploadArea

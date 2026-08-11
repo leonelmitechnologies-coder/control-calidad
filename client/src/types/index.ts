@@ -220,8 +220,10 @@ export interface OrganigramaQc {
   contactoEmergencia?: string;
   telEmergencia?: string;
   foto_filename?: string;
-  fotoFilename?: string; // camelCase alias returned by Drizzle
-  fotoUrl?: string | null; // full URL (S3 proxy or local), injected by API
+  fotoFilename?: string;
+  fotoUrl?: string | null;
+  nfc_id?: string;
+  nfcId?: string;
   created_at: string;
 }
 

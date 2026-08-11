@@ -98,6 +98,7 @@ export function registerRoutes(app: Express) {
         fecha_nacimiento,
         contacto_emergencia,
         tel_emergencia,
+        nfc_id,
       } = req.body;
 
       const result = await db
@@ -116,6 +117,7 @@ export function registerRoutes(app: Express) {
           fechaNacimiento: fecha_nacimiento || null,
           contactoEmergencia: contacto_emergencia || "",
           telEmergencia: tel_emergencia || "",
+          nfcId: nfc_id || "",
         })
         .returning();
 
@@ -143,6 +145,7 @@ export function registerRoutes(app: Express) {
         fecha_nacimiento,
         contacto_emergencia,
         tel_emergencia,
+        nfc_id,
       } = req.body;
 
       const result = await db
@@ -161,6 +164,7 @@ export function registerRoutes(app: Express) {
           fechaNacimiento: fecha_nacimiento || null,
           contactoEmergencia: contacto_emergencia || "",
           telEmergencia: tel_emergencia || "",
+          nfcId: nfc_id !== undefined ? nfc_id : undefined,
         })
         .where(eq(schema.organigramaQc.id, parseInt(id)))
         .returning();
@@ -863,32 +867,44 @@ export function registerRoutes(app: Express) {
 
   // ── REGISTRO COMIDA ──────────────────────────────────────────────
 
-  // GET /api/registro-comida — registros del día (o fecha filtrada) con datos del colaborador
+  // GET /api/registro-comida — historial con soporte diario/semanal/mensual
   app.get("/api/registro-comida", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { fecha, turno } = req.query as Record<string, string>;
-      const fechaFiltro = fecha || new Date().toISOString().slice(0, 10);
+      const { fecha, turno, tipo_movimiento, fecha_inicio, fecha_fin } = req.query as Record<string, string>;
+      const hoy = new Date().toISOString().slice(0, 10);
+
+      // Date range: explicit range wins, then single fecha, default today
+      const desde = fecha_inicio || fecha || hoy;
+      const hasta = fecha_fin || fecha || hoy;
 
       let query = `
         SELECT rc.id, rc.colaborador_id, rc.fecha, rc.hora_registro, rc.turno,
-               rc.observaciones, rc.registrado_por, rc.created_at,
+               rc.tipo_movimiento, rc.observaciones, rc.registrado_por, rc.created_at,
                oq.nombre_completo, oq.area, oq.puesto, oq.turno AS turno_colaborador,
                oq.foto_filename
         FROM registro_comida rc
         JOIN organigrama_qc oq ON oq.id = rc.colaborador_id
-        WHERE rc.fecha = $1
+        WHERE rc.fecha BETWEEN $1 AND $2
       `;
-      const params: any[] = [fechaFiltro];
+      const params: any[] = [desde, hasta];
 
       if (turno) {
         query += ` AND rc.turno = $${params.length + 1}`;
         params.push(turno);
       }
+      if (tipo_movimiento) {
+        query += ` AND rc.tipo_movimiento = $${params.length + 1}`;
+        params.push(tipo_movimiento);
+      }
 
-      query += " ORDER BY rc.hora_registro DESC, rc.id DESC";
+      query += " ORDER BY rc.fecha DESC, rc.hora_registro DESC, rc.id DESC";
 
       const result = await pool.query(query, params);
-      res.json({ data: result.rows, total: result.rows.length, fecha: fechaFiltro });
+      const rows = result.rows.map((r: any) => ({
+        ...r,
+        foto_url: r.foto_filename ? s3.getFileUrl("organigrama", r.foto_filename) : null,
+      }));
+      res.json({ data: rows, total: rows.length, desde, hasta });
     } catch (err) {
       console.error("[API] GET /api/registro-comida error:", err);
       res.status(500).json({ error: "Internal server error" });
@@ -899,22 +915,78 @@ export function registerRoutes(app: Express) {
   app.get("/api/registro-comida/colaboradores", requireAuth, async (req: Request, res: Response) => {
     try {
       const result = await pool.query(`
-        SELECT id, nombre_completo, area, puesto, turno, foto_filename
+        SELECT id, nombre_completo, area, puesto, turno, foto_filename, nfc_id
         FROM organigrama_qc
         WHERE estatus = 'activo'
         ORDER BY nombre_completo ASC
       `);
-      res.json(result.rows);
+      const rows = result.rows.map((r: any) => ({
+        ...r,
+        foto_url: r.foto_filename ? s3.getFileUrl("organigrama", r.foto_filename) : null,
+      }));
+      res.json(rows);
     } catch (err) {
       console.error("[API] GET /api/registro-comida/colaboradores error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  // POST /api/registro-comida — registrar entrada a comida
+  // POST /api/registro-comida/escaneo — registro automático por NFC
+  app.post("/api/registro-comida/escaneo", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { nfc_id, fecha, turno } = req.body;
+      if (!nfc_id) return res.status(400).json({ error: "nfc_id es requerido" });
+
+      const hoy = fecha || new Date().toISOString().slice(0, 10);
+
+      // Buscar colaborador por nfc_id
+      const colab = await pool.query(
+        `SELECT id, nombre_completo, area, puesto, turno, foto_filename
+         FROM organigrama_qc WHERE nfc_id = $1 AND estatus = 'activo' LIMIT 1`,
+        [nfc_id],
+      );
+      if (colab.rows.length === 0) {
+        return res.status(404).json({ error: "Colaborador no encontrado para este tag NFC" });
+      }
+      const colaborador = colab.rows[0];
+
+      // Determinar tipo de movimiento según el último registro del día
+      const ultimo = await pool.query(
+        `SELECT tipo_movimiento FROM registro_comida
+         WHERE colaborador_id = $1 AND fecha = $2
+         ORDER BY hora_registro DESC, id DESC LIMIT 1`,
+        [colaborador.id, hoy],
+      );
+      const ultimoTipo = ultimo.rows[0]?.tipo_movimiento ?? null;
+      const tipoMovimiento = ultimoTipo === "salida_comedor" ? "entrada_produccion" : "salida_comedor";
+
+      const registrado_por = (req.user as any)?.name || (req.user as any)?.email || "NFC";
+      const hora = new Date().toTimeString().slice(0, 5);
+
+      const inserted = await pool.query(
+        `INSERT INTO registro_comida (colaborador_id, fecha, hora_registro, turno, tipo_movimiento, observaciones, registrado_por)
+         VALUES ($1, $2, $3, $4, $5, '', $6) RETURNING *`,
+        [colaborador.id, hoy, hora, turno || colaborador.turno || "", tipoMovimiento, registrado_por],
+      );
+
+      res.status(201).json({
+        ...inserted.rows[0],
+        nombre_completo: colaborador.nombre_completo,
+        area: colaborador.area,
+        puesto: colaborador.puesto,
+        turno_colaborador: colaborador.turno,
+        foto_url: colaborador.foto_filename ? s3.getFileUrl("organigrama", colaborador.foto_filename) : null,
+      });
+    } catch (err) {
+      console.error("[API] POST /api/registro-comida/escaneo error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/registro-comida — registro manual
   app.post("/api/registro-comida", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { colaborador_id, fecha, hora_registro, turno, observaciones } = req.body;
+      const { colaborador_id, fecha, hora_registro, turno, tipo_movimiento, observaciones } = req.body;
       if (!colaborador_id || !fecha) {
         return res.status(400).json({ error: "colaborador_id y fecha son requeridos" });
       }
@@ -923,9 +995,9 @@ export function registerRoutes(app: Express) {
       const hora = hora_registro || new Date().toTimeString().slice(0, 5);
 
       const inserted = await pool.query(
-        `INSERT INTO registro_comida (colaborador_id, fecha, hora_registro, turno, observaciones, registrado_por)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [colaborador_id, fecha, hora, turno || "", observaciones || "", registrado_por],
+        `INSERT INTO registro_comida (colaborador_id, fecha, hora_registro, turno, tipo_movimiento, observaciones, registrado_por)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [colaborador_id, fecha, hora, turno || "", tipo_movimiento || "salida_comedor", observaciones || "", registrado_por],
       );
 
       const row = await pool.query(

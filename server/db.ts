@@ -395,6 +395,7 @@ export async function initDB() {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    await pool.query(`ALTER TABLE organigrama_qc ADD COLUMN IF NOT EXISTS nfc_id VARCHAR(100) NOT NULL DEFAULT ''`);
 
     // Create calendario_solicitudes table with FK cascade
     await pool.query(`
@@ -477,11 +478,13 @@ export async function initDB() {
         fecha DATE NOT NULL,
         hora_registro VARCHAR(8) NOT NULL DEFAULT '',
         turno VARCHAR(50) NOT NULL DEFAULT '',
+        tipo_movimiento VARCHAR(20) NOT NULL DEFAULT 'salida_comedor',
         observaciones TEXT NOT NULL DEFAULT '',
         registrado_por VARCHAR(100) NOT NULL DEFAULT '',
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    await pool.query(`ALTER TABLE registro_comida ADD COLUMN IF NOT EXISTS tipo_movimiento VARCHAR(20) NOT NULL DEFAULT 'salida_comedor'`);
 
     // Seed calendar_festivos if empty (Mexican holidays)
     const festivos = await pool.query("SELECT COUNT(*) FROM calendario_festivos");

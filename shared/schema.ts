@@ -301,6 +301,7 @@ export const organigramaQc = pgTable("organigrama_qc", {
   contactoEmergencia: varchar("contacto_emergencia", { length: 200 }).notNull().default(""),
   telEmergencia: varchar("tel_emergencia", { length: 20 }).notNull().default(""),
   fotoFilename: varchar("foto_filename", { length: 255 }).notNull().default(""),
+  nfcId: varchar("nfc_id", { length: 100 }).notNull().default(""),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -348,6 +349,7 @@ export const registroComida = pgTable(
     fecha: date("fecha").notNull(),
     horaRegistro: varchar("hora_registro", { length: 8 }).notNull().default(""),
     turno: varchar("turno", { length: 50 }).notNull().default(""),
+    tipoMovimiento: varchar("tipo_movimiento", { length: 20 }).notNull().default("salida_comedor"),
     observaciones: text("observaciones").notNull().default(""),
     registradoPor: varchar("registrado_por", { length: 100 }).notNull().default(""),
     createdAt: timestamp("created_at").defaultNow(),
