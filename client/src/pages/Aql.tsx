@@ -9,6 +9,7 @@ import SkuAutocomplete from "../components/SkuAutocomplete";
 import { API_BASE_URL } from "../config/api";
 import { useConfirm } from "../context/ConfirmContext";
 import { useNotify } from "../context/NotifyContext";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -942,6 +943,7 @@ export default function Aql() {
   const total = data?.total ?? 0;
   const counts = data?.counts ?? { todas: 0, aceptado: 0, rechazado: 0 };
   const totalPag = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const isMobile = useIsMobile();
 
   return (
     <div>
@@ -993,7 +995,101 @@ export default function Aql() {
         <p className="vacio">Cargando...</p>
       ) : records.length === 0 ? (
         <p className="vacio">Sin registros AQL.</p>
+      ) : isMobile ? (
+        /* ── Vista de tarjetas (móvil) ── */
+        <div style={{ border: "1px solid #e2e2e2", background: "#fff" }}>
+          <div className="tabla-cards">
+            {records.map((r, i) => {
+              const aceptado = r.estado_aql === "Aceptado";
+              const tieneFotos = !!(r.foto_lpn_url && r.foto_pantalla_url);
+              return (
+                <div key={r.id} className="tabla-card" onClick={() => setDetailRec(r)}>
+                  {/* Header: Order ID + Estado */}
+                  <div className="tabla-card-header">
+                    <div style={{ minWidth: 0 }}>
+                      <div className="tabla-card-meta">
+                        #{(page - 1) * PAGE_SIZE + i + 1} · {String(r.fecha_registro).slice(0, 10)}
+                      </div>
+                      <div className="tabla-card-title">{r.order_id ?? r.license_plate ?? "—"}</div>
+                    </div>
+                    <span className={aceptado ? "badge badge-cerrada" : "badge badge-rechazada"} style={{ flexShrink: 0 }}>
+                      {r.estado_aql ?? "—"}
+                    </span>
+                  </div>
+
+                  {/* SKU + Marca */}
+                  <div className="tabla-card-row">
+                    <div className="tabla-card-field">
+                      <span className="tabla-card-label">SKU</span>
+                      <span className="tabla-card-value">{r.sku ?? "—"}</span>
+                    </div>
+                    <div className="tabla-card-field">
+                      <span className="tabla-card-label">Marca</span>
+                      <span className="tabla-card-value">{r.marca ?? "—"}</span>
+                    </div>
+                  </div>
+
+                  {/* Lote + Muestra */}
+                  <div className="tabla-card-row">
+                    <div className="tabla-card-field">
+                      <span className="tabla-card-label">Lote</span>
+                      <span className="tabla-card-value">{r.lote ?? "—"}</span>
+                    </div>
+                    <div className="tabla-card-field">
+                      <span className="tabla-card-label">Muestra</span>
+                      <span className="tabla-card-value">{r.muestra_total ?? "—"}</span>
+                    </div>
+                  </div>
+
+                  {/* Defectos + Fotos */}
+                  <div className="tabla-card-row" style={{ marginBottom: 0 }}>
+                    <div className="tabla-card-field">
+                      <span className="tabla-card-label">Defectos</span>
+                      <span className="tabla-card-value" style={{ color: (r.defectos_encontrados ?? 0) > 0 ? "#c62828" : "#222" }}>
+                        {r.defectos_encontrados ?? "—"}
+                      </span>
+                    </div>
+                    <div className="tabla-card-field">
+                      <span className="tabla-card-label">Fotos</span>
+                      <span style={{ fontWeight: "bold", fontSize: 13, color: tieneFotos ? "#2e7d32" : "#c62828" }}>
+                        {tieneFotos ? "✓ OK" : "✗ Falta"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="tabla-card-actions" onClick={(e) => e.stopPropagation()}>
+                    <button className="btn-accion" onClick={() => setDetailRec(r)}>Ver</button>
+                    <button className="btn-accion" onClick={() => openEdit(r)}>Editar</button>
+                    <button className="btn-accion rojo" onClick={async () => {
+                      const ok = await confirm({ title: "Eliminar", message: `¿Eliminar AQL #${r.id}?` });
+                      if (ok) {
+                        try {
+                          await apiFetch(`${API_BASE_URL}/api/aql/${r.id}`, { method: "DELETE" });
+                          refresh();
+                        } catch (err: any) {
+                          notify(err.message ?? "Error.", "error");
+                        }
+                      }
+                    }}>Eliminar</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {totalPag > 1 && (
+            <div className="paginador">
+              <span>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} de {total}</span>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>← Anterior</button>
+                <span style={{ padding: "0 8px" }}>{page} / {totalPag}</span>
+                <button onClick={() => setPage(p => Math.min(totalPag, p + 1))} disabled={page >= totalPag}>Siguiente →</button>
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
+        /* ── Vista de tabla (desktop) ── */
         <>
           <div className="tabla-wrap">
             <table className="tabla">
@@ -1027,47 +1123,29 @@ export default function Aql() {
                       <td style={{ textAlign: "right" }}>{r.muestra_total ?? "—"}</td>
                       <td style={{ textAlign: "right" }}>{r.defectos_encontrados ?? "—"}</td>
                       <td>
-                        <span
-                          className={aceptado ? "badge badge-cerrada" : "badge badge-rechazada"}
-                        >
+                        <span className={aceptado ? "badge badge-cerrada" : "badge badge-rechazada"}>
                           {r.estado_aql ?? "—"}
                         </span>
                       </td>
                       <td style={{ textAlign: "center" }}>
-                        <span
-                          style={{ fontWeight: "bold", color: tieneFotos ? "#2e7d32" : "#c62828" }}
-                        >
+                        <span style={{ fontWeight: "bold", color: tieneFotos ? "#2e7d32" : "#c62828" }}>
                           {tieneFotos ? "✓" : "✗"}
                         </span>
                       </td>
                       <td className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <button className="btn-accion" onClick={() => setDetailRec(r)}>
-                          Ver
-                        </button>{" "}
-                        <button className="btn-accion" onClick={() => openEdit(r)}>
-                          Editar
-                        </button>{" "}
-                        <button
-                          className="btn-accion rojo"
-                          onClick={async () => {
-                            const ok = await confirm({
-                              title: "Eliminar",
-                              message: `¿Eliminar AQL #${r.id}?`,
-                            });
-                            if (ok) {
-                              try {
-                                await apiFetch(`${API_BASE_URL}/api/aql/${r.id}`, {
-                                  method: "DELETE",
-                                });
-                                refresh();
-                              } catch (err: any) {
-                                notify(err.message ?? "Error.", "error");
-                              }
+                        <button className="btn-accion" onClick={() => setDetailRec(r)}>Ver</button>{" "}
+                        <button className="btn-accion" onClick={() => openEdit(r)}>Editar</button>{" "}
+                        <button className="btn-accion rojo" onClick={async () => {
+                          const ok = await confirm({ title: "Eliminar", message: `¿Eliminar AQL #${r.id}?` });
+                          if (ok) {
+                            try {
+                              await apiFetch(`${API_BASE_URL}/api/aql/${r.id}`, { method: "DELETE" });
+                              refresh();
+                            } catch (err: any) {
+                              notify(err.message ?? "Error.", "error");
                             }
-                          }}
-                        >
-                          Eliminar
-                        </button>
+                          }
+                        }}>Eliminar</button>
                       </td>
                     </tr>
                   );
