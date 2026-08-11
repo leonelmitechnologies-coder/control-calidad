@@ -24,9 +24,8 @@ interface EmployeeCardProps {
 // ── Photo helper ──────────────────────────────────────────────────────────────
 
 function avatarUrl(emp: OrganigramaQc): string | null {
-  const e = emp as Record<string, unknown>;
-  if (e.fotoUrl) return e.fotoUrl as string;
-  const filename = (e.foto_filename ?? e.fotoFilename) as string | undefined;
+  if (emp.fotoUrl) return emp.fotoUrl;
+  const filename = emp.foto_filename ?? emp.fotoFilename;
   if (!filename) return null;
   return `${API_BASE_URL}/uploads/organigrama/${filename}`;
 }

@@ -124,7 +124,7 @@ function emptyValues(): OrgFormValues {
 }
 
 function fromEmployee(emp: OrganigramaQc): OrgFormValues {
-  const e = emp as Record<string, unknown>;
+  const e = emp as unknown as Record<string, unknown>;
   const str = (snake: string, camel: string) =>
     String((e[snake] ?? e[camel]) ?? "");
   const dateStr = (snake: string, camel: string) => {
@@ -152,9 +152,8 @@ function fromEmployee(emp: OrganigramaQc): OrgFormValues {
 
 function existingPhotoUrl(emp: OrganigramaQc | null | undefined): string | null {
   if (!emp) return null;
-  const e = emp as Record<string, unknown>;
-  if (e.fotoUrl) return e.fotoUrl as string;
-  const filename = (e.foto_filename ?? e.fotoFilename) as string | undefined;
+  if (emp.fotoUrl) return emp.fotoUrl;
+  const filename = emp.foto_filename ?? emp.fotoFilename;
   if (!filename) return null;
   return `${API_BASE_URL}/uploads/organigrama/${filename}`;
 }

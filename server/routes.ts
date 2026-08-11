@@ -31,6 +31,29 @@ const upload = multer({
 });
 
 export function registerRoutes(app: Express) {
+  // ── MEDIA PROXY ────────────────────────────────────────────────
+  // Streams S3/MinIO files through the app server so the browser
+  // never needs direct (often private) MinIO access.
+  app.get("/api/media/:folder/:filename", async (req: Request, res: Response) => {
+    try {
+      const { folder, filename } = req.params;
+      // Basic path safety: no dots in folder, no path traversal in filename
+      if (folder.includes(".") || filename.includes("..") || filename.includes("/")) {
+        return res.status(400).json({ error: "Invalid path" });
+      }
+      const { stream, contentType } = await s3.streamFileFromS3(folder, filename);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      (stream as NodeJS.ReadableStream).pipe(res);
+    } catch (err: any) {
+      if (err?.name === "NoSuchKey" || err?.$metadata?.httpStatusCode === 404) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      console.error("[API] GET /api/media error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ── ORGANIGRAMA QC ─────────────────────────────────────────────
 
   app.get("/api/organigrama-qc", requireAuth, async (req: Request, res: Response) => {

@@ -219,7 +219,9 @@ export interface OrganigramaQc {
   correo?: string;
   contactoEmergencia?: string;
   telEmergencia?: string;
-  foto_filename?: string; // server stores filename, URL derived client-side
+  foto_filename?: string;
+  fotoFilename?: string; // camelCase alias returned by Drizzle
+  fotoUrl?: string | null; // full URL (S3 proxy or local), injected by API
   created_at: string;
 }
 

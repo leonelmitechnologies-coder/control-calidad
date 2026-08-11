@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { Readable } from "node:stream";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -190,6 +191,14 @@ export function getFileUrl(folder: string, filename: string): string {
   if (USE_LOCAL) {
     return `/uploads/${folder}/${filename}`;
   }
+  // Proxy through the app server so the browser never needs direct MinIO access
+  return `/api/media/${folder}/${filename}`;
+}
+
+/**
+ * Build the real S3 key URL (internal use only — not for browser consumption).
+ */
+export function getS3ObjectUrl(folder: string, filename: string): string {
   return `${PUBLIC_URL}/${BUCKET_NAME}/${folder}/${filename}`;
 }
 
@@ -209,6 +218,21 @@ export function extractFilenameFromUrl(url: string): string {
  */
 export function getS3Key(folder: string, filename: string): string {
   return `${folder}/${filename}`;
+}
+
+/**
+ * Stream a file from S3 (for proxy endpoints). Returns { stream, contentType }.
+ * Throws if S3 is not configured or the object does not exist.
+ */
+export async function streamFileFromS3(
+  folder: string,
+  filename: string,
+): Promise<{ stream: Readable; contentType: string }> {
+  const key = `${folder}/${filename}`;
+  const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
+  const response = await s3Client.send(command);
+  const contentType = response.ContentType ?? "application/octet-stream";
+  return { stream: response.Body as Readable, contentType };
 }
 
 export default s3Client;
