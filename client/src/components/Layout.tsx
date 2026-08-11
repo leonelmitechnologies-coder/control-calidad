@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { logout } from "../api/auth";
 import { useNotify } from "../context/NotifyContext";
@@ -66,10 +66,25 @@ export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const { user, isAuthenticated, loading } = useAuth();
   const notify = useNotify();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Cierra el sidebar al navegar en móvil
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [location, isMobile]);
+
+  const handleLogout = useCallback(() => {
     logout();
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -106,10 +121,29 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen" style={{ background: "#f4f6f9" }}>
+      {/* ── Backdrop (solo móvil, cuando sidebar abierto) ─────────────────── */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            zIndex: 199,
+          }}
+        />
+      )}
+
       {/* ── Sidebar ───────────────────────────────────────────────────────── */}
       <aside
         className="fixed inset-y-0 left-0 flex flex-col"
-        style={{ width: 220, background: S.bg }}
+        style={{
+          width: 220,
+          background: S.bg,
+          zIndex: 200,
+          transform: isMobile && !sidebarOpen ? "translateX(-220px)" : "translateX(0)",
+          transition: "transform 0.25s ease",
+        }}
       >
         {/* Logo */}
         <div
@@ -220,27 +254,75 @@ export default function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
-      <main className="flex-1 min-w-0 flex flex-col" style={{ marginLeft: 220 }}>
+      <main
+        className="flex-1 min-w-0 flex flex-col"
+        style={{ marginLeft: isMobile ? 0 : 220 }}
+      >
         {/* Topbar */}
         <div
           style={{
             background: "#ffffff",
             borderBottom: "1px solid #e2e2e2",
-            padding: "14px 28px",
+            padding: isMobile ? "12px 16px" : "14px 28px",
             position: "sticky",
             top: 0,
             zIndex: 10,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: 8,
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#0d2b4e" }}>{moduleTitle}</span>
-          <span style={{ fontSize: 12, color: "#777777" }}>{todayDate}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            {/* Botón hamburguesa — solo móvil */}
+            {isMobile && (
+              <button
+                onClick={() => setSidebarOpen((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px 6px",
+                  color: "#0d2b4e",
+                  flexShrink: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                }}
+                aria-label="Abrir menú"
+              >
+                <span style={{ display: "block", width: 20, height: 2, background: "#0d2b4e" }} />
+                <span style={{ display: "block", width: 20, height: 2, background: "#0d2b4e" }} />
+                <span style={{ display: "block", width: 20, height: 2, background: "#0d2b4e" }} />
+              </button>
+            )}
+            <span
+              style={{
+                fontSize: isMobile ? 14 : 15,
+                fontWeight: 700,
+                color: "#0d2b4e",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {moduleTitle}
+            </span>
+          </div>
+          <span
+            style={{
+              fontSize: isMobile ? 10 : 12,
+              color: "#777777",
+              flexShrink: 0,
+              textAlign: "right",
+            }}
+          >
+            {todayDate}
+          </span>
         </div>
 
         {/* Page content */}
-        <div style={{ padding: "24px 28px" }}>{children}</div>
+        <div style={{ padding: isMobile ? "16px 14px" : "24px 28px" }}>{children}</div>
       </main>
     </div>
   );

@@ -387,3 +387,133 @@ textarea {
   opacity: 0.4;
   cursor: default;
 }
+
+/* ── Mobile table cards ───────────────────────────────────────────── */
+.tabla-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.tabla-card {
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  border-left: 3px solid #0d2b4e;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.tabla-card:active {
+  background: #f0f4f9;
+}
+
+.tabla-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tabla-card-meta {
+  font-size: 10px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+
+.tabla-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0d2b4e;
+}
+
+.tabla-card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+  margin-bottom: 8px;
+}
+
+.tabla-card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tabla-card-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #aaa;
+  margin-bottom: 0;
+}
+
+.tabla-card-value {
+  font-size: 12px;
+  color: #222;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tabla-card-value.wrap {
+  white-space: normal;
+}
+
+.tabla-card-actions {
+  display: flex;
+  gap: 14px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.tabla-week-header {
+  background: #eef2f7;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3a5a7a;
+  border-top: 2px solid #c8d8e8;
+  border-left: none;
+  letter-spacing: 0.03em;
+  margin-bottom: 0;
+}
+
+/* ── Responsive móvil (< 768 px) ─────────────────────────────────── */
+@media (max-width: 767px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filtros {
+    gap: 8px;
+  }
+  .filtros select,
+  .filtros input {
+    min-width: 0;
+    width: 100%;
+    flex: 1 1 140px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .btn-grupo {
+    flex-wrap: wrap;
+  }
+
+  .paginador {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
