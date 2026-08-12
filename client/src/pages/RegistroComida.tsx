@@ -270,79 +270,6 @@ function ScannerView() {
         )}
       </div>
 
-      {/* ── Registro manual ── */}
-      <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 14 }}>
-          Registro manual
-        </div>
-
-        {/* Buscador */}
-        <div className="form-group" style={{ marginBottom: 10 }}>
-          <input type="text" placeholder="Buscar colaborador…" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-
-        {/* Lista */}
-        <div style={{ border: "1px solid #e2e2e2", maxHeight: 220, overflowY: "auto", marginBottom: 12 }}>
-          {filtrados.length === 0 ? (
-            <div style={{ padding: 16, fontSize: 13, color: "#999", textAlign: "center" }}>Sin resultados.</div>
-          ) : (
-            filtrados.map((c) => (
-              <div
-                key={c.id}
-                onClick={() => setManualColabId(String(c.id))}
-                style={{
-                  padding: "8px 14px", cursor: "pointer", borderBottom: "1px solid #f0f0f0",
-                  background: manualColabId === String(c.id) ? "#e8f0fd" : "transparent",
-                  borderLeft: `3px solid ${manualColabId === String(c.id) ? "#0d2b4e" : "transparent"}`,
-                  display: "flex", alignItems: "center", gap: 10,
-                }}
-              >
-                <Avatar url={c.foto_url} name={c.nombre_completo} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{c.nombre_completo}</div>
-                  <div style={{ fontSize: 11, color: "#777" }}>{c.area} — {c.puesto}</div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="form-grid" style={{ marginBottom: 12 }}>
-          <div className="form-group">
-            <label>Tipo</label>
-            <select value={manualTipo} onChange={(e) => setManualTipo(e.target.value)}>
-              <option value="salida_comedor">Salida al comedor</option>
-              <option value="entrada_produccion">Entrada a producción</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Turno</label>
-            <select value={manualTurno} onChange={(e) => setManualTurno(e.target.value)}>
-              <option value="">— Turno —</option>
-              {TURNOS.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="btn btn-primario"
-          style={{ width: "100%" }}
-          disabled={!manualColabId || manualMutation.isPending}
-          onClick={() => {
-            if (!manualColabId) return;
-            manualMutation.mutate({
-              colaborador_id: parseInt(manualColabId),
-              fecha: hoy(),
-              tipo_movimiento: manualTipo,
-              turno: manualTurno,
-            });
-          }}
-        >
-          {manualMutation.isPending ? "Registrando…" : "Registrar"}
-        </button>
-
-      </div>
     </div>
   );
 }
@@ -476,17 +403,6 @@ function HistorialView() {
       {/* ── Filtros compactos en una fila ── */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-end" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 3, textTransform: "uppercase" }}>Turno</div>
-          <select
-            value={turnoFiltro}
-            onChange={(e) => setTurnoFiltro(e.target.value)}
-            style={{ width: "100%", fontSize: 13, padding: "6px 8px" }}
-          >
-            <option value="">Todos</option>
-            {TURNOS.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 3, textTransform: "uppercase" }}>Tipo</div>
           <select
             value={tipoFiltro}
@@ -545,10 +461,6 @@ function HistorialView() {
                       <span className="tabla-card-label">Área</span>
                       <span className="tabla-card-value">{r.area || "—"}</span>
                     </div>
-                    <div className="tabla-card-field">
-                      <span className="tabla-card-label">Turno</span>
-                      <span className="tabla-card-value">{r.turno || "—"}</span>
-                    </div>
                   </div>
                   <div className="tabla-card-actions">
                     <button type="button" className="btn-accion rojo" onClick={() => handleDelete(r.id, r.nombre_completo)}>Eliminar</button>
@@ -567,7 +479,6 @@ function HistorialView() {
                   <th style={{ width: 40 }}>#</th>
                   <th>Colaborador</th>
                   <th>Tipo</th>
-                  <th>Turno</th>
                   <th>Hora</th>
                   <th>Fecha</th>
                   <th>Registrado por</th>
@@ -594,7 +505,6 @@ function HistorialView() {
                           {iconTipo(r.tipo_movimiento)} {labelTipo(r.tipo_movimiento)}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap">{r.turno || "—"}</td>
                       <td className="whitespace-nowrap font-mono" style={{ fontSize: 12 }}>{r.hora_registro}</td>
                       <td className="whitespace-nowrap" style={{ fontSize: 12, color: "#777" }}>{r.fecha}</td>
                       <td className="whitespace-nowrap" style={{ fontSize: 12, color: "#777" }}>{r.registrado_por}</td>
