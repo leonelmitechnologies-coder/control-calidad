@@ -43,32 +43,30 @@ export function registerRoutes(app: Express) {
       return res.status(400).json({ error: "Invalid path" });
     }
 
-    // 1) Try S3/MinIO first
-    try {
-      console.log(`[media] Serving ${folder}/${filename}`);
-      const { stream, contentType } = await s3.streamFileFromS3(folder, filename);
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      (stream as NodeJS.ReadableStream).pipe(res);
-      return;
-    } catch (s3Err: any) {
-      const isNotFound =
-        s3Err?.name === "NoSuchKey" || s3Err?.$metadata?.httpStatusCode === 404;
-      if (!isNotFound) {
-        // Real S3 error (network, credentials, etc.) — log and try local
-        console.error("[API/media] S3 error:", s3Err?.message ?? s3Err);
-      }
-    }
-
-    // 2) Fallback: local disk (files uploaded by the legacy monolith or S3 fallback)
+    // 1) Try local disk first (fast, no network) — covers legacy monolith files and local-dev uploads
     const localPath = path.resolve(process.cwd(), "public", "uploads", folder, filename);
     if (existsSync(localPath)) {
-      console.log(`[media] Serving from local disk: ${localPath}`);
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.sendFile(localPath);
     }
 
-    console.warn(`[media] Not found in S3 or local: ${folder}/${filename}`);
+    // 2) Try S3/MinIO (only when credentials are configured)
+    if (s3.s3Available) {
+      try {
+        const { stream, contentType } = await s3.streamFileFromS3(folder, filename);
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        (stream as NodeJS.ReadableStream).pipe(res);
+        return;
+      } catch (s3Err: any) {
+        const isNotFound =
+          s3Err?.name === "NoSuchKey" || s3Err?.$metadata?.httpStatusCode === 404;
+        if (!isNotFound) {
+          console.error("[API/media] S3 error:", s3Err?.message ?? s3Err);
+        }
+      }
+    }
+
     return res.status(404).json({ error: "Not found" });
   });
 

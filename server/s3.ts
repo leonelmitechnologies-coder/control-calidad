@@ -14,6 +14,9 @@ import crypto from "crypto";
 const USE_LOCAL = !process.env.AWS_ENDPOINT_URL_S3 || !process.env.AWS_ACCESS_KEY_ID;
 const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 
+/** True when S3/MinIO is configured and should be tried for reads/writes. */
+export const s3Available = !USE_LOCAL;
+
 /**
  * Initialize S3 client for MinIO
  */
@@ -185,14 +188,12 @@ export async function getPresignedUrl(
 }
 
 /**
- * Build a public URL for a stored file (works for both local and S3).
+ * Build a public URL for a stored file.
+ * Always routes through /api/media so the proxy can serve from S3 or local disk,
+ * regardless of whether S3 is configured.
  */
-export function getFileUrl(folder: string, filename: string): string {
-  if (USE_LOCAL) {
-    return `/uploads/${folder}/${filename}`;
-  }
-  // Proxy through the app server so the browser never needs direct MinIO access
-  return `/api/media/${folder}/${filename}`;
+export function getFileUrl(_folder: string, filename: string): string {
+  return `/api/media/${_folder}/${filename}`;
 }
 
 /**
