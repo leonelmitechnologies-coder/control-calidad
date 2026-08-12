@@ -129,6 +129,7 @@ function ScannerView() {
   const ndefRef = useRef<any>(null);
 
   // Manual fallback state
+  const [showManual, setShowManual] = useState(false);
   const [manualColabId, setManualColabId] = useState("");
   const [manualTipo, setManualTipo] = useState("salida_comedor");
   const [manualTurno, setManualTurno] = useState("");
@@ -266,6 +267,83 @@ function ScannerView() {
               {status === "not-found" ? "Tag no registrado" : "Error de escaneo"}
             </div>
             <div style={{ fontSize: 13, color: "#7f1d1d" }}>{errorMsg}</div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Registro manual (colapsable) ── */}
+      <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 8 }}>
+        <button
+          type="button"
+          onClick={() => setShowManual((v) => !v)}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 0", background: "none", border: "none", cursor: "pointer",
+            fontSize: 13, fontWeight: 700, color: "#374151",
+          }}
+        >
+          <span>Registro manual</span>
+          <span style={{ fontSize: 18, lineHeight: 1, color: "#9ca3af" }}>{showManual ? "▲" : "▼"}</span>
+        </button>
+
+        {showManual && (
+          <div style={{ paddingBottom: 12 }}>
+            {/* Buscador */}
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <input type="text" placeholder="Buscar colaborador…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+
+            {/* Lista */}
+            <div style={{ border: "1px solid #e2e2e2", maxHeight: 220, overflowY: "auto", marginBottom: 12 }}>
+              {filtrados.length === 0 ? (
+                <div style={{ padding: 16, fontSize: 13, color: "#999", textAlign: "center" }}>Sin resultados.</div>
+              ) : (
+                filtrados.map((c) => (
+                  <div
+                    key={c.id}
+                    onClick={() => setManualColabId(String(c.id))}
+                    style={{
+                      padding: "8px 14px", cursor: "pointer", borderBottom: "1px solid #f0f0f0",
+                      background: manualColabId === String(c.id) ? "#e8f0fd" : "transparent",
+                      borderLeft: `3px solid ${manualColabId === String(c.id) ? "#0d2b4e" : "transparent"}`,
+                      display: "flex", alignItems: "center", gap: 10,
+                    }}
+                  >
+                    <Avatar url={c.foto_url} name={c.nombre_completo} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{c.nombre_completo}</div>
+                      <div style={{ fontSize: 11, color: "#777" }}>{c.area} — {c.puesto}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label>Tipo</label>
+              <select value={manualTipo} onChange={(e) => setManualTipo(e.target.value)}>
+                <option value="salida_comedor">Salida al comedor</option>
+                <option value="entrada_produccion">Entrada a producción</option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primario"
+              style={{ width: "100%" }}
+              disabled={!manualColabId || manualMutation.isPending}
+              onClick={() => {
+                if (!manualColabId) return;
+                manualMutation.mutate({
+                  colaborador_id: parseInt(manualColabId),
+                  fecha: hoy(),
+                  tipo_movimiento: manualTipo,
+                  turno: manualTurno,
+                });
+              }}
+            >
+              {manualMutation.isPending ? "Registrando…" : "Registrar"}
+            </button>
           </div>
         )}
       </div>
