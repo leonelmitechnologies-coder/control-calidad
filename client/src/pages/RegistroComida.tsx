@@ -218,6 +218,86 @@ function semaforo(mins: number): { bg: string; color: string; border: string } {
   return { bg: "#fef2f2", color: "#dc2626", border: "#fca5a5" };
 }
 
+// ── Dropdown custom (evita el picker nativo de Android) ──────────────────────
+
+interface SelectOpt { value: string; label: string }
+
+function CustomSelect({ value, onChange, options, placeholder }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: SelectOpt[];
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", padding: "9px 12px",
+          background: "#fff", border: "1px solid #d1d5db", borderRadius: 4,
+          textAlign: "left", cursor: "pointer", fontSize: 14,
+          color: selected ? "#111827" : "#9ca3af",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          boxShadow: open ? "0 0 0 2px #93c5fd" : "none",
+          outline: "none",
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+          {selected?.label ?? placeholder ?? "Seleccionar…"}
+        </span>
+        <span style={{ fontSize: 11, color: "#9ca3af", flexShrink: 0, marginLeft: 6 }}>{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, zIndex: 200,
+          background: "#fff", border: "1px solid #d1d5db", borderRadius: 4,
+          boxShadow: "0 6px 16px rgba(0,0,0,0.12)", maxHeight: 260, overflowY: "auto",
+        }}>
+          {placeholder && (
+            <div
+              onClick={() => { onChange(""); setOpen(false); }}
+              style={{ padding: "10px 12px", fontSize: 13, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", cursor: "pointer" }}
+            >
+              {placeholder}
+            </div>
+          )}
+          {options.map((o) => (
+            <div
+              key={o.value}
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              style={{
+                padding: "10px 12px", fontSize: 13, cursor: "pointer",
+                background: o.value === value ? "#eff6ff" : "transparent",
+                color: o.value === value ? "#1d4ed8" : "#111827",
+                fontWeight: o.value === value ? 600 : 400,
+                borderBottom: "1px solid #f9fafb",
+              }}
+            >
+              {o.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Initials({ name, size = 36 }: { name: string; size?: number }) {
   const i = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
   return (
@@ -413,20 +493,24 @@ function ScannerView() {
             {/* Dropdown colaborador */}
             <div className="form-group" style={{ marginBottom: 12 }}>
               <label>Colaborador</label>
-              <select value={manualColabId} onChange={(e) => setManualColabId(e.target.value)}>
-                <option value="">— Seleccionar colaborador —</option>
-                {colaboradores.map((c) => (
-                  <option key={c.id} value={String(c.id)}>{c.nombre_completo} — {c.area}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={manualColabId}
+                onChange={setManualColabId}
+                placeholder="— Seleccionar colaborador —"
+                options={colaboradores.map((c) => ({ value: String(c.id), label: `${c.nombre_completo} — ${c.area}` }))}
+              />
             </div>
 
             <div className="form-group" style={{ marginBottom: 12 }}>
               <label>Tipo</label>
-              <select value={manualTipo} onChange={(e) => setManualTipo(e.target.value)}>
-                <option value="salida_comedor">Salida al comedor</option>
-                <option value="entrada_produccion">Entrada a producción</option>
-              </select>
+              <CustomSelect
+                value={manualTipo}
+                onChange={setManualTipo}
+                options={[
+                  { value: "salida_comedor", label: "🍽️ Salida al comedor" },
+                  { value: "entrada_produccion", label: "🏭 Entrada a producción" },
+                ]}
+              />
             </div>
 
             <button
