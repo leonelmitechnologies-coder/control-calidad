@@ -23,7 +23,7 @@ import LiberacionShipping from "./pages/LiberacionShipping";
 import Login from "./pages/Login";
 import Manual from "./pages/Manual";
 import NoConformidades from "./pages/NoConformidades";
-import OrganigramaQc from "./pages/OrganigramaQc";
+import OrganigramaQc from "./pages/OrganigramaQC";
 import Recepciones from "./pages/Recepciones";
 import RechazosExternos from "./pages/RechazosExternos";
 import RechazosInternos from "./pages/RechazosInternos";

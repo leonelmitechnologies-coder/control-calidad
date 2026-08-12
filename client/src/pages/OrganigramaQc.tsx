@@ -80,10 +80,11 @@ function filterEmployees(
 
   if (search) {
     const lower = search.toLowerCase();
-    list = list.filter(
-      (e) =>
-        e.nombre_completo.toLowerCase().includes(lower) || e.puesto.toLowerCase().includes(lower),
-    );
+    list = list.filter((e) => {
+      const raw = e as unknown as Record<string, unknown>;
+      const nombre = String(raw["nombreCompleto"] ?? raw["nombre_completo"] ?? "").toLowerCase();
+      return nombre.includes(lower) || (e.puesto ?? "").toLowerCase().includes(lower);
+    });
   }
 
   if (puesto) {

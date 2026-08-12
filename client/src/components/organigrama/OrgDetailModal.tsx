@@ -9,7 +9,6 @@
 
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { API_BASE_URL } from "../../config/api";
 import type { OrganigramaQc } from "../../types";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -28,7 +27,7 @@ function photoUrl(emp: OrganigramaQc): string | null {
   if (emp.fotoUrl) return emp.fotoUrl;
   const filename = emp.foto_filename ?? emp.fotoFilename;
   if (!filename) return null;
-  return `${API_BASE_URL}/uploads/organigrama/${filename}`;
+  return `/api/media/organigrama/${filename}`;
 }
 
 function initials(name: string): string {
@@ -88,6 +87,17 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+// ── Field accessor — handles both Drizzle camelCase and legacy snake_case ──────
+
+function empGet(emp: OrganigramaQc, snake: string, camel: string): string {
+  const e = emp as unknown as Record<string, unknown>;
+  return String(e[camel] ?? e[snake] ?? "");
+}
+function empDate(emp: OrganigramaQc, snake: string, camel: string): string {
+  const e = emp as unknown as Record<string, unknown>;
+  return formatDate(String(e[camel] ?? e[snake] ?? ""));
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function OrgDetailModal({
@@ -100,9 +110,13 @@ export default function OrgDetailModal({
   const { t } = useTranslation();
   const photo = photoUrl(employee);
 
+  const nombreCompleto = empGet(employee, "nombre_completo", "nombreCompleto");
+
   const sexoLabel: Record<string, string> = {
     M: t("organigrama.sexo.m"),
     F: t("organigrama.sexo.f"),
+    Masculino: t("organigrama.sexo.m"),
+    Femenino: t("organigrama.sexo.f"),
     Otro: t("organigrama.sexo.otro"),
   };
 
@@ -111,7 +125,7 @@ export default function OrgDetailModal({
       className="fixed inset-0 z-[800] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-label={`${t("organigrama.detail_title")}: ${employee.nombre_completo}`}
+      aria-label={`${t("organigrama.detail_title")}: ${nombreCompleto}`}
     >
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
@@ -130,7 +144,7 @@ export default function OrgDetailModal({
             className="modal-titulo truncate pr-4"
             style={{ marginBottom: 0, borderBottom: "none", paddingBottom: 0 }}
           >
-            {t("organigrama.detail_title")}: {employee.nombre_completo}
+            {t("organigrama.detail_title")}: {nombreCompleto}
           </div>
           <button
             type="button"
@@ -165,18 +179,18 @@ export default function OrgDetailModal({
               {photo ? (
                 <img
                   src={photo}
-                  alt={employee.nombre_completo}
+                  alt={nombreCompleto}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
               ) : (
                 <span style={{ fontSize: 24, fontWeight: 700, color: "#777" }}>
-                  {initials(employee.nombre_completo)}
+                  {initials(nombreCompleto)}
                 </span>
               )}
             </div>
             <div className="min-w-0">
               <p style={{ fontSize: 16, fontWeight: 700, color: "#111", marginBottom: 2 }}>
-                {employee.nombre_completo}
+                {nombreCompleto}
               </p>
               <p style={{ fontSize: 13, color: "#777", marginBottom: 6 }}>{employee.puesto}</p>
               <span
@@ -191,14 +205,17 @@ export default function OrgDetailModal({
 
           {/* Section: Información Personal */}
           <Section title={t("organigrama.section_personal")}>
-            <Row label={t("organigrama.form.no_empleado")} value={employee.no_empleado} />
+            <Row
+              label={t("organigrama.form.no_empleado")}
+              value={empGet(employee, "no_empleado", "noEmpleado")}
+            />
             <Row
               label={t("organigrama.form.sexo")}
               value={sexoLabel[employee.sexo] ?? employee.sexo}
             />
             <Row
               label={t("organigrama.form.fecha_nacimiento")}
-              value={formatDate(employee.fecha_nacimiento)}
+              value={empDate(employee, "fecha_nacimiento", "fechaNacimiento")}
             />
           </Section>
 
@@ -209,7 +226,7 @@ export default function OrgDetailModal({
             <Row label={t("organigrama.form.turno")} value={employee.turno} />
             <Row
               label={t("organigrama.form.fecha_ingreso")}
-              value={formatDate(employee.fecha_ingreso)}
+              value={empDate(employee, "fecha_ingreso", "fechaIngreso")}
             />
             <Row
               label={t("organigrama.form.estatus")}
@@ -229,7 +246,8 @@ export default function OrgDetailModal({
 
           {/* Metadata */}
           <p style={{ fontSize: 11, color: "#aaa" }}>
-            {t("organigrama.registrado_el")} {formatDate(employee.created_at)}
+            {t("organigrama.registrado_el")}{" "}
+            {empDate(employee, "created_at", "createdAt")}
           </p>
         </div>
 

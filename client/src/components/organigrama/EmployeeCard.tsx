@@ -2,13 +2,12 @@
  * EmployeeCard
  *
  * Displays a single OrganigramaQc employee as a card.
- * On hover, action buttons (Editar, Eliminar, Cambiar Estatus) slide in.
+ * On hover (mouse only), action buttons slide in.
  * Clicking anywhere on the card (outside buttons) triggers onView.
  */
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { API_BASE_URL } from "../../config/api";
 import type { OrganigramaQc } from "../../types";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -21,16 +20,14 @@ interface EmployeeCardProps {
   onView: () => void;
 }
 
-// ── Photo helper ──────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function avatarUrl(emp: OrganigramaQc): string | null {
   if (emp.fotoUrl) return emp.fotoUrl;
   const filename = emp.foto_filename ?? emp.fotoFilename;
   if (!filename) return null;
-  return `${API_BASE_URL}/uploads/organigrama/${filename}`;
+  return `/api/media/organigrama/${filename}`;
 }
-
-// ── Initials fallback ─────────────────────────────────────────────────────────
 
 function initials(name: string | undefined): string {
   if (!name) return "?";
@@ -40,6 +37,16 @@ function initials(name: string | undefined): string {
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function empGet(emp: OrganigramaQc, snake: string, camel: string): string {
+  const e = emp as unknown as Record<string, unknown>;
+  return String(e[camel] ?? e[snake] ?? "");
+}
+
+// True when the primary pointer is a mouse/trackpad (not a touchscreen)
+function hasFinePointer(): boolean {
+  return window.matchMedia?.("(pointer: fine)").matches ?? false;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -55,9 +62,9 @@ export default function EmployeeCard({
   const [hovered, setHovered] = useState(false);
 
   const photo = avatarUrl(employee);
+  const nombreCompleto = empGet(employee, "nombre_completo", "nombreCompleto");
 
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only trigger onView if the click isn't on an action button
     const target = e.target as HTMLElement;
     if (target.closest("[data-action]")) return;
     onView();
@@ -71,7 +78,7 @@ export default function EmployeeCard({
         border: "1px solid #e2e2e2",
         background: "#fff",
       }}
-      onMouseEnter={() => setHovered(true)}
+      onMouseEnter={() => { if (hasFinePointer()) setHovered(true); }}
       onMouseLeave={() => setHovered(false)}
       onClick={handleCardClick}
       role="button"
@@ -79,9 +86,9 @@ export default function EmployeeCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onView();
       }}
-      aria-label={`Ver detalle: ${employee.nombre_completo}`}
+      aria-label={`Ver detalle: ${nombreCompleto}`}
     >
-      {/* Hover action overlay */}
+      {/* Hover action overlay — mouse only */}
       {hovered && (
         <div
           className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 px-3"
@@ -174,7 +181,7 @@ export default function EmployeeCard({
           {photo ? (
             <img
               src={photo}
-              alt={employee.nombre_completo}
+              alt={nombreCompleto}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
@@ -182,7 +189,7 @@ export default function EmployeeCard({
             />
           ) : (
             <span style={{ fontSize: 20, fontWeight: 700, color: "#777" }}>
-              {initials(employee.nombre_completo)}
+              {initials(nombreCompleto)}
             </span>
           )}
         </div>
@@ -192,7 +199,7 @@ export default function EmployeeCard({
           style={{ fontSize: 13, fontWeight: 700, color: "#111", marginBottom: 4, lineHeight: 1.3 }}
           className="line-clamp-2"
         >
-          {employee.nombre_completo}
+          {nombreCompleto}
         </p>
 
         {/* Puesto */}
