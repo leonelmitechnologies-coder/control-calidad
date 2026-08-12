@@ -120,16 +120,21 @@ interface Viaje {
   entrada: Registro | null; // null = aún en comedor
 }
 
-function armarViajes(registros: Registro[]): Viaje[] {
-  // Agrupa por colaborador, ordena por hora
+interface ResultadoViajes {
+  viajes: Viaje[];
+  huerfanos: Registro[]; // entrada_produccion sin salida_comedor previa
+}
+
+function armarViajes(registros: Registro[]): ResultadoViajes {
   const por: Record<number, Registro[]> = {};
   for (const r of registros) {
     if (!por[r.colaborador_id]) por[r.colaborador_id] = [];
     por[r.colaborador_id].push(r);
   }
   const viajes: Viaje[] = [];
+  const huerfanos: Registro[] = [];
   for (const lista of Object.values(por)) {
-    lista.sort((a, b) => a.hora_registro.localeCompare(b.hora_registro));
+    lista.sort((a, b) => (a.hora_registro ?? "").localeCompare(b.hora_registro ?? ""));
     let i = 0;
     while (i < lista.length) {
       const r = lista[i];
@@ -146,34 +151,41 @@ function armarViajes(registros: Registro[]): Viaje[] {
         });
         i += entrada ? 2 : 1;
       } else {
+        // entrada_produccion sin salida previa → huérfano visible y editable
+        huerfanos.push(r);
         i++;
       }
     }
   }
-  // Orden: primero los que siguen fuera (entrada=null), luego por hora de salida desc
-  return viajes.sort((a, b) => {
+  viajes.sort((a, b) => {
     if (!a.entrada && b.entrada) return -1;
     if (a.entrada && !b.entrada) return 1;
-    return b.salida.hora_registro.localeCompare(a.salida.hora_registro);
+    return (b.salida.hora_registro ?? "").localeCompare(a.salida.hora_registro ?? "");
   });
+  return { viajes, huerfanos };
 }
 
-// Parsea "HH:MM:SS" o "HH:MM:SS.ffffff" a Date seguro
+// Parsea fecha (puede ser "YYYY-MM-DD" o "YYYY-MM-DDTHH:MM:SS.sssZ" cuando pg serializa DATE)
+// y hora (puede incluir microsegundos "HH:MM:SS.ffffff") a un Date válido.
 function parseHora(fecha: string, hora: string): Date {
-  return new Date(`${fecha}T${hora.slice(0, 8)}`);
+  const d = String(fecha ?? "").slice(0, 10); // siempre "YYYY-MM-DD"
+  const h = String(hora ?? "00:00:00").slice(0, 8).padEnd(8, ":00"); // "HH:MM:SS"
+  return new Date(`${d}T${h}`);
 }
 
 // Minutos transcurridos desde fecha+hora hasta ahora
 function minutosDesde(fecha: string, hora: string): number {
-  const ms = Date.now() - parseHora(fecha, hora).getTime();
-  return Math.max(0, Math.floor(ms / 60000));
+  const t = parseHora(fecha, hora).getTime();
+  if (isNaN(t)) return 0;
+  return Math.max(0, Math.floor((Date.now() - t) / 60000));
 }
 
 // Duración entre dos registros en minutos
 function duracionMinutos(salida: Registro, entrada: Registro): number {
-  const ms = parseHora(entrada.fecha, entrada.hora_registro).getTime()
-           - parseHora(salida.fecha, salida.hora_registro).getTime();
-  return Math.max(0, Math.floor(ms / 60000));
+  const tSal = parseHora(salida.fecha, salida.hora_registro).getTime();
+  const tEnt = parseHora(entrada.fecha, entrada.hora_registro).getTime();
+  if (isNaN(tSal) || isNaN(tEnt)) return 0;
+  return Math.max(0, Math.floor((tEnt - tSal) / 60000));
 }
 
 function formatMinutos(mins: number): string {
@@ -211,6 +223,7 @@ interface ScanResult {
 
 function ScannerView() {
   const notify = useNotify();
+  const qc = useQueryClient();
   const [status, setStatus] = useState<NfcStatus>("idle");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
@@ -237,6 +250,7 @@ function ScannerView() {
         body: JSON.stringify(body),
       }),
     onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["registro-comida"] });
       setResult({ registro: data });
       setStatus("success");
       setTimeout(() => { setStatus("idle"); setResult(null); }, 4000);
@@ -262,6 +276,7 @@ function ScannerView() {
         body: JSON.stringify(body),
       }),
     onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["registro-comida"] });
       setResult({ registro: data });
       setStatus("success");
       setManualColabId("");
@@ -434,6 +449,96 @@ function ScanResultCard({ registro }: { registro: Registro }) {
   );
 }
 
+// ── Edición inline de tipo ────────────────────────────────────────────────────
+
+function TipoEditable({ registro, onSaved }: { registro: Registro; onSaved: () => void }) {
+  const notify = useNotify();
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(registro.tipo_movimiento);
+  const [guardando, setGuardando] = useState(false);
+
+  const guardar = async () => {
+    setGuardando(true);
+    try {
+      await apiFetch(`${API_BASE_URL}/api/registro-comida/${registro.id}/tipo`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo_movimiento: valor }),
+      });
+      setEditando(false);
+      onSaved();
+    } catch (err: any) {
+      notify(err.message ?? "Error al guardar el tipo.", "error");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  if (editando) {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <select value={valor} onChange={(e) => setValor(e.target.value as "salida_comedor" | "entrada_produccion")} style={{ fontSize: 12, padding: "2px 4px" }}>
+          <option value="salida_comedor">🍽️ Salida comedor</option>
+          <option value="entrada_produccion">🏭 Entrada producción</option>
+        </select>
+        <button type="button" onClick={guardar} disabled={guardando}
+          style={{ background: "#0d2b4e", color: "#fff", border: "none", padding: "2px 8px", fontSize: 12, cursor: "pointer" }}>
+          {guardando ? "…" : "✓"}
+        </button>
+        <button type="button" onClick={() => setEditando(false)}
+          style={{ background: "none", border: "1px solid #d1d5db", padding: "2px 6px", fontSize: 12, cursor: "pointer", color: "#6b7280" }}>
+          ✕
+        </button>
+      </span>
+    );
+  }
+
+  const col = colorTipo(registro.tipo_movimiento);
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <span style={{ background: col.bg, color: col.color, border: `1px solid ${col.border}`, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+        {iconTipo(registro.tipo_movimiento)} {labelTipo(registro.tipo_movimiento)}
+      </span>
+      <button type="button" onClick={() => setEditando(true)}
+        title="Cambiar tipo"
+        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#9ca3af", padding: "0 2px", lineHeight: 1 }}>
+        ✎
+      </button>
+    </span>
+  );
+}
+
+// ── Card para registro huérfano ───────────────────────────────────────────────
+
+function RegistroHuerfanoCard({ r, onDelete, onRefresh }: { r: Registro; onDelete: (id: number, nombre: string) => void; onRefresh: () => void }) {
+  return (
+    <div className="tabla-card" style={{ borderLeft: "4px solid #f59e0b", background: "#fffbeb" }}>
+      <div className="tabla-card-header">
+        <div style={{ minWidth: 0 }}>
+          <div className="tabla-card-title">{r.nombre_completo}</div>
+          <div className="tabla-card-meta">{r.area}</div>
+        </div>
+        <span style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #fcd34d", padding: "3px 8px", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+          ⚠️ Sin par
+        </span>
+      </div>
+      <div className="tabla-card-row">
+        <div className="tabla-card-field">
+          <span className="tabla-card-label">Tipo</span>
+          <TipoEditable registro={r} onSaved={onRefresh} />
+        </div>
+        <div className="tabla-card-field">
+          <span className="tabla-card-label">Hora</span>
+          <HoraEditable registro={r} onSaved={onRefresh} />
+        </div>
+      </div>
+      <div className="tabla-card-actions">
+        <button type="button" className="btn-accion rojo" onClick={() => onDelete(r.id, r.nombre_completo)}>Eliminar</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Historial View ────────────────────────────────────────────────────────────
 
 type Rango = "diario" | "semanal" | "mensual";
@@ -441,8 +546,9 @@ type Rango = "diario" | "semanal" | "mensual";
 // ── Edición inline de hora ────────────────────────────────────────────────────
 
 function HoraEditable({ registro, onSaved }: { registro: Registro; onSaved: () => void }) {
+  const notify = useNotify();
   const [editando, setEditando] = useState(false);
-  const [valor, setValor] = useState(registro.hora_registro.slice(0, 5));
+  const [valor, setValor] = useState((registro.hora_registro ?? "00:00").slice(0, 5));
   const [guardando, setGuardando] = useState(false);
 
   const guardar = async () => {
@@ -455,6 +561,8 @@ function HoraEditable({ registro, onSaved }: { registro: Registro; onSaved: () =
       });
       setEditando(false);
       onSaved();
+    } catch (err: any) {
+      notify(err.message ?? "Error al guardar la hora.", "error");
     } finally {
       setGuardando(false);
     }
@@ -483,7 +591,7 @@ function HoraEditable({ registro, onSaved }: { registro: Registro; onSaved: () =
 
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-      <span style={{ fontWeight: 700, fontSize: 14 }}>{registro.hora_registro.slice(0, 5)}</span>
+      <span style={{ fontWeight: 700, fontSize: 14 }}>{(registro.hora_registro ?? "—").slice(0, 5)}</span>
       <button type="button" onClick={() => setEditando(true)}
         title="Editar hora"
         style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#9ca3af", padding: "0 2px", lineHeight: 1 }}>
@@ -595,7 +703,7 @@ function HistorialView() {
   const { data, isLoading } = useQuery<ListResponse>({
     queryKey: ["registro-comida", desde, hasta],
     queryFn: () => apiFetch(`${API_BASE_URL}/api/registro-comida?fecha_inicio=${desde}&fecha_fin=${hasta}`),
-    refetchInterval: esHoy ? 30000 : false, // auto-refresh solo para hoy
+    refetchInterval: esHoy ? 10000 : false, // auto-refresh cada 10s solo para hoy
   });
 
   const deleteMutation = useMutation({
@@ -622,7 +730,7 @@ function HistorialView() {
   };
 
   const registros = data?.data ?? [];
-  const viajes = armarViajes(registros);
+  const { viajes, huerfanos } = armarViajes(registros);
   const enComedor = viajes.filter((v) => !v.entrada).length;
   const completados = viajes.filter((v) => v.entrada).length;
 
@@ -677,7 +785,7 @@ function HistorialView() {
           {esHoy && <EnCemedorLive viajes={viajes} />}
 
           {/* ── Tabla de viajes ── */}
-          {isMobile ? (
+          {viajes.length > 0 && (isMobile ? (
             <div style={{ border: "1px solid #e2e2e2", background: "#fff" }}>
               <div className="tabla-cards">
                 {viajes.map((v) => <ViajeCard key={v.salida.id} v={v} onDelete={handleDelete} onRefresh={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} />)}
@@ -701,7 +809,7 @@ function HistorialView() {
                   <tbody>
                     {viajes.map((v, i) => {
                       const mins = v.entrada
-                        ? minutosDesde(v.salida.fecha, v.salida.hora_registro) - minutosDesde(v.entrada.fecha, v.entrada.hora_registro)
+                        ? duracionMinutos(v.salida, v.entrada)
                         : minutosDesde(v.salida.fecha, v.salida.hora_registro);
                       const sem = v.entrada ? { bg: "#f8fafc", color: "#374151", border: "#e5e7eb" } : semaforo(mins);
                       return (
@@ -715,7 +823,7 @@ function HistorialView() {
                           <td>{v.entrada ? <HoraEditable registro={v.entrada} onSaved={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} /> : <span style={{ color: "#9ca3af" }}>—</span>}</td>
                           <td>
                             <span style={{ background: sem.bg, color: sem.color, border: `1px solid ${sem.border}`, padding: "2px 8px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
-                              {v.entrada ? formatMinutos(duracionMinutos(v.salida, v.entrada)) : formatMinutos(mins)}
+                              {formatMinutos(mins)}
                             </span>
                           </td>
                           <td>
@@ -734,6 +842,53 @@ function HistorialView() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          ))}
+
+          {/* ── Registros sin par (huérfanos) ── */}
+          {huerfanos.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                ⚠️ Registros sin par ({huerfanos.length})
+                <span style={{ fontSize: 11, fontWeight: 400, color: "#b45309" }}>— Cambia el tipo o elimínalos para limpiar el historial</span>
+              </div>
+              {isMobile ? (
+                <div className="tabla-cards">
+                  {huerfanos.map((r) => (
+                    <RegistroHuerfanoCard key={r.id} r={r} onDelete={handleDelete} onRefresh={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ border: "1px solid #fcd34d", background: "#fffbeb" }}>
+                  <div className="tabla-wrap">
+                    <table className="tabla">
+                      <thead>
+                        <tr>
+                          <th>Colaborador</th>
+                          <th>Tipo</th>
+                          <th>Hora</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {huerfanos.map((r) => (
+                          <tr key={r.id} style={{ background: "#fffbeb" }}>
+                            <td>
+                              <div style={{ fontWeight: 600, fontSize: 13 }}>{r.nombre_completo}</div>
+                              <div style={{ fontSize: 11, color: "#777" }}>{r.area}</div>
+                            </td>
+                            <td><TipoEditable registro={r} onSaved={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} /></td>
+                            <td><HoraEditable registro={r} onSaved={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} /></td>
+                            <td>
+                              <button type="button" className="btn-accion rojo" onClick={() => handleDelete(r.id, r.nombre_completo)}>Eliminar</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

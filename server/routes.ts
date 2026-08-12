@@ -894,7 +894,7 @@ export function registerRoutes(app: Express) {
       const hasta = fecha_fin || fecha || hoy;
 
       let query = `
-        SELECT rc.id, rc.colaborador_id, rc.fecha, rc.hora_registro, rc.turno,
+        SELECT rc.id, rc.colaborador_id, rc.fecha::text AS fecha, rc.hora_registro, rc.turno,
                rc.tipo_movimiento, rc.observaciones, rc.registrado_por, rc.created_at,
                oq.nombre_completo, oq.area, oq.puesto, oq.turno AS turno_colaborador,
                oq.foto_filename
@@ -985,8 +985,10 @@ export function registerRoutes(app: Express) {
         [colaborador.id, hoy, hora, turno || colaborador.turno || "", tipoMovimiento, registrado_por],
       );
 
+      const r = inserted.rows[0];
       res.status(201).json({
-        ...inserted.rows[0],
+        ...r,
+        fecha: hoy, // ya es string "YYYY-MM-DD"
         nombre_completo: colaborador.nombre_completo,
         area: colaborador.area,
         puesto: colaborador.puesto,
@@ -1017,7 +1019,9 @@ export function registerRoutes(app: Express) {
       );
 
       const row = await pool.query(
-        `SELECT rc.*, oq.nombre_completo, oq.area, oq.puesto, oq.foto_filename
+        `SELECT rc.id, rc.colaborador_id, rc.fecha::text AS fecha, rc.hora_registro,
+                rc.turno, rc.tipo_movimiento, rc.observaciones, rc.registrado_por, rc.created_at,
+                oq.nombre_completo, oq.area, oq.puesto, oq.turno AS turno_colaborador, oq.foto_filename
          FROM registro_comida rc
          JOIN organigrama_qc oq ON oq.id = rc.colaborador_id
          WHERE rc.id = $1`,
@@ -1027,6 +1031,22 @@ export function registerRoutes(app: Express) {
       res.status(201).json(row.rows[0]);
     } catch (err) {
       console.error("[API] POST /api/registro-comida error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // PATCH /api/registro-comida/:id/tipo — cambiar tipo de movimiento
+  app.patch("/api/registro-comida/:id/tipo", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { tipo_movimiento } = req.body as { tipo_movimiento: string };
+      if (!["salida_comedor", "entrada_produccion"].includes(tipo_movimiento)) {
+        return res.status(400).json({ error: "tipo_movimiento inválido" });
+      }
+      await pool.query("UPDATE registro_comida SET tipo_movimiento = $1 WHERE id = $2", [tipo_movimiento, parseInt(id)]);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[API] PATCH /api/registro-comida/:id/tipo error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
