@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { Issuer, Strategy as OIDCStrategy } from "openid-client";
 import passport from "passport";
 import { pool } from "./db.js";
@@ -222,8 +223,16 @@ export function setupSession(app: any) {
   if (!SESSION_SECRET) {
     throw new Error("SESSION_SECRET must be set");
   }
+
+  const PgStore = connectPgSimple(session);
+
   app.use(
     session({
+      store: new PgStore({
+        pool,
+        tableName: "session",
+        createTableIfMissing: true,
+      }),
       secret: SESSION_SECRET,
       resave: false,
       saveUninitialized: false,
