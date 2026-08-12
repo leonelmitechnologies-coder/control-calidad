@@ -977,7 +977,11 @@ export function registerRoutes(app: Express) {
       const tipoMovimiento = ultimoTipo === "salida_comedor" ? "entrada_produccion" : "salida_comedor";
 
       const registrado_por = (req.user as any)?.name || (req.user as any)?.email || "NFC";
-      const hora = new Date().toTimeString().slice(0, 5);
+      // Preferir hora enviada por el cliente (hora local del dispositivo)
+      const clientHora = req.body.hora as string | undefined;
+      const hora = (clientHora && /^\d{2}:\d{2}$/.test(clientHora))
+        ? clientHora
+        : new Intl.DateTimeFormat("es-MX", { timeZone: "America/Monterrey", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 
       const inserted = await pool.query(
         `INSERT INTO registro_comida (colaborador_id, fecha, hora_registro, turno, tipo_movimiento, observaciones, registrado_por)
@@ -1010,7 +1014,7 @@ export function registerRoutes(app: Express) {
       }
 
       const registrado_por = (req.user as any)?.name || (req.user as any)?.email || "Sistema";
-      const hora = hora_registro || new Date().toTimeString().slice(0, 5);
+      const hora = hora_registro || new Intl.DateTimeFormat("es-MX", { timeZone: "America/Monterrey", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 
       const inserted = await pool.query(
         `INSERT INTO registro_comida (colaborador_id, fecha, hora_registro, turno, tipo_movimiento, observaciones, registrado_por)

@@ -69,8 +69,27 @@ async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// Fecha local del dispositivo en formato YYYY-MM-DD (no UTC)
 function hoy(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Date().toLocaleDateString("en-CA"); // en-CA da YYYY-MM-DD
+}
+
+// Hora local del dispositivo en formato HH:MM (24h, para enviar al servidor)
+function localHora(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// Convierte "HH:MM" o "HH:MM:SS" a formato 12h con AM/PM
+function formatHora12(hora: string): string {
+  const raw = String(hora ?? "").slice(0, 5);
+  const [hStr, mStr] = raw.split(":");
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  if (isNaN(h) || isNaN(m)) return raw || "—";
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
 function startOf(rango: "semanal" | "mensual", ref: string): string {
@@ -298,7 +317,7 @@ function ScannerView() {
       await ndef.scan();
       ndef.addEventListener("reading", (event: any) => {
         const nfc_id = event.serialNumber || "";
-        escaneoMutation.mutate({ nfc_id, fecha: hoy() });
+        escaneoMutation.mutate({ nfc_id, fecha: hoy(), hora: localHora() });
       });
     } catch {
       setStatus("error");
@@ -420,6 +439,7 @@ function ScannerView() {
                 manualMutation.mutate({
                   colaborador_id: parseInt(manualColabId),
                   fecha: hoy(),
+                  hora_registro: localHora(),
                   tipo_movimiento: manualTipo,
                   turno: manualTurno,
                 });
@@ -444,7 +464,7 @@ function ScanResultCard({ registro }: { registro: Registro }) {
         {labelTipo(registro.tipo_movimiento)}
       </div>
       <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>{registro.nombre_completo}</div>
-      <div style={{ fontSize: 12, color: "#6b7280" }}>{registro.area} — {registro.hora_registro}</div>
+      <div style={{ fontSize: 12, color: "#6b7280" }}>{registro.area} — {formatHora12(registro.hora_registro)}</div>
     </div>
   );
 }
@@ -591,7 +611,7 @@ function HoraEditable({ registro, onSaved }: { registro: Registro; onSaved: () =
 
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-      <span style={{ fontWeight: 700, fontSize: 14 }}>{(registro.hora_registro ?? "—").slice(0, 5)}</span>
+      <span style={{ fontWeight: 700, fontSize: 14 }}>{formatHora12(registro.hora_registro)}</span>
       <button type="button" onClick={() => setEditando(true)}
         title="Editar hora"
         style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#9ca3af", padding: "0 2px", lineHeight: 1 }}>
@@ -671,7 +691,7 @@ function EnCemedorLive({ viajes }: { viajes: Viaje[] }) {
             <div key={v.salida.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: sem.bg, border: `1px solid ${sem.border}`, borderLeft: `4px solid ${sem.color}` }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#111" }}>{v.nombre_completo}</div>
-                <div style={{ fontSize: 11, color: "#6b7280" }}>{v.area} · Salió a las {v.salida.hora_registro.slice(0, 5)}</div>
+                <div style={{ fontSize: 11, color: "#6b7280" }}>{v.area} · Salió a las {formatHora12(v.salida.hora_registro)}</div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: sem.color }}>{formatMinutos(mins)}</div>
