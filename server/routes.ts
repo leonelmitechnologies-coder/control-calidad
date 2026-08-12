@@ -2,6 +2,8 @@
  * Additional routes for Dashboard, Organigrama, Calendario, Usuarios, Liberación Shipping
  */
 
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Express, Request, Response } from "express";
 import multer from "multer";
@@ -35,23 +37,39 @@ export function registerRoutes(app: Express) {
   // Streams S3/MinIO files through the app server so the browser
   // never needs direct (often private) MinIO access.
   app.get("/api/media/:folder/:filename", async (req: Request, res: Response) => {
+    const { folder, filename } = req.params;
+    // Path safety: no dots in folder, no traversal in filename
+    if (folder.includes(".") || filename.includes("..") || filename.includes("/")) {
+      return res.status(400).json({ error: "Invalid path" });
+    }
+
+    // 1) Try S3/MinIO first
     try {
-      const { folder, filename } = req.params;
-      // Basic path safety: no dots in folder, no path traversal in filename
-      if (folder.includes(".") || filename.includes("..") || filename.includes("/")) {
-        return res.status(400).json({ error: "Invalid path" });
-      }
+      console.log(`[media] Serving ${folder}/${filename}`);
       const { stream, contentType } = await s3.streamFileFromS3(folder, filename);
       res.setHeader("Content-Type", contentType);
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
       (stream as NodeJS.ReadableStream).pipe(res);
-    } catch (err: any) {
-      if (err?.name === "NoSuchKey" || err?.$metadata?.httpStatusCode === 404) {
-        return res.status(404).json({ error: "Not found" });
+      return;
+    } catch (s3Err: any) {
+      const isNotFound =
+        s3Err?.name === "NoSuchKey" || s3Err?.$metadata?.httpStatusCode === 404;
+      if (!isNotFound) {
+        // Real S3 error (network, credentials, etc.) — log and try local
+        console.error("[API/media] S3 error:", s3Err?.message ?? s3Err);
       }
-      console.error("[API] GET /api/media error:", err);
-      res.status(500).json({ error: "Internal server error" });
     }
+
+    // 2) Fallback: local disk (files uploaded by the legacy monolith or S3 fallback)
+    const localPath = path.resolve(process.cwd(), "public", "uploads", folder, filename);
+    if (existsSync(localPath)) {
+      console.log(`[media] Serving from local disk: ${localPath}`);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.sendFile(localPath);
+    }
+
+    console.warn(`[media] Not found in S3 or local: ${folder}/${filename}`);
+    return res.status(404).json({ error: "Not found" });
   });
 
   // ── ORGANIGRAMA QC ─────────────────────────────────────────────
