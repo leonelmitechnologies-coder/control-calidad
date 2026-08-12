@@ -5,6 +5,16 @@ import { useConfirm } from "../context/ConfirmContext";
 import { useNotify } from "../context/NotifyContext";
 import { useIsMobile } from "../hooks/useIsMobile";
 
+// Actualiza el componente cada `ms` milisegundos
+function useInterval(ms: number) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), ms);
+    return () => clearInterval(id);
+  }, [ms]);
+  return tick;
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Colaborador {
@@ -97,6 +107,72 @@ function colorTipo(tipo: string) {
 }
 function iconTipo(tipo: string) {
   return tipo === "salida_comedor" ? "🍽️" : "🏭";
+}
+
+// ── Lógica de viajes (pares salida → entrada) ─────────────────────────────────
+
+interface Viaje {
+  colaborador_id: number;
+  nombre_completo: string;
+  foto_url: string | null;
+  area: string;
+  salida: Registro;
+  entrada: Registro | null; // null = aún en comedor
+}
+
+function armarViajes(registros: Registro[]): Viaje[] {
+  // Agrupa por colaborador, ordena por hora
+  const por: Record<number, Registro[]> = {};
+  for (const r of registros) {
+    if (!por[r.colaborador_id]) por[r.colaborador_id] = [];
+    por[r.colaborador_id].push(r);
+  }
+  const viajes: Viaje[] = [];
+  for (const lista of Object.values(por)) {
+    lista.sort((a, b) => a.hora_registro.localeCompare(b.hora_registro));
+    let i = 0;
+    while (i < lista.length) {
+      const r = lista[i];
+      if (r.tipo_movimiento === "salida_comedor") {
+        const sig = lista[i + 1];
+        const entrada = sig?.tipo_movimiento === "entrada_produccion" ? sig : null;
+        viajes.push({
+          colaborador_id: r.colaborador_id,
+          nombre_completo: r.nombre_completo,
+          foto_url: r.foto_url,
+          area: r.area,
+          salida: r,
+          entrada,
+        });
+        i += entrada ? 2 : 1;
+      } else {
+        i++;
+      }
+    }
+  }
+  // Orden: primero los que siguen fuera (entrada=null), luego por hora de salida desc
+  return viajes.sort((a, b) => {
+    if (!a.entrada && b.entrada) return -1;
+    if (a.entrada && !b.entrada) return 1;
+    return b.salida.hora_registro.localeCompare(a.salida.hora_registro);
+  });
+}
+
+// Minutos transcurridos desde fecha "YYYY-MM-DD" + hora "HH:MM:SS"
+function minutosDesde(fecha: string, hora: string): number {
+  const dt = new Date(`${fecha}T${hora}`);
+  return Math.floor((Date.now() - dt.getTime()) / 60000);
+}
+
+function formatMinutos(mins: number): string {
+  if (mins < 60) return `${mins} min`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}min`;
+}
+
+function semaforo(mins: number): { bg: string; color: string; border: string } {
+  if (mins < 45) return { bg: "#f0fdf4", color: "#15803d", border: "#86efac" };
+  if (mins < 60) return { bg: "#fffbeb", color: "#b45309", border: "#fcd34d" };
+  return { bg: "#fef2f2", color: "#dc2626", border: "#fca5a5" };
 }
 
 function Initials({ name, size = 36 }: { name: string; size?: number }) {
@@ -288,35 +364,15 @@ function ScannerView() {
 
         {showManual && (
           <div style={{ paddingBottom: 12 }}>
-            {/* Buscador */}
-            <div className="form-group" style={{ marginBottom: 10 }}>
-              <input type="text" placeholder="Buscar colaborador…" value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-
-            {/* Lista */}
-            <div style={{ border: "1px solid #e2e2e2", maxHeight: 220, overflowY: "auto", marginBottom: 12 }}>
-              {filtrados.length === 0 ? (
-                <div style={{ padding: 16, fontSize: 13, color: "#999", textAlign: "center" }}>Sin resultados.</div>
-              ) : (
-                filtrados.map((c) => (
-                  <div
-                    key={c.id}
-                    onClick={() => setManualColabId(String(c.id))}
-                    style={{
-                      padding: "8px 14px", cursor: "pointer", borderBottom: "1px solid #f0f0f0",
-                      background: manualColabId === String(c.id) ? "#e8f0fd" : "transparent",
-                      borderLeft: `3px solid ${manualColabId === String(c.id) ? "#0d2b4e" : "transparent"}`,
-                      display: "flex", alignItems: "center", gap: 10,
-                    }}
-                  >
-                    <Avatar url={c.foto_url} name={c.nombre_completo} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{c.nombre_completo}</div>
-                      <div style={{ fontSize: 11, color: "#777" }}>{c.area} — {c.puesto}</div>
-                    </div>
-                  </div>
-                ))
-              )}
+            {/* Dropdown colaborador */}
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label>Colaborador</label>
+              <select value={manualColabId} onChange={(e) => setManualColabId(e.target.value)}>
+                <option value="">— Seleccionar colaborador —</option>
+                {colaboradores.map((c) => (
+                  <option key={c.id} value={String(c.id)}>{c.nombre_completo} — {c.area}</option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group" style={{ marginBottom: 12 }}>
@@ -370,6 +426,88 @@ function ScanResultCard({ registro }: { registro: Registro }) {
 
 type Rango = "diario" | "semanal" | "mensual";
 
+function ViajeCard({ v, onDelete }: { v: Viaje; onDelete: (id: number, nombre: string) => void }) {
+  useInterval(30000); // re-render cada 30s para actualizar el timer
+  const mins = v.entrada ? null : minutosDesde(v.salida.fecha, v.salida.hora_registro);
+  const sem = mins !== null ? semaforo(mins) : null;
+
+  return (
+    <div className="tabla-card">
+      <div className="tabla-card-header">
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <Avatar url={v.foto_url} name={v.nombre_completo} size={38} />
+          <div style={{ minWidth: 0 }}>
+            <div className="tabla-card-title">{v.nombre_completo}</div>
+            <div className="tabla-card-meta">{v.area}</div>
+          </div>
+        </div>
+        {sem ? (
+          <span style={{ background: sem.bg, color: sem.color, border: `1px solid ${sem.border}`, padding: "4px 10px", fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
+            {formatMinutos(mins!)}
+          </span>
+        ) : (
+          <span style={{ background: "#f0fdf4", color: "#15803d", border: "1px solid #86efac", padding: "3px 8px", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+            ✓ Regresó
+          </span>
+        )}
+      </div>
+      <div className="tabla-card-row">
+        <div className="tabla-card-field">
+          <span className="tabla-card-label">🍽️ Salida</span>
+          <span className="tabla-card-value">{v.salida.hora_registro.slice(0, 5)}</span>
+        </div>
+        <div className="tabla-card-field">
+          <span className="tabla-card-label">🏭 Regreso</span>
+          <span className="tabla-card-value">{v.entrada ? v.entrada.hora_registro.slice(0, 5) : "—"}</span>
+        </div>
+        {v.entrada && (
+          <div className="tabla-card-field">
+            <span className="tabla-card-label">Tiempo</span>
+            <span className="tabla-card-value">{formatMinutos(minutosDesde(v.salida.fecha, v.salida.hora_registro) - minutosDesde(v.entrada.fecha, v.entrada.hora_registro))}</span>
+          </div>
+        )}
+      </div>
+      <div className="tabla-card-actions">
+        <button type="button" className="btn-accion rojo" onClick={() => onDelete(v.salida.id, v.nombre_completo)}>Eliminar salida</button>
+        {v.entrada && <button type="button" className="btn-accion rojo" onClick={() => onDelete(v.entrada!.id, v.nombre_completo)}>Eliminar entrada</button>}
+      </div>
+    </div>
+  );
+}
+
+function EnCemedorLive({ viajes }: { viajes: Viaje[] }) {
+  useInterval(30000);
+  const enComedor = viajes.filter((v) => !v.entrada);
+  if (enComedor.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
+        🍽️ En comedor ahora ({enComedor.length})
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {enComedor.map((v) => {
+          const mins = minutosDesde(v.salida.fecha, v.salida.hora_registro);
+          const sem = semaforo(mins);
+          return (
+            <div key={v.salida.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: sem.bg, border: `1px solid ${sem.border}`, borderLeft: `4px solid ${sem.color}` }}>
+              <Avatar url={v.foto_url} name={v.nombre_completo} size={36} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#111" }}>{v.nombre_completo}</div>
+                <div style={{ fontSize: 11, color: "#6b7280" }}>Salió a las {v.salida.hora_registro.slice(0, 5)}</div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: sem.color }}>{formatMinutos(mins)}</div>
+                <div style={{ fontSize: 10, color: sem.color }}>{mins >= 60 ? "⚠️ Límite superado" : mins >= 45 ? "⏰ Próximo al límite" : "✓ En tiempo"}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function HistorialView() {
   const confirm = useConfirm();
   const notify = useNotify();
@@ -378,20 +516,15 @@ function HistorialView() {
 
   const [rango, setRango] = useState<Rango>("diario");
   const [refDate, setRefDate] = useState(hoy());
-  const [turnoFiltro, setTurnoFiltro] = useState("");
-  const [tipoFiltro, setTipoFiltro] = useState("");
 
   const desde = rango === "diario" ? refDate : startOf(rango, refDate);
   const hasta = rango === "diario" ? refDate : endOf(rango, refDate);
+  const esHoy = refDate === hoy() && rango === "diario";
 
   const { data, isLoading } = useQuery<ListResponse>({
-    queryKey: ["registro-comida", desde, hasta, turnoFiltro, tipoFiltro],
-    queryFn: () => {
-      const qs = new URLSearchParams({ fecha_inicio: desde, fecha_fin: hasta });
-      if (turnoFiltro) qs.set("turno", turnoFiltro);
-      if (tipoFiltro) qs.set("tipo_movimiento", tipoFiltro);
-      return apiFetch(`${API_BASE_URL}/api/registro-comida?${qs}`);
-    },
+    queryKey: ["registro-comida", desde, hasta],
+    queryFn: () => apiFetch(`${API_BASE_URL}/api/registro-comida?fecha_inicio=${desde}&fecha_fin=${hasta}`),
+    refetchInterval: esHoy ? 30000 : false, // auto-refresh solo para hoy
   });
 
   const deleteMutation = useMutation({
@@ -418,89 +551,42 @@ function HistorialView() {
   };
 
   const registros = data?.data ?? [];
-  const salidas = registros.filter((r) => r.tipo_movimiento === "salida_comedor").length;
-  const entradas = registros.filter((r) => r.tipo_movimiento === "entrada_produccion").length;
-
-  const rangoLabel = rango === "diario" ? refDate : `${desde} → ${hasta}`;
+  const viajes = armarViajes(registros);
+  const enComedor = viajes.filter((v) => !v.entrada).length;
+  const completados = viajes.filter((v) => v.entrada).length;
 
   return (
     <div>
       {/* ── Tabs rango ── */}
       <div style={{ display: "flex", marginBottom: 12, border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden" }}>
         {(["diario", "semanal", "mensual"] as Rango[]).map((r) => (
-          <button
-            key={r}
-            onClick={() => setRango(r)}
-            style={{
-              flex: 1, padding: isMobile ? "8px 4px" : "7px 16px",
-              fontSize: isMobile ? 12 : 13, fontWeight: rango === r ? 700 : 400,
-              background: rango === r ? "#0d2b4e" : "#fff",
-              color: rango === r ? "#fff" : "#374151",
-              border: "none", borderRight: "1px solid #d1d5db",
-              cursor: "pointer",
-            }}
-          >
+          <button key={r} onClick={() => setRango(r)} style={{ flex: 1, padding: isMobile ? "8px 4px" : "7px 16px", fontSize: isMobile ? 12 : 13, fontWeight: rango === r ? 700 : 400, background: rango === r ? "#0d2b4e" : "#fff", color: rango === r ? "#fff" : "#374151", border: "none", borderRight: "1px solid #d1d5db", cursor: "pointer" }}>
             {r.charAt(0).toUpperCase() + r.slice(1)}
           </button>
         ))}
       </div>
 
-      {/* ── Navegación de fecha — todo en una fila ── */}
+      {/* ── Navegación fecha ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-        <button
-          onClick={() => navDate(-1)}
-          style={{ background: "#f3f4f6", border: "1px solid #d1d5db", padding: "6px 12px", cursor: "pointer", fontSize: 16, borderRadius: 4, flexShrink: 0 }}
-        >‹</button>
-
+        <button onClick={() => navDate(-1)} style={{ background: "#f3f4f6", border: "1px solid #d1d5db", padding: "6px 12px", cursor: "pointer", fontSize: 16, borderRadius: 4, flexShrink: 0 }}>‹</button>
         <div style={{ flex: 1, minWidth: 0 }}>
           {rango === "diario" ? (
-            <input
-              type="date"
-              value={refDate}
-              onChange={(e) => setRefDate(e.target.value)}
-              style={{ width: "100%", fontSize: 13, padding: "6px 8px" }}
-            />
+            <input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} style={{ width: "100%", fontSize: 13, padding: "6px 8px" }} />
           ) : (
-            <div style={{ fontSize: 12, color: "#374151", textAlign: "center", padding: "6px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {desde} → {hasta}
-            </div>
+            <div style={{ fontSize: 12, color: "#374151", textAlign: "center", padding: "6px 0" }}>{desde} → {hasta}</div>
           )}
         </div>
-
-        <button
-          onClick={() => navDate(1)}
-          style={{ background: "#f3f4f6", border: "1px solid #d1d5db", padding: "6px 12px", cursor: "pointer", fontSize: 16, borderRadius: 4, flexShrink: 0 }}
-        >›</button>
-
-        <button
-          onClick={() => setRefDate(hoy())}
-          style={{ fontSize: 12, background: "#fff", border: "1px solid #d1d5db", padding: "6px 10px", cursor: "pointer", color: "#6b7280", borderRadius: 4, flexShrink: 0 }}
-        >Hoy</button>
+        <button onClick={() => navDate(1)} style={{ background: "#f3f4f6", border: "1px solid #d1d5db", padding: "6px 12px", cursor: "pointer", fontSize: 16, borderRadius: 4, flexShrink: 0 }}>›</button>
+        <button onClick={() => setRefDate(hoy())} style={{ fontSize: 12, background: "#fff", border: "1px solid #d1d5db", padding: "6px 10px", cursor: "pointer", color: "#6b7280", borderRadius: 4, flexShrink: 0 }}>Hoy</button>
       </div>
 
-      {/* ── Filtros compactos en una fila ── */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-end" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 3, textTransform: "uppercase" }}>Tipo</div>
-          <select
-            value={tipoFiltro}
-            onChange={(e) => setTipoFiltro(e.target.value)}
-            style={{ width: "100%", fontSize: 13, padding: "6px 8px" }}
-          >
-            <option value="">Todos</option>
-            <option value="salida_comedor">🍽️ Salida</option>
-            <option value="entrada_produccion">🏭 Entrada</option>
-          </select>
-        </div>
-      </div>
-
-      {/* ── Stats compactas en una fila ── */}
+      {/* ── Stats ── */}
       {!isLoading && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
           {[
-            { label: "Total", value: registros.length, bg: "#f8fafc", color: "#374151" },
-            { label: "🍽️ Salidas", value: salidas, bg: "#fef2f2", color: "#dc2626" },
-            { label: "🏭 Entradas", value: entradas, bg: "#f0fdf4", color: "#16a34a" },
+            { label: "🍽️ En comedor", value: enComedor, bg: enComedor > 0 ? "#fffbeb" : "#f8fafc", color: enComedor > 0 ? "#b45309" : "#374151" },
+            { label: "✓ Completados", value: completados, bg: "#f0fdf4", color: "#15803d" },
+            { label: "Total salidas", value: viajes.length, bg: "#f8fafc", color: "#374151" },
           ].map((s) => (
             <div key={s.label} style={{ background: s.bg, border: "1px solid #e5e7eb", padding: "8px 6px", textAlign: "center", borderRadius: 4 }}>
               <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.value}</div>
@@ -510,92 +596,81 @@ function HistorialView() {
         </div>
       )}
 
-      {/* Contenido */}
       {isLoading ? (
         <div className="vacio">Cargando…</div>
       ) : registros.length === 0 ? (
         <div className="vacio card">Sin registros para este período.</div>
-      ) : isMobile ? (
-        <div style={{ border: "1px solid #e2e2e2", background: "#fff" }}>
-          <div className="tabla-cards">
-            {registros.map((r, i) => {
-              const col = colorTipo(r.tipo_movimiento);
-              return (
-                <div key={r.id} className="tabla-card">
-                  <div className="tabla-card-header">
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                      <Avatar url={r.foto_url} name={r.nombre_completo} size={38} />
-                      <div style={{ minWidth: 0 }}>
-                        <div className="tabla-card-meta">#{i + 1} · {r.fecha} · {r.hora_registro}</div>
-                        <div className="tabla-card-title">{r.nombre_completo}</div>
-                      </div>
-                    </div>
-                    <span style={{ background: col.bg, color: col.color, border: `1px solid ${col.border}`, padding: "3px 8px", fontSize: 11, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
-                      {iconTipo(r.tipo_movimiento)} {labelTipo(r.tipo_movimiento)}
-                    </span>
-                  </div>
-                  <div className="tabla-card-row">
-                    <div className="tabla-card-field">
-                      <span className="tabla-card-label">Área</span>
-                      <span className="tabla-card-value">{r.area || "—"}</span>
-                    </div>
-                  </div>
-                  <div className="tabla-card-actions">
-                    <button type="button" className="btn-accion rojo" onClick={() => handleDelete(r.id, r.nombre_completo)}>Eliminar</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       ) : (
-        <div style={{ border: "1px solid #e2e2e2", background: "#fff" }}>
-          <div className="tabla-wrap">
-            <table className="tabla">
-              <thead>
-                <tr>
-                  <th style={{ width: 40 }}>#</th>
-                  <th>Colaborador</th>
-                  <th>Tipo</th>
-                  <th>Hora</th>
-                  <th>Fecha</th>
-                  <th>Registrado por</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {registros.map((r, i) => {
-                  const col = colorTipo(r.tipo_movimiento);
-                  return (
-                    <tr key={r.id}>
-                      <td style={{ color: "#999", fontSize: 11 }}>{i + 1}</td>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <Avatar url={r.foto_url} name={r.nombre_completo} size={28} />
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: 13 }}>{r.nombre_completo}</div>
-                            <div style={{ fontSize: 11, color: "#777" }}>{r.area}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span style={{ background: col.bg, color: col.color, border: `1px solid ${col.border}`, padding: "2px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
-                          {iconTipo(r.tipo_movimiento)} {labelTipo(r.tipo_movimiento)}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap font-mono" style={{ fontSize: 12 }}>{r.hora_registro}</td>
-                      <td className="whitespace-nowrap" style={{ fontSize: 12, color: "#777" }}>{r.fecha}</td>
-                      <td className="whitespace-nowrap" style={{ fontSize: 12, color: "#777" }}>{r.registrado_por}</td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <button type="button" className="btn-accion rojo" onClick={() => handleDelete(r.id, r.nombre_completo)}>Eliminar</button>
-                      </td>
+        <>
+          {/* ── En comedor ahora (solo hoy) ── */}
+          {esHoy && <EnCemedorLive viajes={viajes} />}
+
+          {/* ── Tabla de viajes ── */}
+          {isMobile ? (
+            <div style={{ border: "1px solid #e2e2e2", background: "#fff" }}>
+              <div className="tabla-cards">
+                {viajes.map((v) => <ViajeCard key={v.salida.id} v={v} onDelete={handleDelete} />)}
+              </div>
+            </div>
+          ) : (
+            <div style={{ border: "1px solid #e2e2e2", background: "#fff" }}>
+              <div className="tabla-wrap">
+                <table className="tabla">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 36 }}>#</th>
+                      <th>Colaborador</th>
+                      <th>🍽️ Salida</th>
+                      <th>🏭 Regreso</th>
+                      <th>Tiempo</th>
+                      <th>Estado</th>
+                      <th></th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </thead>
+                  <tbody>
+                    {viajes.map((v, i) => {
+                      const mins = v.entrada
+                        ? minutosDesde(v.salida.fecha, v.salida.hora_registro) - minutosDesde(v.entrada.fecha, v.entrada.hora_registro)
+                        : minutosDesde(v.salida.fecha, v.salida.hora_registro);
+                      const sem = v.entrada ? { bg: "#f8fafc", color: "#374151", border: "#e5e7eb" } : semaforo(mins);
+                      return (
+                        <tr key={v.salida.id}>
+                          <td style={{ color: "#999", fontSize: 11 }}>{i + 1}</td>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <Avatar url={v.foto_url} name={v.nombre_completo} size={28} />
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: 13 }}>{v.nombre_completo}</div>
+                                <div style={{ fontSize: 11, color: "#777" }}>{v.area}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="font-mono" style={{ fontSize: 13 }}>{v.salida.hora_registro.slice(0, 5)}</td>
+                          <td className="font-mono" style={{ fontSize: 13 }}>{v.entrada ? v.entrada.hora_registro.slice(0, 5) : <span style={{ color: "#9ca3af" }}>—</span>}</td>
+                          <td>
+                            <span style={{ background: sem.bg, color: sem.color, border: `1px solid ${sem.border}`, padding: "2px 8px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
+                              {formatMinutos(mins)}
+                            </span>
+                          </td>
+                          <td>
+                            {v.entrada
+                              ? <span style={{ color: "#15803d", fontSize: 12, fontWeight: 600 }}>✓ Regresó</span>
+                              : <span style={{ color: sem.color, fontSize: 12, fontWeight: 600 }}>{mins >= 60 ? "⚠️ Excedido" : mins >= 45 ? "⏰ Por llegar" : "En comedor"}</span>
+                            }
+                          </td>
+                          <td onClick={(e) => e.stopPropagation()} style={{ whiteSpace: "nowrap" }}>
+                            <button type="button" className="btn-accion rojo" onClick={() => handleDelete(v.salida.id, v.nombre_completo)} style={{ marginRight: 4 }}>↑ Sal.</button>
+                            {v.entrada && <button type="button" className="btn-accion rojo" onClick={() => handleDelete(v.entrada!.id, v.nombre_completo)}>↓ Ent.</button>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
