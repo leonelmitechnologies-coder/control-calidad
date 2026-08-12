@@ -1031,6 +1031,23 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // PATCH /api/registro-comida/:id/hora — editar hora de un registro
+  app.patch("/api/registro-comida/:id/hora", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { hora_registro } = req.body as { hora_registro: string };
+      if (!hora_registro || !/^\d{2}:\d{2}(:\d{2})?$/.test(hora_registro)) {
+        return res.status(400).json({ error: "hora_registro inválida (formato HH:MM o HH:MM:SS)" });
+      }
+      const hora = hora_registro.length === 5 ? hora_registro + ":00" : hora_registro;
+      await pool.query("UPDATE registro_comida SET hora_registro = $1 WHERE id = $2", [hora, parseInt(id)]);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[API] PATCH /api/registro-comida/:id/hora error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // DELETE /api/registro-comida/:id
   app.delete("/api/registro-comida/:id", requireAuth, async (req: Request, res: Response) => {
     try {

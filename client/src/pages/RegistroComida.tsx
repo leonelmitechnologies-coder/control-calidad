@@ -158,10 +158,22 @@ function armarViajes(registros: Registro[]): Viaje[] {
   });
 }
 
-// Minutos transcurridos desde fecha "YYYY-MM-DD" + hora "HH:MM:SS"
+// Parsea "HH:MM:SS" o "HH:MM:SS.ffffff" a Date seguro
+function parseHora(fecha: string, hora: string): Date {
+  return new Date(`${fecha}T${hora.slice(0, 8)}`);
+}
+
+// Minutos transcurridos desde fecha+hora hasta ahora
 function minutosDesde(fecha: string, hora: string): number {
-  const dt = new Date(`${fecha}T${hora}`);
-  return Math.floor((Date.now() - dt.getTime()) / 60000);
+  const ms = Date.now() - parseHora(fecha, hora).getTime();
+  return Math.max(0, Math.floor(ms / 60000));
+}
+
+// Duración entre dos registros en minutos
+function duracionMinutos(salida: Registro, entrada: Registro): number {
+  const ms = parseHora(entrada.fecha, entrada.hora_registro).getTime()
+           - parseHora(salida.fecha, salida.hora_registro).getTime();
+  return Math.max(0, Math.floor(ms / 60000));
 }
 
 function formatMinutos(mins: number): string {
@@ -426,20 +438,74 @@ function ScanResultCard({ registro }: { registro: Registro }) {
 
 type Rango = "diario" | "semanal" | "mensual";
 
-function ViajeCard({ v, onDelete }: { v: Viaje; onDelete: (id: number, nombre: string) => void }) {
-  useInterval(30000); // re-render cada 30s para actualizar el timer
+// ── Edición inline de hora ────────────────────────────────────────────────────
+
+function HoraEditable({ registro, onSaved }: { registro: Registro; onSaved: () => void }) {
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(registro.hora_registro.slice(0, 5));
+  const [guardando, setGuardando] = useState(false);
+
+  const guardar = async () => {
+    setGuardando(true);
+    try {
+      await apiFetch(`${API_BASE_URL}/api/registro-comida/${registro.id}/hora`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hora_registro: valor }),
+      });
+      setEditando(false);
+      onSaved();
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  if (editando) {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <input
+          type="time"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          style={{ fontSize: 13, padding: "2px 4px", width: 90 }}
+        />
+        <button type="button" onClick={guardar} disabled={guardando}
+          style={{ background: "#0d2b4e", color: "#fff", border: "none", padding: "2px 8px", fontSize: 12, cursor: "pointer" }}>
+          {guardando ? "…" : "✓"}
+        </button>
+        <button type="button" onClick={() => setEditando(false)}
+          style={{ background: "none", border: "1px solid #d1d5db", padding: "2px 6px", fontSize: 12, cursor: "pointer", color: "#6b7280" }}>
+          ✕
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <span style={{ fontWeight: 700, fontSize: 14 }}>{registro.hora_registro.slice(0, 5)}</span>
+      <button type="button" onClick={() => setEditando(true)}
+        title="Editar hora"
+        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#9ca3af", padding: "0 2px", lineHeight: 1 }}>
+        ✎
+      </button>
+    </span>
+  );
+}
+
+// ── ViajeCard ─────────────────────────────────────────────────────────────────
+
+function ViajeCard({ v, onDelete, onRefresh }: { v: Viaje; onDelete: (id: number, nombre: string) => void; onRefresh: () => void }) {
+  useInterval(30000);
   const mins = v.entrada ? null : minutosDesde(v.salida.fecha, v.salida.hora_registro);
   const sem = mins !== null ? semaforo(mins) : null;
 
   return (
-    <div className="tabla-card">
+    <div className="tabla-card" style={{ borderLeft: sem ? `4px solid ${sem.color}` : `4px solid #86efac` }}>
       <div className="tabla-card-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <Avatar url={v.foto_url} name={v.nombre_completo} size={38} />
-          <div style={{ minWidth: 0 }}>
-            <div className="tabla-card-title">{v.nombre_completo}</div>
-            <div className="tabla-card-meta">{v.area}</div>
-          </div>
+        <div style={{ minWidth: 0 }}>
+          <div className="tabla-card-title">{v.nombre_completo}</div>
+          <div className="tabla-card-meta">{v.area}</div>
         </div>
         {sem ? (
           <span style={{ background: sem.bg, color: sem.color, border: `1px solid ${sem.border}`, padding: "4px 10px", fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
@@ -454,16 +520,18 @@ function ViajeCard({ v, onDelete }: { v: Viaje; onDelete: (id: number, nombre: s
       <div className="tabla-card-row">
         <div className="tabla-card-field">
           <span className="tabla-card-label">🍽️ Salida</span>
-          <span className="tabla-card-value">{v.salida.hora_registro.slice(0, 5)}</span>
+          <HoraEditable registro={v.salida} onSaved={onRefresh} />
         </div>
         <div className="tabla-card-field">
           <span className="tabla-card-label">🏭 Regreso</span>
-          <span className="tabla-card-value">{v.entrada ? v.entrada.hora_registro.slice(0, 5) : "—"}</span>
+          {v.entrada
+            ? <HoraEditable registro={v.entrada} onSaved={onRefresh} />
+            : <span style={{ color: "#9ca3af" }}>—</span>}
         </div>
         {v.entrada && (
           <div className="tabla-card-field">
             <span className="tabla-card-label">Tiempo</span>
-            <span className="tabla-card-value">{formatMinutos(minutosDesde(v.salida.fecha, v.salida.hora_registro) - minutosDesde(v.entrada.fecha, v.entrada.hora_registro))}</span>
+            <span className="tabla-card-value">{formatMinutos(duracionMinutos(v.salida, v.entrada))}</span>
           </div>
         )}
       </div>
@@ -474,6 +542,8 @@ function ViajeCard({ v, onDelete }: { v: Viaje; onDelete: (id: number, nombre: s
     </div>
   );
 }
+
+// ── En comedor (live) ─────────────────────────────────────────────────────────
 
 function EnCemedorLive({ viajes }: { viajes: Viaje[] }) {
   useInterval(30000);
@@ -491,14 +561,15 @@ function EnCemedorLive({ viajes }: { viajes: Viaje[] }) {
           const sem = semaforo(mins);
           return (
             <div key={v.salida.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: sem.bg, border: `1px solid ${sem.border}`, borderLeft: `4px solid ${sem.color}` }}>
-              <Avatar url={v.foto_url} name={v.nombre_completo} size={36} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#111" }}>{v.nombre_completo}</div>
-                <div style={{ fontSize: 11, color: "#6b7280" }}>Salió a las {v.salida.hora_registro.slice(0, 5)}</div>
+                <div style={{ fontSize: 11, color: "#6b7280" }}>{v.area} · Salió a las {v.salida.hora_registro.slice(0, 5)}</div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: sem.color }}>{formatMinutos(mins)}</div>
-                <div style={{ fontSize: 10, color: sem.color }}>{mins >= 60 ? "⚠️ Límite superado" : mins >= 45 ? "⏰ Próximo al límite" : "✓ En tiempo"}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: sem.color }}>{formatMinutos(mins)}</div>
+                <div style={{ fontSize: 10, color: sem.color }}>
+                  {mins >= 60 ? "⚠️ Excedió el límite" : mins >= 45 ? "⏰ Próximo al límite" : "✓ En tiempo"}
+                </div>
               </div>
             </div>
           );
@@ -609,7 +680,7 @@ function HistorialView() {
           {isMobile ? (
             <div style={{ border: "1px solid #e2e2e2", background: "#fff" }}>
               <div className="tabla-cards">
-                {viajes.map((v) => <ViajeCard key={v.salida.id} v={v} onDelete={handleDelete} />)}
+                {viajes.map((v) => <ViajeCard key={v.salida.id} v={v} onDelete={handleDelete} onRefresh={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} />)}
               </div>
             </div>
           ) : (
@@ -637,19 +708,14 @@ function HistorialView() {
                         <tr key={v.salida.id}>
                           <td style={{ color: "#999", fontSize: 11 }}>{i + 1}</td>
                           <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <Avatar url={v.foto_url} name={v.nombre_completo} size={28} />
-                              <div>
-                                <div style={{ fontWeight: 600, fontSize: 13 }}>{v.nombre_completo}</div>
-                                <div style={{ fontSize: 11, color: "#777" }}>{v.area}</div>
-                              </div>
-                            </div>
+                            <div style={{ fontWeight: 600, fontSize: 13 }}>{v.nombre_completo}</div>
+                            <div style={{ fontSize: 11, color: "#777" }}>{v.area}</div>
                           </td>
-                          <td className="font-mono" style={{ fontSize: 13 }}>{v.salida.hora_registro.slice(0, 5)}</td>
-                          <td className="font-mono" style={{ fontSize: 13 }}>{v.entrada ? v.entrada.hora_registro.slice(0, 5) : <span style={{ color: "#9ca3af" }}>—</span>}</td>
+                          <td><HoraEditable registro={v.salida} onSaved={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} /></td>
+                          <td>{v.entrada ? <HoraEditable registro={v.entrada} onSaved={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} /> : <span style={{ color: "#9ca3af" }}>—</span>}</td>
                           <td>
                             <span style={{ background: sem.bg, color: sem.color, border: `1px solid ${sem.border}`, padding: "2px 8px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
-                              {formatMinutos(mins)}
+                              {v.entrada ? formatMinutos(duracionMinutos(v.salida, v.entrada)) : formatMinutos(mins)}
                             </span>
                           </td>
                           <td>
