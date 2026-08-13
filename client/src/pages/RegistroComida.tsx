@@ -222,25 +222,32 @@ function semaforo(mins: number): { bg: string; color: string; border: string } {
 
 interface SelectOpt { value: string; label: string }
 
-function CustomSelect({ value, onChange, options, placeholder }: {
+function CustomSelect({ value, onChange, options, placeholder, searchable }: {
   value: string;
   onChange: (v: string) => void;
   options: SelectOpt[];
   placeholder?: string;
+  searchable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) { setQ(""); return; }
     const close = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
+    if (searchable) setTimeout(() => searchRef.current?.focus(), 50);
     return () => document.removeEventListener("mousedown", close);
-  }, [open]);
+  }, [open, searchable]);
 
   const selected = options.find((o) => o.value === value);
+  const filtered = searchable && q
+    ? options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase()))
+    : options;
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
@@ -267,9 +274,26 @@ function CustomSelect({ value, onChange, options, placeholder }: {
         <div style={{
           position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, zIndex: 200,
           background: "#fff", border: "1px solid #d1d5db", borderRadius: 4,
-          boxShadow: "0 6px 16px rgba(0,0,0,0.12)", maxHeight: 260, overflowY: "auto",
+          boxShadow: "0 6px 16px rgba(0,0,0,0.12)", maxHeight: 300, overflowY: "auto",
         }}>
-          {placeholder && (
+          {searchable && (
+            <div style={{ padding: "8px", borderBottom: "1px solid #e5e7eb", position: "sticky", top: 0, background: "#fff" }}>
+              <input
+                ref={searchRef}
+                type="text"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Buscar…"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: "100%", padding: "7px 10px", fontSize: 13,
+                  border: "1px solid #d1d5db", borderRadius: 4, outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          )}
+          {placeholder && !q && (
             <div
               onClick={() => { onChange(""); setOpen(false); }}
               style={{ padding: "10px 12px", fontSize: 13, color: "#9ca3af", borderBottom: "1px solid #f3f4f6", cursor: "pointer" }}
@@ -277,7 +301,9 @@ function CustomSelect({ value, onChange, options, placeholder }: {
               {placeholder}
             </div>
           )}
-          {options.map((o) => (
+          {filtered.length === 0 ? (
+            <div style={{ padding: "10px 12px", fontSize: 13, color: "#9ca3af" }}>Sin resultados</div>
+          ) : filtered.map((o) => (
             <div
               key={o.value}
               onClick={() => { onChange(o.value); setOpen(false); }}
@@ -511,6 +537,7 @@ function ScannerView() {
                 value={manualColabId}
                 onChange={setManualColabId}
                 placeholder="— Seleccionar colaborador —"
+                searchable
                 options={colaboradores.map((c) => ({ value: String(c.id), label: `${c.nombre_completo} — ${c.area}` }))}
               />
             </div>
