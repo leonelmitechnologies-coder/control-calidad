@@ -402,7 +402,6 @@ function ScannerView() {
   const startScan = async () => {
     if (!nfcSupported) return;
     setStatus("scanning");
-    setResult(null);
     setErrorMsg("");
     try {
       const ndef = new (window as any).NDEFReader();
