@@ -54,7 +54,6 @@ interface ListResponse {
 }
 
 const TURNOS = ["Matutino", "Vespertino", "Nocturno"];
-const nfcSupported = typeof window !== "undefined" && "NDEFReader" in window;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -338,28 +337,15 @@ function Avatar({ url, name, size = 36 }: { url?: string | null; name: string; s
   return <Initials name={name} size={size} />;
 }
 
-// ── NFC Scanner View ──────────────────────────────────────────────────────────
-
-// Módulo-level: persisten aunque el componente se desmonte (cambio de tab)
-let _nfcLastScanTs = 0;
-let _nfcScanning = false;
-
-type NfcStatus = "idle" | "scanning" | "error" | "not-found";
+// ── Registro Manual ──────────────────────────────────────────────────────────
 
 function ScannerView() {
   const notify = useNotify();
   const qc = useQueryClient();
-  const [status, setStatus] = useState<NfcStatus>("idle");
   const [lastResult, setLastResult] = useState<Registro | null>(null);
-  const [errorMsg, setErrorMsg] = useState("");
-  const ndefRef = useRef<any>(null);
-
-  // Manual fallback state
-  const [showManual, setShowManual] = useState(false);
   const [manualColabId, setManualColabId] = useState("");
   const [manualTipo, setManualTipo] = useState("salida_comedor");
   const [manualTurno, setManualTurno] = useState("");
-  const [search, setSearch] = useState("");
 
   const { data: colaboradores = [] } = useQuery<Colaborador[]>({
     queryKey: ["registro-comida-colaboradores"],
@@ -385,32 +371,6 @@ function ScannerView() {
     if (estadoHoy) setManualTipo(estadoHoy.tipo_sugerido);
   }, [estadoHoy]);
 
-  const escaneoMutation = useMutation({
-    mutationFn: (body: object) =>
-      apiFetch<Registro>(`${API_BASE_URL}/api/registro-comida/escaneo`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["registro-comida"] });
-      qc.invalidateQueries({ queryKey: ["registro-comida-estado"] });
-      setLastResult(data);
-      setStatus("idle");
-    },
-    onError: (err: any) => {
-      const msg = err.message ?? "Error al registrar";
-      if (msg.includes("no encontrado")) {
-        setStatus("not-found");
-        setErrorMsg("Tag NFC no asociado a ningún colaborador.");
-      } else {
-        setStatus("error");
-        setErrorMsg(msg);
-      }
-      setTimeout(() => setStatus("idle"), 3500);
-    },
-  });
-
   const manualMutation = useMutation({
     mutationFn: (body: object) =>
       apiFetch<Registro>(`${API_BASE_URL}/api/registro-comida`, {
@@ -429,179 +389,69 @@ function ScannerView() {
     },
   });
 
-  const startScan = async () => {
-    if (!nfcSupported) return;
-    setStatus("scanning");
-    setErrorMsg("");
-    try {
-      const ndef = new (window as any).NDEFReader();
-      ndefRef.current = ndef;
-      await ndef.scan();
-      ndef.addEventListener("reading", (event: any) => {
-        // Guard 1: variable de módulo — no se resetea al cambiar de tab
-        if (_nfcScanning) return;
-        // Guard 2: cooldown de 3s entre escaneos válidos
-        const now = Date.now();
-        if (now - _nfcLastScanTs < 3000) return;
-        _nfcScanning = true;
-        _nfcLastScanTs = now;
-        const nfc_id = event.serialNumber || "";
-        escaneoMutation.mutate(
-          { nfc_id, fecha: hoy(), hora: localHora() },
-          { onSettled: () => { _nfcScanning = false; } },
-        );
-      });
-    } catch {
-      setStatus("error");
-      setErrorMsg("Permiso denegado o NFC no disponible.");
-      setTimeout(() => setStatus("idle"), 3000);
-    }
-  };
-
-  const cancelScan = () => {
-    setStatus("idle");
-    ndefRef.current = null;
-  };
-
-  const filtrados = colaboradores.filter((c) =>
-    !search || c.nombre_completo.toLowerCase().includes(search.toLowerCase()) || c.area.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
     <div style={{ maxWidth: 500, margin: "0 auto" }}>
 
-      {/* ── Bloque NFC — siempre visible ── */}
-      <div style={{ marginBottom: 24 }}>
-        {/* Estado: idle o no soportado */}
-        {status === "idle" && (
-          nfcSupported ? (
-            <button
-              onClick={startScan}
-              style={{
-                width: "100%", padding: "28px 20px", fontSize: 18, fontWeight: 700,
-                background: "#0d2b4e", color: "#fff", border: "none", cursor: "pointer",
-                borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 14,
-              }}
-            >
-              <span style={{ fontSize: 34 }}>📡</span>
-              <span>Escanear NFC<br /><span style={{ fontSize: 12, fontWeight: 400, opacity: 0.75 }}>Marca salida o entrada automáticamente</span></span>
-            </button>
-          ) : (
-            <div style={{ padding: "22px 20px", background: "#f8fafc", border: "2px dashed #cbd5e1", borderRadius: 6, textAlign: "center" }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>📡</div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#374151", marginBottom: 4 }}>Escaneo NFC</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>
-                Solo disponible en <strong>Android Chrome</strong> con NFC activado.<br />
-                En este dispositivo usa el registro manual de abajo.
-              </div>
-            </div>
-          )
-        )}
-
-        {/* Estado: escaneando */}
-        {status === "scanning" && (
-          <div style={{ padding: "28px 20px", background: "#eff6ff", border: "2px solid #3b82f6", borderRadius: 6, textAlign: "center" }}>
-            <div style={{ fontSize: 48, marginBottom: 10 }}>📡</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", marginBottom: 6 }}>Acerca el tag NFC…</div>
-            <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 18 }}>El dispositivo está listo para leer</div>
-            <button onClick={cancelScan} style={{ background: "none", border: "1px solid #9ca3af", padding: "6px 18px", cursor: "pointer", color: "#6b7280", fontSize: 13, borderRadius: 4 }}>
-              Cancelar
-            </button>
-          </div>
-        )}
-
-        {/* Estado: error */}
-        {(status === "error" || status === "not-found") && (
-          <div style={{ padding: "22px 20px", background: "#fef2f2", border: "2px solid #fca5a5", borderRadius: 6, textAlign: "center" }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>⚠️</div>
-            <div style={{ fontWeight: 700, color: "#dc2626", marginBottom: 4 }}>
-              {status === "not-found" ? "Tag no registrado" : "Error de escaneo"}
-            </div>
-            <div style={{ fontSize: 13, color: "#7f1d1d" }}>{errorMsg}</div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Último registro (persiste hasta descartar o nuevo escaneo) ── */}
       {lastResult && (
         <ScanResultCard registro={lastResult} onDismiss={() => setLastResult(null)} />
       )}
 
-      {/* ── Registro manual (colapsable) ── */}
-      <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 8 }}>
-        <button
-          type="button"
-          onClick={() => setShowManual((v) => !v)}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "12px 0", background: "none", border: "none", cursor: "pointer",
-            fontSize: 13, fontWeight: 700, color: "#374151",
-          }}
-        >
-          <span>Registro manual</span>
-          <span style={{ fontSize: 18, lineHeight: 1, color: "#9ca3af" }}>{showManual ? "▲" : "▼"}</span>
-        </button>
+      <div style={{ paddingBottom: 12 }}>
+        <div className="form-group" style={{ marginBottom: 12 }}>
+          <label>Colaborador</label>
+          <CustomSelect
+            value={manualColabId}
+            onChange={setManualColabId}
+            placeholder="— Seleccionar colaborador —"
+            searchable
+            options={colaboradores.map((c) => ({ value: String(c.id), label: `${c.nombre_completo} — ${c.area}` }))}
+          />
+        </div>
 
-        {showManual && (
-          <div style={{ paddingBottom: 12 }}>
-            {/* Dropdown colaborador */}
+        {estadoHoy?.cicloCompleto ? (
+          <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 4, padding: "10px 12px", fontSize: 13, color: "#15803d", fontWeight: 600 }}>
+            ✓ Ciclo completo — este colaborador ya tiene salida y entrada registradas para hoy.
+          </div>
+        ) : (
+          <>
             <div className="form-group" style={{ marginBottom: 12 }}>
-              <label>Colaborador</label>
+              <label>Tipo</label>
               <CustomSelect
-                value={manualColabId}
-                onChange={setManualColabId}
-                placeholder="— Seleccionar colaborador —"
-                searchable
-                options={colaboradores.map((c) => ({ value: String(c.id), label: `${c.nombre_completo} — ${c.area}` }))}
+                value={manualTipo}
+                onChange={setManualTipo}
+                options={[
+                  ...(!manualColabId || !estadoHoy?.tieneSalida
+                    ? [{ value: "salida_comedor", label: "🍽️ Salida al comedor" }]
+                    : []),
+                  { value: "entrada_produccion", label: "🏭 Entrada a producción" },
+                ]}
               />
+              {estadoHoy?.tieneSalida && !estadoHoy?.cicloCompleto && (
+                <div style={{ fontSize: 11, color: "#b45309", marginTop: 4 }}>
+                  ⚡ Ya tiene salida registrada — solo se puede registrar entrada a producción
+                </div>
+              )}
             </div>
 
-            {estadoHoy?.cicloCompleto ? (
-              <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 4, padding: "10px 12px", fontSize: 13, color: "#15803d", fontWeight: 600 }}>
-                ✓ Ciclo completo — este colaborador ya tiene salida y entrada registradas para hoy.
-              </div>
-            ) : (
-              <>
-                <div className="form-group" style={{ marginBottom: 12 }}>
-                  <label>Tipo</label>
-                  <CustomSelect
-                    value={manualTipo}
-                    onChange={setManualTipo}
-                    options={[
-                      ...(!manualColabId || !estadoHoy?.tieneSalida
-                        ? [{ value: "salida_comedor", label: "🍽️ Salida al comedor" }]
-                        : []),
-                      { value: "entrada_produccion", label: "🏭 Entrada a producción" },
-                    ]}
-                  />
-                  {estadoHoy?.tieneSalida && !estadoHoy?.cicloCompleto && (
-                    <div style={{ fontSize: 11, color: "#b45309", marginTop: 4 }}>
-                      ⚡ Ya tiene salida registrada — solo se puede registrar entrada a producción
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-primario"
-                  style={{ width: "100%" }}
-                  disabled={!manualColabId || manualMutation.isPending}
-                  onClick={() => {
-                    if (!manualColabId) return;
-                    manualMutation.mutate({
-                      colaborador_id: parseInt(manualColabId),
-                      fecha: hoy(),
-                      hora_registro: localHora(),
-                      tipo_movimiento: manualTipo,
-                      turno: manualTurno,
-                    });
-                  }}
-                >
-                  {manualMutation.isPending ? "Registrando…" : "Registrar"}
-                </button>
-              </>
-            )}
-          </div>
+            <button
+              type="button"
+              className="btn btn-primario"
+              style={{ width: "100%" }}
+              disabled={!manualColabId || manualMutation.isPending}
+              onClick={() => {
+                if (!manualColabId) return;
+                manualMutation.mutate({
+                  colaborador_id: parseInt(manualColabId),
+                  fecha: hoy(),
+                  hora_registro: localHora(),
+                  tipo_movimiento: manualTipo,
+                  turno: manualTurno,
+                });
+              }}
+            >
+              {manualMutation.isPending ? "Registrando…" : "Registrar"}
+            </button>
+          </>
         )}
       </div>
 
@@ -1137,7 +987,7 @@ export default function RegistroComida() {
                 cursor: "pointer",
               }}
             >
-              {v === "scanner" ? "📡 Escáner" : "📋 Historial"}
+              {v === "scanner" ? "📋 Registrar" : "📋 Historial"}
             </button>
           ))}
         </div>
