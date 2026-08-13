@@ -1011,12 +1011,14 @@ export function registerRoutes(app: Express) {
         ? clientHora
         : new Intl.DateTimeFormat("es-MX", { timeZone: "America/Monterrey", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 
-      // Dedup: si ya existe un registro del mismo tipo en el mismo minuto, devolver el existente
+      // Dedup: si ya existe CUALQUIER registro de este colaborador en los últimos 10 segundos,
+      // devolver el más reciente sin insertar — evita duplicados por lecturas rápidas del NFC
       const dupe = await pool.query(
         `SELECT * FROM registro_comida
-         WHERE colaborador_id = $1 AND fecha = $2 AND tipo_movimiento = $3 AND hora_registro = $4
-         LIMIT 1`,
-        [colaborador.id, hoy, tipoMovimiento, hora],
+         WHERE colaborador_id = $1 AND fecha = $2
+           AND created_at > NOW() - INTERVAL '10 seconds'
+         ORDER BY created_at DESC LIMIT 1`,
+        [colaborador.id, hoy],
       );
       if (dupe.rows.length > 0) {
         const r = dupe.rows[0];

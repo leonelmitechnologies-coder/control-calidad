@@ -340,6 +340,10 @@ function Avatar({ url, name, size = 36 }: { url?: string | null; name: string; s
 
 // ── NFC Scanner View ──────────────────────────────────────────────────────────
 
+// Módulo-level: persisten aunque el componente se desmonte (cambio de tab)
+let _nfcLastScanTs = 0;
+let _nfcScanning = false;
+
 type NfcStatus = "idle" | "scanning" | "error" | "not-found";
 
 function ScannerView() {
@@ -349,8 +353,6 @@ function ScannerView() {
   const [lastResult, setLastResult] = useState<Registro | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const ndefRef = useRef<any>(null);
-  const lastScanTs = useRef<number>(0);
-  const scanningRef = useRef<boolean>(false);
 
   // Manual fallback state
   const [showManual, setShowManual] = useState(false);
@@ -436,17 +438,17 @@ function ScannerView() {
       ndefRef.current = ndef;
       await ndef.scan();
       ndef.addEventListener("reading", (event: any) => {
-        // Guard 1: ref mutable — bloquea si ya hay petición en vuelo
-        if (scanningRef.current) return;
-        // Guard 2: cooldown de 3s para evitar lecturas repetidas del mismo tag
+        // Guard 1: variable de módulo — no se resetea al cambiar de tab
+        if (_nfcScanning) return;
+        // Guard 2: cooldown de 3s entre escaneos válidos
         const now = Date.now();
-        if (now - lastScanTs.current < 3000) return;
-        scanningRef.current = true;
-        lastScanTs.current = now;
+        if (now - _nfcLastScanTs < 3000) return;
+        _nfcScanning = true;
+        _nfcLastScanTs = now;
         const nfc_id = event.serialNumber || "";
         escaneoMutation.mutate(
           { nfc_id, fecha: hoy(), hora: localHora() },
-          { onSettled: () => { scanningRef.current = false; } },
+          { onSettled: () => { _nfcScanning = false; } },
         );
       });
     } catch {
