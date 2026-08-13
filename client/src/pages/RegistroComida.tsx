@@ -314,17 +314,13 @@ function Avatar({ url, name, size = 36 }: { url?: string | null; name: string; s
 
 // ── NFC Scanner View ──────────────────────────────────────────────────────────
 
-type NfcStatus = "idle" | "scanning" | "success" | "error" | "not-found";
-
-interface ScanResult {
-  registro: Registro;
-}
+type NfcStatus = "idle" | "scanning" | "error" | "not-found";
 
 function ScannerView() {
   const notify = useNotify();
   const qc = useQueryClient();
   const [status, setStatus] = useState<NfcStatus>("idle");
-  const [result, setResult] = useState<ScanResult | null>(null);
+  const [lastResult, setLastResult] = useState<Registro | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const ndefRef = useRef<any>(null);
 
@@ -341,6 +337,24 @@ function ScannerView() {
     staleTime: 60_000,
   });
 
+  const todayStr = hoy();
+  const { data: estadoHoy } = useQuery<{
+    ultimoTipo: string | null;
+    tieneSalida: boolean;
+    tieneEntrada: boolean;
+    cicloCompleto: boolean;
+    tipo_sugerido: "salida_comedor" | "entrada_produccion";
+  }>({
+    queryKey: ["registro-comida-estado", manualColabId, todayStr],
+    queryFn: () => apiFetch(`${API_BASE_URL}/api/registro-comida/estado-hoy/${manualColabId}?fecha=${todayStr}`),
+    enabled: !!manualColabId,
+    staleTime: 5000,
+  });
+
+  useEffect(() => {
+    if (estadoHoy) setManualTipo(estadoHoy.tipo_sugerido);
+  }, [estadoHoy]);
+
   const escaneoMutation = useMutation({
     mutationFn: (body: object) =>
       apiFetch<Registro>(`${API_BASE_URL}/api/registro-comida/escaneo`, {
@@ -350,9 +364,9 @@ function ScannerView() {
       }),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["registro-comida"] });
-      setResult({ registro: data });
-      setStatus("success");
-      setTimeout(() => { setStatus("idle"); setResult(null); }, 4000);
+      qc.invalidateQueries({ queryKey: ["registro-comida-estado"] });
+      setLastResult(data);
+      setStatus("idle");
     },
     onError: (err: any) => {
       const msg = err.message ?? "Error al registrar";
@@ -376,10 +390,9 @@ function ScannerView() {
       }),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["registro-comida"] });
-      setResult({ registro: data });
-      setStatus("success");
+      qc.invalidateQueries({ queryKey: ["registro-comida-estado"] });
+      setLastResult(data);
       setManualColabId("");
-      setTimeout(() => { setStatus("idle"); setResult(null); }, 4000);
     },
     onError: (err: any) => {
       notify(err.message ?? "Error al registrar.", "error");
@@ -458,9 +471,6 @@ function ScannerView() {
           </div>
         )}
 
-        {/* Estado: éxito */}
-        {status === "success" && result && <ScanResultCard registro={result.registro} />}
-
         {/* Estado: error */}
         {(status === "error" || status === "not-found") && (
           <div style={{ padding: "22px 20px", background: "#fef2f2", border: "2px solid #fca5a5", borderRadius: 6, textAlign: "center" }}>
@@ -472,6 +482,11 @@ function ScannerView() {
           </div>
         )}
       </div>
+
+      {/* ── Último registro (persiste hasta descartar o nuevo escaneo) ── */}
+      {lastResult && (
+        <ScanResultCard registro={lastResult} onDismiss={() => setLastResult(null)} />
+      )}
 
       {/* ── Registro manual (colapsable) ── */}
       <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 8 }}>
@@ -501,36 +516,51 @@ function ScannerView() {
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: 12 }}>
-              <label>Tipo</label>
-              <CustomSelect
-                value={manualTipo}
-                onChange={setManualTipo}
-                options={[
-                  { value: "salida_comedor", label: "🍽️ Salida al comedor" },
-                  { value: "entrada_produccion", label: "🏭 Entrada a producción" },
-                ]}
-              />
-            </div>
+            {estadoHoy?.cicloCompleto ? (
+              <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 4, padding: "10px 12px", fontSize: 13, color: "#15803d", fontWeight: 600 }}>
+                ✓ Ciclo completo — este colaborador ya tiene salida y entrada registradas para hoy.
+              </div>
+            ) : (
+              <>
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label>Tipo</label>
+                  <CustomSelect
+                    value={manualTipo}
+                    onChange={setManualTipo}
+                    options={[
+                      ...(!manualColabId || !estadoHoy?.tieneSalida
+                        ? [{ value: "salida_comedor", label: "🍽️ Salida al comedor" }]
+                        : []),
+                      { value: "entrada_produccion", label: "🏭 Entrada a producción" },
+                    ]}
+                  />
+                  {estadoHoy?.tieneSalida && !estadoHoy?.cicloCompleto && (
+                    <div style={{ fontSize: 11, color: "#b45309", marginTop: 4 }}>
+                      ⚡ Ya tiene salida registrada — solo se puede registrar entrada a producción
+                    </div>
+                  )}
+                </div>
 
-            <button
-              type="button"
-              className="btn btn-primario"
-              style={{ width: "100%" }}
-              disabled={!manualColabId || manualMutation.isPending}
-              onClick={() => {
-                if (!manualColabId) return;
-                manualMutation.mutate({
-                  colaborador_id: parseInt(manualColabId),
-                  fecha: hoy(),
-                  hora_registro: localHora(),
-                  tipo_movimiento: manualTipo,
-                  turno: manualTurno,
-                });
-              }}
-            >
-              {manualMutation.isPending ? "Registrando…" : "Registrar"}
-            </button>
+                <button
+                  type="button"
+                  className="btn btn-primario"
+                  style={{ width: "100%" }}
+                  disabled={!manualColabId || manualMutation.isPending}
+                  onClick={() => {
+                    if (!manualColabId) return;
+                    manualMutation.mutate({
+                      colaborador_id: parseInt(manualColabId),
+                      fecha: hoy(),
+                      hora_registro: localHora(),
+                      tipo_movimiento: manualTipo,
+                      turno: manualTurno,
+                    });
+                  }}
+                >
+                  {manualMutation.isPending ? "Registrando…" : "Registrar"}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -539,16 +569,39 @@ function ScannerView() {
   );
 }
 
-function ScanResultCard({ registro }: { registro: Registro }) {
-  const col = colorTipo(registro.tipo_movimiento);
+function ScanResultCard({ registro, onDismiss }: { registro: Registro; onDismiss: () => void }) {
+  useInterval(30000);
+  const esSalida = registro.tipo_movimiento === "salida_comedor";
+  const mins = esSalida ? minutosDesde(registro.fecha, registro.hora_registro) : null;
+  const sem = mins !== null ? semaforo(mins) : { bg: "#f0fdf4", color: "#15803d", border: "#86efac" };
   return (
-    <div style={{ padding: "20px 16px", background: col.bg, border: `2px solid ${col.border}`, borderRadius: 8, marginBottom: 16 }}>
-      <div style={{ fontSize: 32, marginBottom: 8 }}>{iconTipo(registro.tipo_movimiento)}</div>
-      <div style={{ fontWeight: 700, fontSize: 16, color: col.color, marginBottom: 4 }}>
-        {labelTipo(registro.tipo_movimiento)}
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+      background: sem.bg, border: `1px solid ${sem.border}`, borderLeft: `4px solid ${sem.color}`,
+      borderRadius: 6, marginBottom: 16,
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>{registro.nombre_completo}</div>
+        <div style={{ fontSize: 11, color: "#6b7280" }}>
+          {registro.area} · {esSalida ? "Salió" : "Regresó"} a las {formatHora12(registro.hora_registro)}
+        </div>
       </div>
-      <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>{registro.nombre_completo}</div>
-      <div style={{ fontSize: 12, color: "#6b7280" }}>{registro.area} — {formatHora12(registro.hora_registro)}</div>
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        {esSalida && mins !== null ? (
+          <>
+            <div style={{ fontSize: 18, fontWeight: 800, color: sem.color }}>{formatMinutos(mins)}</div>
+            <div style={{ fontSize: 10, color: sem.color }}>
+              {mins >= 60 ? "⚠️ Excedió el límite" : mins >= 45 ? "⏰ Próximo al límite" : "✓ En tiempo"}
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>✓ Regresó</div>
+        )}
+      </div>
+      <button type="button" onClick={onDismiss}
+        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af", padding: "0 0 0 6px", flexShrink: 0, lineHeight: 1 }}>
+        ✕
+      </button>
     </div>
   );
 }
@@ -707,7 +760,7 @@ function HoraEditable({ registro, onSaved }: { registro: Registro; onSaved: () =
 
 // ── ViajeCard ─────────────────────────────────────────────────────────────────
 
-function ViajeCard({ v, onDelete, onRefresh }: { v: Viaje; onDelete: (id: number, nombre: string) => void; onRefresh: () => void }) {
+function ViajeCard({ v, onDeletePair, onRefresh }: { v: Viaje; onDeletePair: (ids: number[], nombre: string) => void; onRefresh: () => void }) {
   useInterval(30000);
   const mins = v.entrada ? null : minutosDesde(v.salida.fecha, v.salida.hora_registro);
   const sem = mins !== null ? semaforo(mins) : null;
@@ -748,8 +801,7 @@ function ViajeCard({ v, onDelete, onRefresh }: { v: Viaje; onDelete: (id: number
         )}
       </div>
       <div className="tabla-card-actions">
-        <button type="button" className="btn-accion rojo" onClick={() => onDelete(v.salida.id, v.nombre_completo)}>Eliminar salida</button>
-        {v.entrada && <button type="button" className="btn-accion rojo" onClick={() => onDelete(v.entrada!.id, v.nombre_completo)}>Eliminar entrada</button>}
+        <button type="button" className="btn-accion rojo" onClick={() => onDeletePair([v.salida.id, ...(v.entrada ? [v.entrada.id] : [])], v.nombre_completo)}>Eliminar visita</button>
       </div>
     </div>
   );
@@ -820,9 +872,29 @@ function HistorialView() {
     onError: (err: any) => notify(err.message ?? "Error.", "error"),
   });
 
+  const deletePairMutation = useMutation({
+    mutationFn: (ids: number[]) =>
+      apiFetch(`${API_BASE_URL}/api/registro-comida/par`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["registro-comida"] });
+      notify("Visita eliminada.", "success");
+    },
+    onError: (err: any) => notify(err.message ?? "Error.", "error"),
+  });
+
   const handleDelete = async (id: number, nombre: string) => {
     const ok = await confirm({ title: "Eliminar registro", message: `¿Eliminar el registro de ${nombre}?` });
     if (ok) deleteMutation.mutate(id);
+  };
+
+  const handleDeletePair = async (ids: number[], nombre: string) => {
+    const count = ids.length;
+    const ok = await confirm({ title: "Eliminar visita", message: `¿Eliminar ${count === 2 ? "los 2 registros" : "el registro"} de ${nombre}?` });
+    if (ok) deletePairMutation.mutate(ids);
   };
 
   const navDate = (dir: -1 | 1) => {
@@ -892,7 +964,7 @@ function HistorialView() {
           {viajes.length > 0 && (isMobile ? (
             <div style={{ border: "1px solid #e2e2e2", background: "#fff" }}>
               <div className="tabla-cards">
-                {viajes.map((v) => <ViajeCard key={v.salida.id} v={v} onDelete={handleDelete} onRefresh={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} />)}
+                {viajes.map((v) => <ViajeCard key={v.salida.id} v={v} onDeletePair={handleDeletePair} onRefresh={() => qc.invalidateQueries({ queryKey: ["registro-comida"] })} />)}
               </div>
             </div>
           ) : (
@@ -937,8 +1009,7 @@ function HistorialView() {
                             }
                           </td>
                           <td onClick={(e) => e.stopPropagation()} style={{ whiteSpace: "nowrap" }}>
-                            <button type="button" className="btn-accion rojo" onClick={() => handleDelete(v.salida.id, v.nombre_completo)} style={{ marginRight: 4 }}>↑ Sal.</button>
-                            {v.entrada && <button type="button" className="btn-accion rojo" onClick={() => handleDelete(v.entrada!.id, v.nombre_completo)}>↓ Ent.</button>}
+                            <button type="button" className="btn-accion rojo" onClick={() => handleDeletePair([v.salida.id, ...(v.entrada ? [v.entrada.id] : [])], v.nombre_completo)}>Eliminar</button>
                           </td>
                         </tr>
                       );

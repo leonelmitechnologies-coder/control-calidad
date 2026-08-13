@@ -947,6 +947,34 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // GET /api/registro-comida/estado-hoy/:colaborador_id — estado del colaborador para la fecha dada
+  app.get("/api/registro-comida/estado-hoy/:colaborador_id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { colaborador_id } = req.params;
+      const fecha = (req.query.fecha as string) || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey" }).format(new Date());
+      const rows = await pool.query(
+        `SELECT tipo_movimiento FROM registro_comida
+         WHERE colaborador_id = $1 AND fecha = $2
+         ORDER BY hora_registro ASC, id ASC`,
+        [parseInt(colaborador_id), fecha],
+      );
+      const registros: { tipo_movimiento: string }[] = rows.rows;
+      const ultimoTipo = registros[registros.length - 1]?.tipo_movimiento ?? null;
+      const tieneSalida = registros.some((r) => r.tipo_movimiento === "salida_comedor");
+      const tieneEntrada = registros.some((r) => r.tipo_movimiento === "entrada_produccion");
+      res.json({
+        ultimoTipo,
+        tieneSalida,
+        tieneEntrada,
+        cicloCompleto: tieneSalida && tieneEntrada,
+        tipo_sugerido: ultimoTipo === "salida_comedor" ? "entrada_produccion" : "salida_comedor",
+      });
+    } catch (err) {
+      console.error("[API] GET /api/registro-comida/estado-hoy error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // POST /api/registro-comida/escaneo — registro automático por NFC
   app.post("/api/registro-comida/escaneo", requireAuth, async (req: Request, res: Response) => {
     try {
@@ -1068,6 +1096,19 @@ export function registerRoutes(app: Express) {
       res.json({ ok: true });
     } catch (err) {
       console.error("[API] PATCH /api/registro-comida/:id/hora error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // DELETE /api/registro-comida/par — elimina el par completo (salida + entrada)
+  app.delete("/api/registro-comida/par", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { ids } = req.body as { ids: number[] };
+      if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: "ids requeridos" });
+      await pool.query("DELETE FROM registro_comida WHERE id = ANY($1::int[])", [ids]);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[API] DELETE /api/registro-comida/par error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
