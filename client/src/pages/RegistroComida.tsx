@@ -349,6 +349,7 @@ function ScannerView() {
   const [lastResult, setLastResult] = useState<Registro | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const ndefRef = useRef<any>(null);
+  const lastScanTs = useRef<number>(0);
 
   // Manual fallback state
   const [showManual, setShowManual] = useState(false);
@@ -434,6 +435,12 @@ function ScannerView() {
       ndefRef.current = ndef;
       await ndef.scan();
       ndef.addEventListener("reading", (event: any) => {
+        // Guard 1: ignorar si hay una petición en curso
+        if (escaneoMutation.isPending) return;
+        // Guard 2: cooldown de 3s para evitar lecturas múltiples del mismo tag
+        const now = Date.now();
+        if (now - lastScanTs.current < 3000) return;
+        lastScanTs.current = now;
         const nfc_id = event.serialNumber || "";
         escaneoMutation.mutate({ nfc_id, fecha: hoy(), hora: localHora() });
       });
