@@ -350,6 +350,7 @@ function ScannerView() {
   const [errorMsg, setErrorMsg] = useState("");
   const ndefRef = useRef<any>(null);
   const lastScanTs = useRef<number>(0);
+  const scanningRef = useRef<boolean>(false);
 
   // Manual fallback state
   const [showManual, setShowManual] = useState(false);
@@ -435,14 +436,18 @@ function ScannerView() {
       ndefRef.current = ndef;
       await ndef.scan();
       ndef.addEventListener("reading", (event: any) => {
-        // Guard 1: ignorar si hay una petición en curso
-        if (escaneoMutation.isPending) return;
-        // Guard 2: cooldown de 3s para evitar lecturas múltiples del mismo tag
+        // Guard 1: ref mutable — bloquea si ya hay petición en vuelo
+        if (scanningRef.current) return;
+        // Guard 2: cooldown de 3s para evitar lecturas repetidas del mismo tag
         const now = Date.now();
         if (now - lastScanTs.current < 3000) return;
+        scanningRef.current = true;
         lastScanTs.current = now;
         const nfc_id = event.serialNumber || "";
-        escaneoMutation.mutate({ nfc_id, fecha: hoy(), hora: localHora() });
+        escaneoMutation.mutate(
+          { nfc_id, fecha: hoy(), hora: localHora() },
+          { onSettled: () => { scanningRef.current = false; } },
+        );
       });
     } catch {
       setStatus("error");

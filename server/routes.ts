@@ -1011,6 +1011,26 @@ export function registerRoutes(app: Express) {
         ? clientHora
         : new Intl.DateTimeFormat("es-MX", { timeZone: "America/Monterrey", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 
+      // Dedup: si ya existe un registro del mismo tipo en el mismo minuto, devolver el existente
+      const dupe = await pool.query(
+        `SELECT * FROM registro_comida
+         WHERE colaborador_id = $1 AND fecha = $2 AND tipo_movimiento = $3 AND hora_registro = $4
+         LIMIT 1`,
+        [colaborador.id, hoy, tipoMovimiento, hora],
+      );
+      if (dupe.rows.length > 0) {
+        const r = dupe.rows[0];
+        return res.status(200).json({
+          ...r,
+          fecha: hoy,
+          nombre_completo: colaborador.nombre_completo,
+          area: colaborador.area,
+          puesto: colaborador.puesto,
+          turno_colaborador: colaborador.turno,
+          foto_url: colaborador.foto_filename ? s3.getFileUrl("organigrama", colaborador.foto_filename) : null,
+        });
+      }
+
       const inserted = await pool.query(
         `INSERT INTO registro_comida (colaborador_id, fecha, hora_registro, turno, tipo_movimiento, observaciones, registrado_por)
          VALUES ($1, $2, $3, $4, $5, '', $6) RETURNING *`,
@@ -1020,7 +1040,7 @@ export function registerRoutes(app: Express) {
       const r = inserted.rows[0];
       res.status(201).json({
         ...r,
-        fecha: hoy, // ya es string "YYYY-MM-DD"
+        fecha: hoy,
         nombre_completo: colaborador.nombre_completo,
         area: colaborador.area,
         puesto: colaborador.puesto,
