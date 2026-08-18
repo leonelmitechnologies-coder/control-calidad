@@ -84,8 +84,16 @@ export default function AsistenteQC() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   const { data: docs = [] } = useQuery<Doc[]>({
     queryKey: ["asistente-docs"],
@@ -246,7 +254,7 @@ export default function AsistenteQC() {
     <div style={{
       display: "flex",
       flexDirection: "column",
-      height: "calc(100vh - 57px)",
+      height: "100%",
       background: C.white,
       border: `1px solid ${C.border}`,
     }}>
@@ -325,7 +333,7 @@ export default function AsistenteQC() {
       </div>
 
       {/* ── Cuerpo ── */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
 
         {/* Chat */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.white }}>
@@ -334,7 +342,7 @@ export default function AsistenteQC() {
           <div style={{
             flex: 1,
             overflowY: "auto",
-            padding: "24px 20px",
+            padding: "16px 16px",
             display: "flex",
             flexDirection: "column",
             gap: 16,
@@ -497,15 +505,21 @@ export default function AsistenteQC() {
           </div>
         </div>
 
-        {/* Panel de documentos */}
+        {/* Panel de documentos — lado en desktop, overlay en móvil */}
         {showDocs && (
           <div style={{
-            width: 300,
+            position: isMobile ? "absolute" : "relative",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: isMobile ? "min(300px, 90vw)" : 300,
             borderLeft: `1px solid ${C.border}`,
             background: C.bg,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
+            zIndex: 10,
+            boxShadow: isMobile ? "-4px 0 16px rgba(0,0,0,0.12)" : "none",
           }}>
             <div style={{
               padding: "12px 16px",

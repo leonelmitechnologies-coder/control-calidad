@@ -126,7 +126,7 @@ export default function Layout({ children }: LayoutProps) {
   });
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#f4f6f9" }}>
+    <div className="flex" style={{ height: "100dvh", overflow: "hidden", background: "#f4f6f9" }}>
       {/* ── Backdrop (solo móvil, cuando sidebar abierto) ─────────────────── */}
       {isMobile && sidebarOpen && (
         <div
@@ -328,7 +328,12 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Page content */}
-        <div style={{ padding: isMobile ? "16px 14px" : "24px 28px" }}>{children}</div>
+        <div style={{
+          padding: isMobile ? "16px 14px" : "24px 28px",
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+        }}>{children}</div>
       </main>
     </div>
   );
