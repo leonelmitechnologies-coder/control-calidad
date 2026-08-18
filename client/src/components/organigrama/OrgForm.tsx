@@ -158,7 +158,7 @@ function existingPhotoUrl(emp: OrganigramaQc | null | undefined): string | null 
   if (emp.fotoUrl) return emp.fotoUrl;
   const filename = emp.foto_filename ?? emp.fotoFilename;
   if (!filename) return null;
-  return `${API_BASE_URL}/uploads/organigrama/${filename}`;
+  return `${API_BASE_URL}/api/media/organigrama/${filename}`;
 }
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
