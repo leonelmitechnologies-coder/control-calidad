@@ -2942,6 +2942,95 @@ app.get("/api/dashboard", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ── MÉTRICAS ML ───────────────────────────────────────────────────
+
+// GET /api/metricas-ml/dashboard — aggregated averages per account
+app.get("/api/metricas-ml/dashboard", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        cuenta,
+        COUNT(*) AS total_registros,
+        MIN(fecha)::text AS fecha_inicio,
+        MAX(fecha)::text AS fecha_fin,
+        ROUND(AVG(pct_reclamos)::numeric, 2) AS avg_reclamos,
+        ROUND(AVG(pct_mediaciones)::numeric, 2) AS avg_mediaciones,
+        ROUND(AVG(pct_canceladas)::numeric, 2) AS avg_canceladas,
+        ROUND(AVG(pct_demora)::numeric, 2) AS avg_demora
+      FROM metricas_ml
+      GROUP BY cuenta
+      ORDER BY cuenta
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("[API] GET /api/metricas-ml/dashboard error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/metricas-ml — list all records
+app.get("/api/metricas-ml", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const cuenta = req.query.cuenta as string | undefined;
+    const params: string[] = [];
+    let where = "";
+    if (cuenta) {
+      params.push(cuenta);
+      where = `WHERE cuenta = $1`;
+    }
+    const result = await pool.query(
+      `SELECT * FROM metricas_ml ${where} ORDER BY fecha DESC, created_at DESC LIMIT 500`,
+      params,
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("[API] GET /api/metricas-ml error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/metricas-ml — create a record
+app.post("/api/metricas-ml", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const {
+      cuenta, fecha, pct_reclamos, pct_mediaciones,
+      pct_canceladas, pct_demora, nivel_desempeno, estatus,
+    } = req.body;
+    if (!cuenta || !fecha) {
+      return res.status(400).json({ error: "cuenta y fecha son requeridos" });
+    }
+    const user = req.user as PassportUser | undefined;
+    const registrado_por = user?.name ?? "Sistema";
+    const result = await pool.query(
+      `INSERT INTO metricas_ml
+        (cuenta, fecha, pct_reclamos, pct_mediaciones, pct_canceladas, pct_demora,
+         nivel_desempeno, estatus, registrado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING *`,
+      [cuenta, fecha,
+       parseFloat(pct_reclamos) || 0, parseFloat(pct_mediaciones) || 0,
+       parseFloat(pct_canceladas) || 0, parseFloat(pct_demora) || 0,
+       nivel_desempeno || "", estatus || "Verde", registrado_por],
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("[API] POST /api/metricas-ml error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /api/metricas-ml/:id — delete a record
+app.delete("/api/metricas-ml/:id", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM metricas_ml WHERE id = $1", [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[API] DELETE /api/metricas-ml error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── SPA Catch-all ────────────────────────────────────────────────
 // Serves index.html for all non-API routes (client-side routing via wouter).
 // Registered after all API routes so Express only reaches this for deep-links.

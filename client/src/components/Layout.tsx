@@ -27,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Organigrama QC", href: "/organigrama-qc" },
   { label: "Calendario", href: "/calendario" },
   { label: "Registro Comida", href: "/registro-comida" },
+  { label: "Métricas ML", href: "/metricas-ml" },
   { label: "Usuarios", href: "/usuarios" },
   { label: "Control de Acceso", href: "/admin/access" },
   { label: "Manual", href: "/manual" },
@@ -48,6 +49,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/dashboard-b2c": "Dashboard B2C",
   "/dashboard-b2b": "Dashboard B2B",
   "/registro-comida": "Registro de Comida",
+  "/metricas-ml": "Métricas MercadoLibre",
   "/manual": "Manual de Usuario",
 };
 

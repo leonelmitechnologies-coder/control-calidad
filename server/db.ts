@@ -486,6 +486,26 @@ export async function initDB() {
     `);
     await pool.query(`ALTER TABLE registro_comida ADD COLUMN IF NOT EXISTS tipo_movimiento VARCHAR(20) NOT NULL DEFAULT 'salida_comedor'`);
 
+    // Create metricas_ml table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS metricas_ml (
+        id SERIAL PRIMARY KEY,
+        cuenta VARCHAR(50) NOT NULL,
+        fecha DATE NOT NULL,
+        pct_reclamos NUMERIC(5,2) NOT NULL DEFAULT 0,
+        pct_mediaciones NUMERIC(5,2) NOT NULL DEFAULT 0,
+        pct_canceladas NUMERIC(5,2) NOT NULL DEFAULT 0,
+        pct_demora NUMERIC(5,2) NOT NULL DEFAULT 0,
+        nivel_desempeno VARCHAR(10) NOT NULL DEFAULT '',
+        estatus VARCHAR(20) NOT NULL DEFAULT 'Verde',
+        registrado_por VARCHAR(100) NOT NULL DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS metricas_ml_cuenta_fecha_idx ON metricas_ml (cuenta, fecha DESC)`,
+    );
+
     // Seed calendar_festivos if empty (Mexican holidays)
     const festivos = await pool.query("SELECT COUNT(*) FROM calendario_festivos");
     if (festivos.rows[0].count === "0") {

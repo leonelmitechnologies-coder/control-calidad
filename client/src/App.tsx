@@ -27,6 +27,7 @@ import OrganigramaQc from "./pages/OrganigramaQC";
 import Recepciones from "./pages/Recepciones";
 import RechazosExternos from "./pages/RechazosExternos";
 import RechazosInternos from "./pages/RechazosInternos";
+import MetricasML from "./pages/MetricasML";
 import RegistroComida from "./pages/RegistroComida";
 import RequestAccess from "./pages/RequestAccess";
 import Usuarios from "./pages/Usuarios";
@@ -190,6 +191,14 @@ function AppRoutes() {
         {() => (
           <Layout>
             <RegistroComida />
+          </Layout>
+        )}
+      </Route>
+
+      <Route path="/metricas-ml">
+        {() => (
+          <Layout>
+            <MetricasML />
           </Layout>
         )}
       </Route>
