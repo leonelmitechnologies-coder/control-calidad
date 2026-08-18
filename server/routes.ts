@@ -8,8 +8,7 @@ import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Express, Request, Response } from "express";
 import multer from "multer";
 import mammoth from "mammoth";
-import * as pdfParseModule from "pdf-parse";
-const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
+import { PDFParse } from "pdf-parse";
 import * as XLSX from "xlsx";
 import OpenAI from "openai";
 import { s3Available, uploadFileToS3, deleteFileFromS3 } from "./s3.js";
@@ -1154,18 +1153,13 @@ export function registerRoutes(app: Express) {
 
   // ── ASISTENTE QC ──────────────────────────────────────────────────
 
+  const ALLOWED_EXTS = ["pdf", "docx", "doc", "xlsx", "xls", "txt"];
+
   const uploadDoc = multer({
     storage: multer.memoryStorage(),
     fileFilter: (_req, file, cb) => {
-      const allowed = [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.ms-excel",
-        "text/plain",
-      ];
-      if (allowed.includes(file.mimetype)) {
+      const ext = (file.originalname.split(".").pop() ?? "").toLowerCase();
+      if (ALLOWED_EXTS.includes(ext)) {
         cb(null, true);
       } else {
         cb(new Error("Tipo de archivo no permitido. Use PDF, Word, Excel o TXT."));
@@ -1174,29 +1168,24 @@ export function registerRoutes(app: Express) {
     limits: { fileSize: 10 * 1024 * 1024 },
   });
 
-  async function extractText(buffer: Buffer, mimetype: string): Promise<string> {
-    if (mimetype === "application/pdf") {
-      const data = await pdfParse(buffer);
-      return data.text;
+  async function extractText(buffer: Buffer, ext: string): Promise<string> {
+    if (ext === "pdf") {
+      const parser = new PDFParse({ data: buffer });
+      const result = await parser.getText();
+      await parser.destroy();
+      return result.text;
     }
-    if (
-      mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-      mimetype === "application/msword"
-    ) {
+    if (ext === "docx" || ext === "doc") {
       const result = await mammoth.extractRawText({ buffer });
       return result.value;
     }
-    if (
-      mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-      mimetype === "application/vnd.ms-excel"
-    ) {
+    if (ext === "xlsx" || ext === "xls") {
       const wb = XLSX.read(buffer, { type: "buffer" });
       return wb.SheetNames.map((name) => {
         const ws = wb.Sheets[name];
         return `[Hoja: ${name}]\n${XLSX.utils.sheet_to_csv(ws)}`;
       }).join("\n\n");
     }
-    // txt
     return buffer.toString("utf-8");
   }
 
@@ -1217,17 +1206,26 @@ export function registerRoutes(app: Express) {
   app.post(
     "/api/asistente/docs",
     requireAdmin,
-    uploadDoc.single("archivo"),
+    (req: Request, res: Response, next: any) => {
+      uploadDoc.single("archivo")(req, res, (err: any) => {
+        if (err) return res.status(400).json({ error: err.message ?? "Error al procesar archivo" });
+        next();
+      });
+    },
     async (req: Request, res: Response) => {
       try {
         if (!req.file) return res.status(400).json({ error: "No se recibió archivo" });
-        const { originalname, mimetype, size, buffer } = req.file;
+        const { originalname, size, buffer } = req.file;
         const user = (req as any).user;
         const ext = originalname.split(".").pop()?.toLowerCase() ?? "bin";
-        const s3Key = `asistente/${Date.now()}-${originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
-        // Extract text
-        const textoExtraido = await extractText(buffer, mimetype);
+        // Extract text using file extension — best-effort, don't fail upload if parsing fails
+        let textoExtraido = "";
+        try {
+          textoExtraido = await extractText(buffer, ext);
+        } catch (parseErr) {
+          console.warn("[API] extractText failed, uploading without text:", parseErr);
+        }
 
         // Upload to S3 (or local fallback); returned value is the stored path/URL used as key
         const storedKey = s3Available
