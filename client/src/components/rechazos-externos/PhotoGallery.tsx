@@ -30,8 +30,7 @@ interface PhotoGalleryProps {
 
 function imageUrl(img: RechazosExternoImage): string {
   if (img.url) return img.url;
-  // RE images are stored in /public/uploads/rechazos/ on the server
-  return `${API_BASE_URL}/uploads/rechazos/${img.filename}`;
+  return `${API_BASE_URL}/api/media/rechazos-externos/${img.filename}`;
 }
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────

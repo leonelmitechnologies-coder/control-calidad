@@ -857,7 +857,12 @@ app.get("/api/rechazos-externos/:id", requireAuth, async (req: Request, res: Res
       corrective_actions: actionsRes.rows,
       images: imagesRes.rows.map((img: any) => ({
         ...img,
-        url: img.url || s3.getFileUrl("rechazos-externos", img.filename),
+        // Always route through /api/media proxy so MinIO private buckets work.
+        // Keep /api/re/image/{id} URLs as-is (base64 stored in DB).
+        url:
+          img.url && !img.url.startsWith("http")
+            ? img.url
+            : s3.getFileUrl("rechazos-externos", img.filename),
       })),
     });
   } catch (err) {
