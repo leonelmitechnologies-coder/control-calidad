@@ -3039,4 +3039,27 @@ app.get("*", (req: Request, res: Response, next: NextFunction) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
+// ── Global error handler ──────────────────────────────────────────
+// Catches unhandled middleware errors — notably Passport's "Failed to
+// deserialize user out of session" after a restart with stale DB sessions.
+// Without this, Express returns a bare 500 page.
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  const isSessionError =
+    err?.message?.includes("Failed to deserialize user") ||
+    err?.message?.includes("Failed to serialize user");
+  if (isSessionError) {
+    console.warn("[App] Stale session detected, clearing:", err.message);
+    req.session?.destroy(() => {});
+    if (req.path.startsWith("/api/") || req.path.startsWith("/auth/")) {
+      return res.status(401).json({ error: "Sesión inválida, vuelve a iniciar sesión." });
+    }
+    return res.redirect("/login");
+  }
+  console.error("[App] Unhandled error:", err);
+  if (req.path.startsWith("/api/")) {
+    return res.status(500).json({ error: err?.message ?? "Internal server error" });
+  }
+  res.status(500).send("Internal Server Error");
+});
+
 export default app;
