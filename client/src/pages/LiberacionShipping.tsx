@@ -140,7 +140,7 @@ function FotoZone({ label, existingUrl, file, onFileChange }: FotoZoneProps) {
   const previewUrl = file
     ? URL.createObjectURL(file)
     : existingUrl
-      ? `${API_BASE_URL}/uploads/shipping/${existingUrl}`
+      ? `${API_BASE_URL}/api/media/shipping/${existingUrl}`
       : null;
   return (
     <div>

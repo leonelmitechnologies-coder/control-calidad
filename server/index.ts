@@ -1555,11 +1555,17 @@ app.get("/api/rechazos-internos/:id", requireAuth, async (req: Request, res: Res
     res.json({
       ...ri,
       firma_url:
-        ri.firmaUrl ||
-        (ri.firmaFilename ? s3.getFileUrl("rechazos-internos", ri.firmaFilename) : null),
+        ri.firmaUrl && !ri.firmaUrl.startsWith("http")
+          ? ri.firmaUrl
+          : ri.firmaFilename
+            ? s3.getFileUrl("rechazos-internos", ri.firmaFilename)
+            : null,
       images: images.map((img) => ({
         ...img,
-        url: img.url || s3.getFileUrl("rechazos-internos", img.filename),
+        url:
+          img.url && !img.url.startsWith("http")
+            ? img.url
+            : s3.getFileUrl("rechazos-internos", img.filename),
       })),
     });
   } catch (err) {
@@ -1971,10 +1977,17 @@ app.get("/api/aql", requireAuth, async (req: Request, res: Response) => {
           })()
         : [],
       foto_lpn_url:
-        r.foto_lpn_url || (r.foto_lpn_filename ? s3.getFileUrl("aql", r.foto_lpn_filename) : null),
+        r.foto_lpn_url && !r.foto_lpn_url.startsWith("http")
+          ? r.foto_lpn_url
+          : r.foto_lpn_filename
+            ? s3.getFileUrl("aql", r.foto_lpn_filename)
+            : null,
       foto_pantalla_url:
-        r.foto_pantalla_url ||
-        (r.foto_pantalla_filename ? s3.getFileUrl("aql", r.foto_pantalla_filename) : null),
+        r.foto_pantalla_url && !r.foto_pantalla_url.startsWith("http")
+          ? r.foto_pantalla_url
+          : r.foto_pantalla_filename
+            ? s3.getFileUrl("aql", r.foto_pantalla_filename)
+            : null,
     }));
 
     res.json({ data, total, page, pageSize: limit, counts });
@@ -2012,10 +2025,17 @@ app.get("/api/aql/:id", requireAuth, async (req: Request, res: Response) => {
           })()
         : [],
       foto_lpn_url:
-        aql.fotoLpnUrl || (aql.fotoLpnFilename ? s3.getFileUrl("aql", aql.fotoLpnFilename) : null),
+        aql.fotoLpnUrl && !aql.fotoLpnUrl.startsWith("http")
+          ? aql.fotoLpnUrl
+          : aql.fotoLpnFilename
+            ? s3.getFileUrl("aql", aql.fotoLpnFilename)
+            : null,
       foto_pantalla_url:
-        aql.fotoPantallaUrl ||
-        (aql.fotoPantallaFilename ? s3.getFileUrl("aql", aql.fotoPantallaFilename) : null),
+        aql.fotoPantallaUrl && !aql.fotoPantallaUrl.startsWith("http")
+          ? aql.fotoPantallaUrl
+          : aql.fotoPantallaFilename
+            ? s3.getFileUrl("aql", aql.fotoPantallaFilename)
+            : null,
     });
   } catch (err) {
     console.error("[API] GET /api/aql/:id error:", err);

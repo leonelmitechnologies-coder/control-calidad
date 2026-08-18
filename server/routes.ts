@@ -43,21 +43,20 @@ export function registerRoutes(app: Express) {
       return res.status(400).json({ error: "Invalid path" });
     }
 
-    // 1) Try local disk first (fast, no network) — covers legacy monolith files and local-dev uploads
+    // 1) Try local disk first — covers local-dev uploads
     const localPath = path.resolve(process.cwd(), "public", "uploads", folder, filename);
     if (existsSync(localPath)) {
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.sendFile(localPath);
     }
 
-    // 2) Try S3/MinIO (only when credentials are configured)
+    // 2) Generate a presigned URL and redirect the browser directly to MinIO.
+    //    This avoids server-side streaming and works with private buckets.
     if (s3.s3Available) {
       try {
-        const { stream, contentType } = await s3.streamFileFromS3(folder, filename);
-        res.setHeader("Content-Type", contentType);
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        (stream as NodeJS.ReadableStream).pipe(res);
-        return;
+        const presignedUrl = await s3.generatePresignedUrl(`${folder}/${filename}`, 3600);
+        res.setHeader("Cache-Control", "private, max-age=3500");
+        return res.redirect(302, presignedUrl);
       } catch (s3Err: any) {
         const isNotFound =
           s3Err?.name === "NoSuchKey" || s3Err?.$metadata?.httpStatusCode === 404;
