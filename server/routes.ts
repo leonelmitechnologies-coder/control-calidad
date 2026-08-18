@@ -1307,18 +1307,18 @@ export function registerRoutes(app: Express) {
 
       // Fetch system data summary
       const [ncs, rechazosExt, rechazosInt, capas, aqls] = await Promise.all([
-        pool.query("SELECT estado, COUNT(*) as cnt FROM no_conformidades GROUP BY estado"),
-        pool.query("SELECT COUNT(*) as cnt FROM rechazos_externos WHERE EXTRACT(MONTH FROM fecha) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha) = EXTRACT(YEAR FROM NOW())"),
-        pool.query("SELECT COUNT(*) as cnt FROM rechazos_internos WHERE EXTRACT(MONTH FROM fecha_deteccion) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha_deteccion) = EXTRACT(YEAR FROM NOW())"),
-        pool.query("SELECT status, COUNT(*) as cnt FROM capas GROUP BY status"),
-        pool.query("SELECT COUNT(*) as cnt FROM aql_registros WHERE EXTRACT(MONTH FROM fecha) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha) = EXTRACT(YEAR FROM NOW())"),
+        pool.query("SELECT estatus, COUNT(*) as cnt FROM no_conformidades GROUP BY estatus"),
+        pool.query("SELECT COUNT(*) as cnt FROM rechazos_externos WHERE EXTRACT(MONTH FROM registration_date) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM registration_date) = EXTRACT(YEAR FROM NOW())"),
+        pool.query("SELECT COUNT(*) as cnt FROM rechazos_internos WHERE EXTRACT(MONTH FROM fecha_registro) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha_registro) = EXTRACT(YEAR FROM NOW())"),
+        pool.query("SELECT estatus, COUNT(*) as cnt FROM capas GROUP BY estatus"),
+        pool.query("SELECT COUNT(*) as cnt FROM aql_registros WHERE EXTRACT(MONTH FROM fecha_registro) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha_registro) = EXTRACT(YEAR FROM NOW())"),
       ]);
 
       const systemData = [
-        `No Conformidades: ${ncs.rows.map((r: any) => `${r.estado}: ${r.cnt}`).join(", ")}`,
+        `No Conformidades: ${ncs.rows.map((r: any) => `${r.estatus}: ${r.cnt}`).join(", ")}`,
         `Rechazos Externos este mes: ${rechazosExt.rows[0]?.cnt ?? 0}`,
         `Rechazos Internos este mes: ${rechazosInt.rows[0]?.cnt ?? 0}`,
-        `CAPAs: ${capas.rows.map((r: any) => `${r.status}: ${r.cnt}`).join(", ")}`,
+        `CAPAs: ${capas.rows.map((r: any) => `${r.estatus}: ${r.cnt}`).join(", ")}`,
         `Registros AQL este mes: ${aqls.rows[0]?.cnt ?? 0}`,
       ].join("\n");
 
@@ -1345,7 +1345,7 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         },
       });
 
-      const model = process.env.OPENROUTER_MODEL ?? "anthropic/claude-3.5-haiku";
+      const model = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
 
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         { role: "system", content: systemPrompt },
