@@ -1305,30 +1305,62 @@ export function registerRoutes(app: Express) {
         .map((d: any) => `--- ${d.nombre} ---\n${d.texto_extraido}`)
         .join("\n\n");
 
-      // Fetch system data summary
+      // Fetch detailed system data (last 60 days of records)
       const [ncs, rechazosExt, rechazosInt, capas, aqls] = await Promise.all([
-        pool.query("SELECT estatus, COUNT(*) as cnt FROM no_conformidades GROUP BY estatus"),
-        pool.query("SELECT COUNT(*) as cnt FROM rechazos_externos WHERE EXTRACT(MONTH FROM registration_date) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM registration_date) = EXTRACT(YEAR FROM NOW())"),
-        pool.query("SELECT COUNT(*) as cnt FROM rechazos_internos WHERE EXTRACT(MONTH FROM fecha_registro) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha_registro) = EXTRACT(YEAR FROM NOW())"),
-        pool.query("SELECT estatus, COUNT(*) as cnt FROM capas GROUP BY estatus"),
-        pool.query("SELECT COUNT(*) as cnt FROM aql_registros WHERE EXTRACT(MONTH FROM fecha_registro) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha_registro) = EXTRACT(YEAR FROM NOW())"),
+        pool.query(`
+          SELECT fecha, area, tipo, LEFT(descripcion, 120) as descripcion, severidad, estatus, responsable
+          FROM no_conformidades ORDER BY fecha DESC LIMIT 50
+        `),
+        pool.query(`
+          SELECT registration_date, return_order, sku, brand, modelo, classification, estatus, processed_by
+          FROM rechazos_externos ORDER BY registration_date DESC LIMIT 50
+        `),
+        pool.query(`
+          SELECT fecha_registro, sku, defecto, LEFT(descripcion, 100) as descripcion,
+                 costo_no_calidad, origen_hallazgo, inspector
+          FROM rechazos_internos ORDER BY fecha_registro DESC LIMIT 50
+        `),
+        pool.query(`
+          SELECT fecha_apertura, fecha_compromiso, fecha_cierre, titulo,
+                 LEFT(descripcion_problema, 120) as descripcion_problema,
+                 responsable, estatus, metodo_analisis
+          FROM capas ORDER BY fecha_apertura DESC LIMIT 30
+        `),
+        pool.query(`
+          SELECT fecha_registro, sku, marca, modelo, clasificacion,
+                 LEFT(descripcion, 80) as descripcion
+          FROM aql_registros ORDER BY fecha_registro DESC LIMIT 30
+        `),
       ]);
 
+      function fmtRows(rows: any[], label: string): string {
+        if (!rows.length) return `${label}: Sin registros.`;
+        const lines = rows.map((r) =>
+          Object.entries(r)
+            .filter(([, v]) => v !== null && v !== "" && v !== "0.00")
+            .map(([k, v]) => `${k}=${v}`)
+            .join(" | ")
+        );
+        return `${label} (${rows.length} registros más recientes):\n` + lines.join("\n");
+      }
+
       const systemData = [
-        `No Conformidades: ${ncs.rows.map((r: any) => `${r.estatus}: ${r.cnt}`).join(", ")}`,
-        `Rechazos Externos este mes: ${rechazosExt.rows[0]?.cnt ?? 0}`,
-        `Rechazos Internos este mes: ${rechazosInt.rows[0]?.cnt ?? 0}`,
-        `CAPAs: ${capas.rows.map((r: any) => `${r.estatus}: ${r.cnt}`).join(", ")}`,
-        `Registros AQL este mes: ${aqls.rows[0]?.cnt ?? 0}`,
-      ].join("\n");
+        fmtRows(ncs.rows, "NO CONFORMIDADES"),
+        fmtRows(rechazosExt.rows, "RECHAZOS EXTERNOS"),
+        fmtRows(rechazosInt.rows, "RECHAZOS INTERNOS"),
+        fmtRows(capas.rows, "CAPAs (Acciones Correctivas)"),
+        fmtRows(aqls.rows, "REGISTROS AQL"),
+      ].join("\n\n");
 
       const systemPrompt = `Eres el Asistente QC de MI Technologies, especializado en Control de Calidad e ISO 9001:2015.
 Respondes SIEMPRE en español, de forma clara y concisa.
-Cuando cites información de un documento, menciona el nombre del documento.
-Cuando uses datos del sistema, menciona que provienen del sistema QC.
-Si no tienes información suficiente para responder con certeza, dilo claramente.
+Tienes acceso a los registros reales del sistema QC. Usa esa información para responder con precisión.
+Cuando cites información de un documento de referencia, menciona el nombre del documento.
+Cuando respondas con datos del sistema, sé específico: menciona fechas, SKUs, responsables, etc.
+Si preguntan por "esta semana" o "la semana pasada", filtra mentalmente por las fechas de los registros.
+Hoy es ${new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.
 
-${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL SISTEMA QC - ${new Date().toLocaleDateString("es-MX")}]\n${systemData}`;
+${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL SISTEMA QC EN TIEMPO REAL]\n${systemData}`;
 
       // SSE headers
       res.setHeader("Content-Type", "text/event-stream");
