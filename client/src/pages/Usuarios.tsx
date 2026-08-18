@@ -36,6 +36,10 @@ const MODULOS_PERMISOS = [
   { key: "liberacion-shipping", label: "Liberación Shipping", soloVer: false },
   { key: "organigrama-qc", label: "Organigrama QC", soloVer: false },
   { key: "calendario", label: "Calendario", soloVer: false },
+  { key: "dashboard-b2c", label: "Dashboard B2C", soloVer: true },
+  { key: "dashboard-b2b", label: "Dashboard B2B", soloVer: true },
+  { key: "registro-comida", label: "Registro Comida", soloVer: false },
+  { key: "metricas-ml", label: "Métricas ML", soloVer: false },
   { key: "manual", label: "Manual", soloVer: true },
 ];
 
