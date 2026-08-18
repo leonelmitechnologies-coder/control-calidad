@@ -54,7 +54,7 @@ export function registerRoutes(app: Express) {
     //    This avoids server-side streaming and works with private buckets.
     if (s3.s3Available) {
       try {
-        const presignedUrl = await s3.generatePresignedUrl(`${folder}/${filename}`, 3600);
+        const presignedUrl = await s3.getPresignedUrl(`${folder}/${filename}`, 3600);
         res.setHeader("Cache-Control", "private, max-age=3500");
         return res.redirect(302, presignedUrl);
       } catch (s3Err: any) {
