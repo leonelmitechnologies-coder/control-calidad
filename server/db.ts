@@ -530,6 +530,21 @@ export async function initDB() {
       console.log("[DB] Seeded calendar_festivos");
     }
 
+    // ── ASISTENTE QC ──────────────────────────────────────────────
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS asistente_docs (
+        id            SERIAL PRIMARY KEY,
+        nombre        TEXT NOT NULL,
+        tipo          VARCHAR(10) NOT NULL,
+        s3_key        TEXT NOT NULL,
+        tamanio_bytes INTEGER,
+        activo        BOOLEAN NOT NULL DEFAULT true,
+        texto_extraido TEXT,
+        subido_por    TEXT NOT NULL DEFAULT '',
+        created_at    TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
     console.log("[DB] Database initialization complete");
   } catch (err) {
     console.error("[DB] Error initializing database:", err);

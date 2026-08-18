@@ -40,6 +40,7 @@ const MODULOS_PERMISOS = [
   { key: "dashboard-b2b", label: "Dashboard B2B", soloVer: true },
   { key: "registro-comida", label: "Registro Comida", soloVer: false },
   { key: "metricas-ml", label: "Métricas ML", soloVer: false },
+  { key: "asistente", label: "Asistente QC", soloVer: false },
   { key: "manual", label: "Manual", soloVer: true },
 ];
 

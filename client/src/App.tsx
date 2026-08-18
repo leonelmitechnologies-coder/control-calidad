@@ -29,6 +29,7 @@ import RechazosExternos from "./pages/RechazosExternos";
 import RechazosInternos from "./pages/RechazosInternos";
 import MetricasML from "./pages/MetricasML";
 import RegistroComida from "./pages/RegistroComida";
+import AsistenteQC from "./pages/AsistenteQC";
 import RequestAccess from "./pages/RequestAccess";
 import Usuarios from "./pages/Usuarios";
 
@@ -199,6 +200,14 @@ function AppRoutes() {
         {() => (
           <Layout>
             <MetricasML />
+          </Layout>
+        )}
+      </Route>
+
+      <Route path="/asistente">
+        {() => (
+          <Layout>
+            <AsistenteQC />
           </Layout>
         )}
       </Route>

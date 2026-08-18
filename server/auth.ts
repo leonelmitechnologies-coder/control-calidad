@@ -76,6 +76,7 @@ export const SCOPE_DOMAINS = [
   "dashboard-b2b",
   "registro-comida",
   "metricas-ml",
+  "asistente",
 ] as const;
 export type ScopeDomain = (typeof SCOPE_DOMAINS)[number];
 
@@ -93,6 +94,7 @@ export const SCOPE_LABELS: Record<ScopeDomain, string> = {
   "dashboard-b2b": "Dashboard B2B",
   "registro-comida": "Registro Comida",
   "metricas-ml": "Métricas ML",
+  "asistente": "Asistente QC",
 };
 
 type ModuloPermisos = { ver: boolean; editar: boolean; eliminar: boolean };

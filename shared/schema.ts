@@ -363,6 +363,19 @@ export const registroComida = pgTable(
   }),
 );
 
+// ── ASISTENTE QC ───────────────────────────────────────────────────
+export const asistenteDoc = pgTable("asistente_docs", {
+  id: serial("id").primaryKey(),
+  nombre: text("nombre").notNull(),
+  tipo: varchar("tipo", { length: 10 }).notNull(), // pdf | docx | xlsx | txt
+  s3Key: text("s3_key").notNull(),
+  tamanioBytes: integer("tamanio_bytes"),
+  activo: boolean("activo").notNull().default(true),
+  textoExtraido: text("texto_extraido"),
+  subidoPor: text("subido_por").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // ── CALENDARIO: SALDO ───────────────────────────────────────────────
 export const calendarioSaldo = pgTable(
   "calendario_saldo",

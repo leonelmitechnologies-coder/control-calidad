@@ -7,6 +7,12 @@ import path from "node:path";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Express, Request, Response } from "express";
 import multer from "multer";
+import mammoth from "mammoth";
+import * as pdfParseModule from "pdf-parse";
+const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
+import * as XLSX from "xlsx";
+import OpenAI from "openai";
+import { s3Available, uploadFileToS3, deleteFileFromS3 } from "./s3.js";
 import * as schema from "../shared/schema.js";
 import { requireAdmin, requireAuth } from "./auth.js";
 import { getBMPool } from "./binmanager.js";
@@ -1143,6 +1149,234 @@ export function registerRoutes(app: Express) {
     } catch (err) {
       console.error("[API] DELETE /api/registro-comida/:id error:", err);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ── ASISTENTE QC ──────────────────────────────────────────────────
+
+  const uploadDoc = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (_req, file, cb) => {
+      const allowed = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+        "text/plain",
+      ];
+      if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error("Tipo de archivo no permitido. Use PDF, Word, Excel o TXT."));
+      }
+    },
+    limits: { fileSize: 10 * 1024 * 1024 },
+  });
+
+  async function extractText(buffer: Buffer, mimetype: string): Promise<string> {
+    if (mimetype === "application/pdf") {
+      const data = await pdfParse(buffer);
+      return data.text;
+    }
+    if (
+      mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      mimetype === "application/msword"
+    ) {
+      const result = await mammoth.extractRawText({ buffer });
+      return result.value;
+    }
+    if (
+      mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      mimetype === "application/vnd.ms-excel"
+    ) {
+      const wb = XLSX.read(buffer, { type: "buffer" });
+      return wb.SheetNames.map((name) => {
+        const ws = wb.Sheets[name];
+        return `[Hoja: ${name}]\n${XLSX.utils.sheet_to_csv(ws)}`;
+      }).join("\n\n");
+    }
+    // txt
+    return buffer.toString("utf-8");
+  }
+
+  // GET /api/asistente/docs
+  app.get("/api/asistente/docs", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const result = await pool.query(
+        "SELECT id, nombre, tipo, tamanio_bytes, activo, subido_por, created_at FROM asistente_docs ORDER BY created_at DESC",
+      );
+      res.json(result.rows);
+    } catch (err) {
+      console.error("[API] GET /api/asistente/docs error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/asistente/docs
+  app.post(
+    "/api/asistente/docs",
+    requireAdmin,
+    uploadDoc.single("archivo"),
+    async (req: Request, res: Response) => {
+      try {
+        if (!req.file) return res.status(400).json({ error: "No se recibió archivo" });
+        const { originalname, mimetype, size, buffer } = req.file;
+        const user = (req as any).user;
+        const ext = originalname.split(".").pop()?.toLowerCase() ?? "bin";
+        const s3Key = `asistente/${Date.now()}-${originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+
+        // Extract text
+        const textoExtraido = await extractText(buffer, mimetype);
+
+        // Upload to S3 (or local fallback); returned value is the stored path/URL used as key
+        const storedKey = s3Available
+          ? await uploadFileToS3(buffer, originalname, "asistente")
+          : `asistente/${Date.now()}-${originalname}`;
+
+        const result = await pool.query(
+          `INSERT INTO asistente_docs (nombre, tipo, s3_key, tamanio_bytes, texto_extraido, subido_por)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, nombre, tipo, tamanio_bytes, activo, subido_por, created_at`,
+          [originalname, ext, storedKey, size, textoExtraido, user?.nombre ?? "Admin"],
+        );
+        res.json(result.rows[0]);
+      } catch (err) {
+        console.error("[API] POST /api/asistente/docs error:", err);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    },
+  );
+
+  // PATCH /api/asistente/docs/:id
+  app.patch("/api/asistente/docs/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { activo } = req.body;
+      const result = await pool.query(
+        "UPDATE asistente_docs SET activo = $1 WHERE id = $2 RETURNING id, nombre, activo",
+        [activo, parseInt(id)],
+      );
+      if (result.rows.length === 0) return res.status(404).json({ error: "Documento no encontrado" });
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error("[API] PATCH /api/asistente/docs/:id error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // DELETE /api/asistente/docs/:id
+  app.delete("/api/asistente/docs/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const doc = await pool.query("SELECT s3_key FROM asistente_docs WHERE id = $1", [parseInt(id)]);
+      if (doc.rows.length === 0) return res.status(404).json({ error: "Documento no encontrado" });
+
+      try { await deleteFileFromS3(doc.rows[0].s3_key); } catch { /* S3 delete best-effort */ }
+
+      await pool.query("DELETE FROM asistente_docs WHERE id = $1", [parseInt(id)]);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[API] DELETE /api/asistente/docs/:id error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/asistente/chat  (SSE streaming)
+  app.post("/api/asistente/chat", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { pregunta, historial = [] } = req.body as {
+        pregunta: string;
+        historial: { role: "user" | "assistant"; content: string }[];
+      };
+
+      if (!pregunta?.trim()) return res.status(400).json({ error: "Pregunta requerida" });
+
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ error: "OPENROUTER_API_KEY no configurada. Contacta al administrador." });
+      }
+
+      // Fetch active documents
+      const docsResult = await pool.query(
+        "SELECT nombre, texto_extraido FROM asistente_docs WHERE activo = true ORDER BY created_at DESC",
+      );
+      const docsContext = docsResult.rows
+        .filter((d: any) => d.texto_extraido)
+        .map((d: any) => `--- ${d.nombre} ---\n${d.texto_extraido}`)
+        .join("\n\n");
+
+      // Fetch system data summary
+      const [ncs, rechazosExt, rechazosInt, capas, aqls] = await Promise.all([
+        pool.query("SELECT estado, COUNT(*) as cnt FROM no_conformidades GROUP BY estado"),
+        pool.query("SELECT COUNT(*) as cnt FROM rechazos_externos WHERE EXTRACT(MONTH FROM fecha) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha) = EXTRACT(YEAR FROM NOW())"),
+        pool.query("SELECT COUNT(*) as cnt FROM rechazos_internos WHERE EXTRACT(MONTH FROM fecha_deteccion) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha_deteccion) = EXTRACT(YEAR FROM NOW())"),
+        pool.query("SELECT status, COUNT(*) as cnt FROM capas GROUP BY status"),
+        pool.query("SELECT COUNT(*) as cnt FROM aql_registros WHERE EXTRACT(MONTH FROM fecha) = EXTRACT(MONTH FROM NOW()) AND EXTRACT(YEAR FROM fecha) = EXTRACT(YEAR FROM NOW())"),
+      ]);
+
+      const systemData = [
+        `No Conformidades: ${ncs.rows.map((r: any) => `${r.estado}: ${r.cnt}`).join(", ")}`,
+        `Rechazos Externos este mes: ${rechazosExt.rows[0]?.cnt ?? 0}`,
+        `Rechazos Internos este mes: ${rechazosInt.rows[0]?.cnt ?? 0}`,
+        `CAPAs: ${capas.rows.map((r: any) => `${r.status}: ${r.cnt}`).join(", ")}`,
+        `Registros AQL este mes: ${aqls.rows[0]?.cnt ?? 0}`,
+      ].join("\n");
+
+      const systemPrompt = `Eres el Asistente QC de MI Technologies, especializado en Control de Calidad e ISO 9001:2015.
+Respondes SIEMPRE en español, de forma clara y concisa.
+Cuando cites información de un documento, menciona el nombre del documento.
+Cuando uses datos del sistema, menciona que provienen del sistema QC.
+Si no tienes información suficiente para responder con certeza, dilo claramente.
+
+${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL SISTEMA QC - ${new Date().toLocaleDateString("es-MX")}]\n${systemData}`;
+
+      // SSE headers
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders();
+
+      const client = new OpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey,
+        defaultHeaders: {
+          "HTTP-Referer": "https://control-calidad-qc.mi2.com.mx",
+          "X-Title": "Asistente QC - MI Technologies",
+        },
+      });
+
+      const model = process.env.OPENROUTER_MODEL ?? "anthropic/claude-3.5-haiku";
+
+      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        { role: "system", content: systemPrompt },
+        ...historial.map((m) => ({ role: m.role, content: m.content } as OpenAI.Chat.ChatCompletionMessageParam)),
+        { role: "user", content: pregunta },
+      ];
+
+      const stream = await client.chat.completions.create({
+        model,
+        messages,
+        stream: true,
+        max_tokens: 1500,
+      });
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content ?? "";
+        if (delta) {
+          res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+        }
+      }
+
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } catch (err: any) {
+      console.error("[API] POST /api/asistente/chat error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Error al procesar la consulta" });
+      } else {
+        res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+        res.end();
+      }
     }
   });
 
