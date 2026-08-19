@@ -164,7 +164,8 @@ export default function AsistenteQC() {
 
     const video = videoAdjunto;
     const historial = mensajes.map((m) => ({ role: m.role, content: m.content }));
-    const labelVideo = video ? `📎 ${video.name}\n\n` : "";
+    const isImage = video ? /\.(jpg|jpeg|png|webp|gif)$/i.test(video.name) : false;
+    const labelVideo = video ? `${isImage ? "🖼️" : "🎬"} ${video.name}\n\n` : "";
     const mensajeUsuario = labelVideo + (pregunta.trim() || "Describe y evalúa el defecto mostrado en el video.");
 
     setMensajes((prev) => [
@@ -181,7 +182,7 @@ export default function AsistenteQC() {
       const fd = new FormData();
       fd.append("pregunta", pregunta.trim() || "Describe y evalúa el defecto mostrado en el video.");
       fd.append("historial", JSON.stringify(historial));
-      if (video) fd.append("video", video);
+      if (video) fd.append("media", video);
 
       const res = await fetch(`${API_BASE_URL}/api/asistente/chat`, {
         method: "POST",
@@ -486,7 +487,7 @@ export default function AsistenteQC() {
                   color: C.primary,
                   fontWeight: 600,
                 }}>
-                  🎬 {videoAdjunto.name}
+                  {/\.(jpg|jpeg|png|webp|gif)$/i.test(videoAdjunto.name) ? "🖼️" : "🎬"} {videoAdjunto.name}
                   <button
                     onClick={() => { setVideoAdjunto(null); if (videoInputRef.current) videoInputRef.current.value = ""; }}
                     style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 13, padding: 0, lineHeight: 1 }}
@@ -496,7 +497,7 @@ export default function AsistenteQC() {
             )}
             <div style={{ padding: "10px 20px 12px", display: "flex", gap: 8, alignItems: "flex-end" }}>
               {/* Botón adjuntar video */}
-              <label title="Adjuntar video al chat" style={{
+              <label title="Adjuntar imagen o video" style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -511,17 +512,17 @@ export default function AsistenteQC() {
                 opacity: streaming ? 0.5 : 1,
                 transition: "all 0.15s",
               }}>
-                🎬
+                📎
                 <input
                   ref={videoInputRef}
                   type="file"
-                  accept=".mp4,.m4v,.mov,.webm,.mpeg"
+                  accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.m4v,.mov,.webm,.mpeg"
                   disabled={streaming}
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (!f) return;
                     if (f.size > 20 * 1024 * 1024) {
-                      notify("El video supera 20 MB. Graba un clip más corto o comprime el archivo.", "error");
+                      notify("El archivo supera 20 MB. Usa una imagen o clip más pequeño.", "error");
                       e.target.value = "";
                       return;
                     }

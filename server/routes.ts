@@ -1154,6 +1154,7 @@ export function registerRoutes(app: Express) {
   // ── ASISTENTE QC ──────────────────────────────────────────────────
 
   const VIDEO_EXTS = ["mp4", "m4v", "mov", "webm", "mpeg"];
+  const IMAGE_EXTS = ["jpg", "jpeg", "png", "webp", "gif"];
   const ALLOWED_EXTS = ["pdf", "docx", "doc", "xlsx", "xls", "txt", ...VIDEO_EXTS];
 
   const VIDEO_MIME: Record<string, string> = {
@@ -1162,6 +1163,14 @@ export function registerRoutes(app: Express) {
     mov: "video/quicktime",
     webm: "video/webm",
     mpeg: "video/mpeg",
+  };
+
+  const IMAGE_MIME: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
   };
 
   const uploadDoc = multer({
@@ -1323,12 +1332,12 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  const uploadChatVideo = multer({
+  const uploadChatMedia = multer({
     storage: multer.memoryStorage(),
     fileFilter: (_req, file, cb) => {
       const ext = (file.originalname.split(".").pop() ?? "").toLowerCase();
-      if (VIDEO_EXTS.includes(ext)) cb(null, true);
-      else cb(new Error("Solo se aceptan videos en el chat"));
+      if ([...VIDEO_EXTS, ...IMAGE_EXTS].includes(ext)) cb(null, true);
+      else cb(new Error("Solo se aceptan imágenes (JPG, PNG, WEBP) o videos (MP4, MOV, WEBM) en el chat"));
     },
     limits: { fileSize: 20 * 1024 * 1024 },
   });
@@ -1338,8 +1347,8 @@ export function registerRoutes(app: Express) {
     "/api/asistente/chat",
     requireAuth,
     (req: Request, res: Response, next: any) => {
-      uploadChatVideo.single("video")(req, res, (err: any) => {
-        if (err) return res.status(400).json({ error: err.message ?? "Error al procesar video" });
+      uploadChatMedia.single("media")(req, res, (err: any) => {
+        if (err) return res.status(400).json({ error: err.message ?? "Error al procesar archivo" });
         next();
       });
     },
@@ -1424,21 +1433,31 @@ Hoy es ${new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeri
 
 ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL SISTEMA QC EN TIEMPO REAL]\n${systemData}`;
 
-      // Analizar video adjunto al chat (si existe) antes de iniciar SSE
+      // Procesar archivo adjunto al chat (imagen o video)
       let videoAnalysis = "";
+      let imageDataUrl = "";
+
       if ((req as any).file) {
-        const vf = (req as any).file as Express.Multer.File;
-        const ext = vf.originalname.split(".").pop()?.toLowerCase() ?? "mp4";
-        try {
+        const mf = (req as any).file as Express.Multer.File;
+        const ext = mf.originalname.split(".").pop()?.toLowerCase() ?? "";
+
+        if (IMAGE_EXTS.includes(ext)) {
+          // Imagen: se envía directamente al modelo de chat (multimodal)
+          const mime = IMAGE_MIME[ext] ?? "image/jpeg";
+          imageDataUrl = `data:${mime};base64,${mf.buffer.toString("base64")}`;
+        } else if (VIDEO_EXTS.includes(ext)) {
+          // Video: Gemini lo analiza primero, luego se inyecta en el system prompt
           res.setHeader("Content-Type", "text/event-stream");
           res.setHeader("Cache-Control", "no-cache");
           res.setHeader("Connection", "keep-alive");
           res.flushHeaders();
           res.write(`data: ${JSON.stringify({ delta: "🎬 Analizando video con IA..." })}\n\n`);
-          videoAnalysis = await extractVideoText(vf.buffer, ext);
+          try {
+            videoAnalysis = await extractVideoText(mf.buffer, ext);
+          } catch (e) {
+            console.warn("[API] chat video analysis failed:", e);
+          }
           res.write(`data: ${JSON.stringify({ delta: "\n\n" })}\n\n`);
-        } catch (e) {
-          console.warn("[API] chat video analysis failed:", e);
         }
       }
 
@@ -1465,10 +1484,17 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
 
       const model = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
 
+      const userContent: OpenAI.Chat.ChatCompletionContentPart[] | string = imageDataUrl
+        ? [
+            { type: "image_url", image_url: { url: imageDataUrl } } as OpenAI.Chat.ChatCompletionContentPartImage,
+            { type: "text", text: pregunta || "Describe y evalúa el defecto o condición visible en esta imagen. Considera las tolerancias de calidad del sistema QC." } as OpenAI.Chat.ChatCompletionContentPartText,
+          ]
+        : (pregunta || "Describe y evalúa el defecto que se muestra en el video adjunto.");
+
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         { role: "system", content: fullSystemPrompt },
         ...historial.map((m) => ({ role: m.role, content: m.content } as OpenAI.Chat.ChatCompletionMessageParam)),
-        { role: "user", content: pregunta || "Describe y evalúa el defecto que se muestra en el video adjunto." },
+        { role: "user", content: userContent },
       ];
 
       const stream = await client.chat.completions.create({
