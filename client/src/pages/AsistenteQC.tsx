@@ -36,6 +36,7 @@ function tipoLabel(tipo: string): string {
   if (tipo === "pdf") return "PDF";
   if (tipo === "docx" || tipo === "doc") return "Word";
   if (tipo === "xlsx" || tipo === "xls") return "Excel";
+  if (["mp4", "m4v", "mov", "webm", "mpeg"].includes(tipo)) return "Video";
   return tipo.toUpperCase();
 }
 
@@ -544,7 +545,7 @@ export default function AsistenteQC() {
                   + Subir
                   <input
                     type="file"
-                    accept=".pdf,.docx,.doc,.xlsx,.xls,.txt"
+                    accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.mp4,.m4v,.mov,.webm,.mpeg"
                     onChange={handleUpload}
                     style={{ display: "none" }}
                   />

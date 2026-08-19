@@ -1153,7 +1153,16 @@ export function registerRoutes(app: Express) {
 
   // ── ASISTENTE QC ──────────────────────────────────────────────────
 
-  const ALLOWED_EXTS = ["pdf", "docx", "doc", "xlsx", "xls", "txt"];
+  const VIDEO_EXTS = ["mp4", "m4v", "mov", "webm", "mpeg"];
+  const ALLOWED_EXTS = ["pdf", "docx", "doc", "xlsx", "xls", "txt", ...VIDEO_EXTS];
+
+  const VIDEO_MIME: Record<string, string> = {
+    mp4: "video/mp4",
+    m4v: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
+    mpeg: "video/mpeg",
+  };
 
   const uploadDoc = multer({
     storage: multer.memoryStorage(),
@@ -1162,13 +1171,48 @@ export function registerRoutes(app: Express) {
       if (ALLOWED_EXTS.includes(ext)) {
         cb(null, true);
       } else {
-        cb(new Error("Tipo de archivo no permitido. Use PDF, Word, Excel o TXT."));
+        cb(new Error("Tipo de archivo no permitido. Use PDF, Word, Excel, TXT o video (MP4, MOV, WEBM)."));
       }
     },
-    limits: { fileSize: 10 * 1024 * 1024 },
+    limits: { fileSize: 20 * 1024 * 1024 },
   });
 
+  async function extractVideoText(buffer: Buffer, ext: string): Promise<string> {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY no configurada");
+    const mime = VIDEO_MIME[ext] ?? "video/mp4";
+    const dataUrl = `data:${mime};base64,${buffer.toString("base64")}`;
+    const client = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey,
+      defaultHeaders: {
+        "HTTP-Referer": "https://control-calidad-qc.mi2.com.mx",
+        "X-Title": "Control de Calidad QC",
+      },
+    });
+    const response = await client.chat.completions.create({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: dataUrl } } as any,
+            {
+              type: "text",
+              text: "Eres un asistente de control de calidad en una planta de logística. Describe de forma literal y detallada lo que sucede en este video, con marcas de tiempo. Si hay texto en pantalla léelo exactamente. Si hay defectos, productos o procesos visibles descríbelos con precisión. Si algo es difícil de leer o ver, dilo en lugar de adivinar.",
+            },
+          ],
+        },
+      ],
+      max_tokens: 2000,
+    });
+    return response.choices[0]?.message?.content ?? "";
+  }
+
   async function extractText(buffer: Buffer, ext: string): Promise<string> {
+    if (VIDEO_EXTS.includes(ext)) {
+      return extractVideoText(buffer, ext);
+    }
     if (ext === "pdf") {
       const parser = new PDFParse({ data: buffer });
       const result = await parser.getText();
