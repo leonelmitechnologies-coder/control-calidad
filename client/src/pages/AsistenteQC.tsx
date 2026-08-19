@@ -538,86 +538,15 @@ export default function AsistenteQC() {
               </div>
             )}
 
-            <div style={{ padding: "10px 20px 12px", display: "flex", gap: 8, alignItems: "flex-end" }}>
-              {/* Botón adjuntar imagen/video */}
-              <label title="Adjuntar imagen o video (máx. 20 MB)" style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                border: `1px solid ${videoAdjunto ? C.primary : C.inputBorder}`,
-                background: videoAdjunto ? "#e8f0fe" : C.white,
-                cursor: streaming ? "not-allowed" : "pointer",
-                flexShrink: 0,
-                fontSize: 16,
-                opacity: streaming ? 0.5 : 1,
-                transition: "all 0.15s",
-              }}>
-                📎
-                <input
-                  ref={videoInputRef}
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.m4v,.mov,.webm,.mpeg"
-                  disabled={streaming}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (f.size > 20 * 1024 * 1024) {
-                      notify("El archivo supera 20 MB. Usa una imagen o clip más pequeño.", "error");
-                      e.target.value = "";
-                      return;
-                    }
-                    setVideoAdjunto(f);
-                  }}
-                  style={{ display: "none" }}
-                />
-              </label>
-              {/* Botón cámara (foto o video directo) */}
-              <label title="Tomar foto o grabar video con la cámara" style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                border: `1px solid ${C.inputBorder}`,
-                background: C.white,
-                cursor: streaming ? "not-allowed" : "pointer",
-                flexShrink: 0,
-                fontSize: 16,
-                opacity: streaming ? 0.5 : 1,
-                transition: "all 0.15s",
-              }}>
-                📷
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*,video/*"
-                  capture="environment"
-                  disabled={streaming}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (f.size > 20 * 1024 * 1024) {
-                      notify("El archivo supera 20 MB. Graba un clip más corto.", "error");
-                      e.target.value = "";
-                      return;
-                    }
-                    if (videoInputRef.current) videoInputRef.current.value = "";
-                    setVideoAdjunto(f);
-                  }}
-                  style={{ display: "none" }}
-                />
-              </label>
+            {/* Fila 1: textarea + enviar */}
+            <div style={{ padding: "10px 20px 6px", display: "flex", gap: 8, alignItems: "flex-end" }}>
               <textarea
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={streaming}
-                placeholder={(videoAdjunto || youtubeUrl) ? "Pregunta sobre el archivo adjunto (opcional)..." : "Escribe tu pregunta... (Enter para enviar, Shift+Enter para nueva línea)"}
+                placeholder={(videoAdjunto || youtubeUrl) ? "Pregunta sobre el archivo (opcional)..." : "Escribe tu pregunta..."}
                 rows={1}
                 style={{
                   flex: 1,
@@ -636,22 +565,6 @@ export default function AsistenteQC() {
                   opacity: streaming ? 0.6 : 1,
                 }}
               />
-              {/* Botón YouTube */}
-              <button
-                title="Pegar enlace de YouTube (videos largos o 4K)"
-                onClick={() => { setShowYtInput((v) => !v); setTimeout(() => ytInputRef.current?.focus(), 50); }}
-                disabled={streaming || !!videoAdjunto}
-                style={{
-                  width: 36, height: 36, borderRadius: 8, flexShrink: 0, fontSize: 15,
-                  border: `1px solid ${youtubeUrl ? "#c0392b" : C.inputBorder}`,
-                  background: youtubeUrl ? "#fce8e8" : C.white,
-                  cursor: (streaming || !!videoAdjunto) ? "not-allowed" : "pointer",
-                  opacity: (streaming || !!videoAdjunto) ? 0.5 : 1,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: "all 0.15s",
-                }}
-              >🔗</button>
-
               <button
                 onClick={() => enviarPregunta(input)}
                 disabled={streaming || (!input.trim() && !videoAdjunto && !youtubeUrl)}
@@ -664,15 +577,91 @@ export default function AsistenteQC() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: streaming || (!input.trim() && !videoAdjunto) ? "not-allowed" : "pointer",
+                  cursor: (streaming || (!input.trim() && !videoAdjunto && !youtubeUrl)) ? "not-allowed" : "pointer",
                   flexShrink: 0,
                   color: "#fff",
                   fontSize: 16,
                   transition: "background 0.15s",
                 }}
-              >
-                ↑
-              </button>
+              >↑</button>
+            </div>
+
+            {/* Fila 2: botones de herramientas */}
+            <div style={{ padding: "4px 20px 12px", display: "flex", gap: 8, alignItems: "center" }}>
+              {/* Adjuntar archivo (galería) */}
+              <label title="Adjuntar imagen o video desde galería (máx. 20 MB)" style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 8, flexShrink: 0, fontSize: 15,
+                border: `1px solid ${videoAdjunto ? C.primary : C.inputBorder}`,
+                background: videoAdjunto ? "#e8f0fe" : C.white,
+                cursor: streaming ? "not-allowed" : "pointer",
+                opacity: streaming ? 0.5 : 1, transition: "all 0.15s",
+              }}>
+                📎
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.m4v,.mov,.webm,.mpeg"
+                  disabled={streaming}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.size > 20 * 1024 * 1024) {
+                      notify("El archivo supera 20 MB. Usa una imagen o clip más pequeño.", "error");
+                      e.target.value = "";
+                      return;
+                    }
+                    if (cameraInputRef.current) cameraInputRef.current.value = "";
+                    setVideoAdjunto(f);
+                  }}
+                  style={{ display: "none" }}
+                />
+              </label>
+              {/* Cámara (solo foto, abre cámara nativa en móvil) */}
+              <label title="Tomar foto con la cámara" style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 8, flexShrink: 0, fontSize: 15,
+                border: `1px solid ${C.inputBorder}`,
+                background: C.white,
+                cursor: streaming ? "not-allowed" : "pointer",
+                opacity: streaming ? 0.5 : 1, transition: "all 0.15s",
+              }}>
+                📷
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  disabled={streaming}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.size > 20 * 1024 * 1024) {
+                      notify("La foto supera 20 MB.", "error");
+                      e.target.value = "";
+                      return;
+                    }
+                    if (videoInputRef.current) videoInputRef.current.value = "";
+                    setVideoAdjunto(f);
+                  }}
+                  style={{ display: "none" }}
+                />
+              </label>
+              {/* YouTube URL */}
+              <button
+                title="Pegar enlace de YouTube (videos largos o 4K)"
+                onClick={() => { setShowYtInput((v) => !v); setTimeout(() => ytInputRef.current?.focus(), 50); }}
+                disabled={streaming || !!videoAdjunto}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0, fontSize: 14,
+                  border: `1px solid ${youtubeUrl ? "#c0392b" : C.inputBorder}`,
+                  background: youtubeUrl ? "#fce8e8" : C.white,
+                  cursor: (streaming || !!videoAdjunto) ? "not-allowed" : "pointer",
+                  opacity: (streaming || !!videoAdjunto) ? 0.5 : 1,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s",
+                }}
+              >🔗</button>
             </div>
           </div>
         </div>
