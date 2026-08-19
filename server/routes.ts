@@ -1351,7 +1351,7 @@ export function registerRoutes(app: Express) {
           ? JSON.parse(req.body.historial)
           : (req.body.historial ?? []);
 
-      if (!pregunta?.trim()) return res.status(400).json({ error: "Pregunta requerida" });
+      if (!pregunta?.trim() && !(req as any).file) return res.status(400).json({ error: "Pregunta requerida" });
 
       const apiKey = process.env.OPENROUTER_API_KEY;
       if (!apiKey) {

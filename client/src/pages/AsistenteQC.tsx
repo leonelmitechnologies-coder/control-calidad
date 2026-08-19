@@ -202,7 +202,8 @@ export default function AsistenteQC() {
         return;
       }
 
-      const reader = res.body!.getReader();
+      if (!res.body) throw new Error("Streaming no soportado en este navegador");
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
 
@@ -516,7 +517,16 @@ export default function AsistenteQC() {
                   type="file"
                   accept=".mp4,.m4v,.mov,.webm,.mpeg"
                   disabled={streaming}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) setVideoAdjunto(f); }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.size > 20 * 1024 * 1024) {
+                      notify("El video supera 20 MB. Graba un clip más corto o comprime el archivo.", "error");
+                      e.target.value = "";
+                      return;
+                    }
+                    setVideoAdjunto(f);
+                  }}
                   style={{ display: "none" }}
                 />
               </label>
