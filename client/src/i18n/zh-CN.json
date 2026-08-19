@@ -478,6 +478,11 @@
       "shipping": "发货放行",
       "organigrama": "组织架构",
       "calendario": "日历",
+      "b2c": "B2C仪表板",
+      "b2b": "B2B仪表板",
+      "comida": "餐厅登记",
+      "metricas": "ML指标",
+      "asistente": "QC助手",
       "glosario": "术语表"
     }
   },

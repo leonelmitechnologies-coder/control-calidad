@@ -483,6 +483,11 @@
       "shipping": "Liberación Shipping",
       "organigrama": "Organigrama QC",
       "calendario": "Calendario",
+      "b2c": "Dashboard B2C",
+      "b2b": "Dashboard B2B",
+      "comida": "Registro Comida",
+      "metricas": "Métricas ML",
+      "asistente": "Asistente QC",
       "glosario": "Glosario"
     }
   },

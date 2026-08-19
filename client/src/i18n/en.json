@@ -483,6 +483,11 @@
       "shipping": "Shipping Release",
       "organigrama": "Organization Chart",
       "calendario": "Calendar",
+      "b2c": "B2C Dashboard",
+      "b2b": "B2B Dashboard",
+      "comida": "Meal Register",
+      "metricas": "ML Metrics",
+      "asistente": "QC Assistant",
       "glosario": "Glossary"
     }
   },
