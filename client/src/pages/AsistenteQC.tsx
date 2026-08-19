@@ -89,11 +89,19 @@ export default function AsistenteQC() {
   const [videoAdjunto, setVideoAdjunto] = useState<File | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [showYtInput, setShowYtInput] = useState(false);
+  const [showCameraRec, setShowCameraRec] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recTime, setRecTime] = useState(0);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const ytInputRef = useRef<HTMLInputElement>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -137,6 +145,74 @@ export default function AsistenteQC() {
       cancelText: "Cancelar",
     });
     if (ok) eliminarDoc.mutate(doc.id);
+  }
+
+  // Cleanup stream on unmount
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
+
+  async function openCameraRec() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: true,
+      });
+      streamRef.current = stream;
+      setShowCameraRec(true);
+      setRecording(false);
+      setRecTime(0);
+      setTimeout(() => {
+        if (videoPreviewRef.current) {
+          videoPreviewRef.current.srcObject = stream;
+          videoPreviewRef.current.play().catch(() => {});
+        }
+      }, 80);
+    } catch {
+      notify("No se pudo acceder a la cámara. Verifica los permisos.", "error");
+    }
+  }
+
+  function startRecording() {
+    if (!streamRef.current) return;
+    chunksRef.current = [];
+    const mimeType = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"].find(
+      (t) => MediaRecorder.isTypeSupported(t)
+    ) ?? "";
+    const recorder = new MediaRecorder(streamRef.current, {
+      ...(mimeType ? { mimeType } : {}),
+      videoBitsPerSecond: 400_000,
+    });
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+    recorder.onstop = () => {
+      const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+      const blob = new Blob(chunksRef.current, { type: mimeType || "video/webm" });
+      const file = new File([blob], `grabacion-qc.${ext}`, { type: mimeType || "video/webm" });
+      setVideoAdjunto(file);
+      closeCameraRec();
+    };
+    recorder.start(100);
+    recorderRef.current = recorder;
+    setRecording(true);
+    setRecTime(0);
+    timerRef.current = setInterval(() => setRecTime((t) => t + 1), 1000);
+  }
+
+  function stopRecording() {
+    if (timerRef.current) clearInterval(timerRef.current);
+    recorderRef.current?.stop();
+    setRecording(false);
+  }
+
+  function closeCameraRec() {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setShowCameraRec(false);
+    setRecording(false);
+    setRecTime(0);
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -276,7 +352,78 @@ export default function AsistenteQC() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
+  const recMin = String(Math.floor(recTime / 60)).padStart(2, "0");
+  const recSec = String(recTime % 60).padStart(2, "0");
+
   return (
+    <>
+    {/* Modal grabación de video */}
+    {showCameraRec && (
+      <div style={{ position: "fixed", inset: 0, background: "#000", zIndex: 2000, display: "flex", flexDirection: "column" }}>
+        {/* Preview */}
+        <video
+          ref={videoPreviewRef}
+          autoPlay
+          muted
+          playsInline
+          style={{ flex: 1, objectFit: "cover", width: "100%" }}
+        />
+        {/* Controles */}
+        <div style={{
+          padding: "28px 32px",
+          background: "rgba(0,0,0,0.85)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 32,
+        }}>
+          {/* Cancelar */}
+          <button
+            onClick={closeCameraRec}
+            style={{
+              width: 44, height: 44, borderRadius: "50%",
+              background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)",
+              color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >✕</button>
+
+          {/* Botón grabar / detener */}
+          {!recording ? (
+            <button
+              onClick={startRecording}
+              title="Iniciar grabación"
+              style={{
+                width: 68, height: 68, borderRadius: "50%",
+                background: "#e74c3c", border: "5px solid #fff",
+                cursor: "pointer",
+              }}
+            />
+          ) : (
+            <button
+              onClick={stopRecording}
+              title="Detener y usar video"
+              style={{
+                width: 68, height: 68, borderRadius: "50%",
+                background: "#e74c3c", border: "5px solid #fff",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <div style={{ width: 22, height: 22, background: "#fff", borderRadius: 4 }} />
+            </button>
+          )}
+
+          {/* Timer */}
+          <div style={{ width: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {recording && (
+              <span style={{ color: "#fff", fontSize: 16, fontFamily: "monospace", fontWeight: 600 }}>
+                {recMin}:{recSec}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
     <div style={{
       display: "flex",
       flexDirection: "column",
@@ -647,6 +794,21 @@ export default function AsistenteQC() {
                   style={{ display: "none" }}
                 />
               </label>
+              {/* Grabar video con cámara (MediaRecorder) */}
+              <button
+                title="Grabar video con la cámara"
+                onClick={openCameraRec}
+                disabled={streaming}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0, fontSize: 15,
+                  border: `1px solid ${C.inputBorder}`,
+                  background: C.white,
+                  cursor: streaming ? "not-allowed" : "pointer",
+                  opacity: streaming ? 0.5 : 1,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s",
+                }}
+              >🎬</button>
               {/* YouTube URL */}
               <button
                 title="Pegar enlace de YouTube (videos largos o 4K)"
@@ -810,5 +972,6 @@ export default function AsistenteQC() {
         )}
       </div>
     </div>
+    </>
   );
 }
