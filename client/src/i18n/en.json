@@ -5,15 +5,22 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "dashboard_b2c": "B2C Dashboard",
+    "dashboard_b2b": "B2B Dashboard",
     "nc": "No Conformities",
     "recepciones": "Receptions",
     "rechazos_ext": "External Rejects",
     "rechazos_int": "Internal Rejects",
-    "capas": "Corrective Actions",
-    "aql": "AQL",
+    "capas": "Corrective Actions (CAPA)",
+    "aql": "AQL Register",
     "liberacion_shipping": "Shipping Release",
-    "organigrama": "Organization",
+    "organigrama": "QC Org Chart",
     "calendario": "Calendar",
+    "comida": "Meal Register",
+    "metricas": "ML Metrics",
+    "asistente": "QC Assistant",
+    "usuarios": "Users",
+    "access": "Access Control",
     "manual": "User Manual"
   },
   "auth": {
@@ -35,7 +42,16 @@
   },
   "layout": {
     "menu": "Menu",
-    "language": "Language"
+    "language": "Language",
+    "lang_es": "Español",
+    "lang_en": "English",
+    "lang_zh": "中文"
+  },
+  "login": {
+    "title": "Quality Control",
+    "subtitle": "ISO 9001:2015 Management System",
+    "btn": "Sign In",
+    "corporate": "Access via MI Technologies corporate account"
   },
   "notify": {
     "success": "Success",

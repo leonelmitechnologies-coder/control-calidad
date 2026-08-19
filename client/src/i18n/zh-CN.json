@@ -4,16 +4,23 @@
     "subtitle": "MI Technologies"
   },
   "nav": {
-    "dashboard": "仪表板",
+    "dashboard": "主控制台",
+    "dashboard_b2c": "B2C仪表板",
+    "dashboard_b2b": "B2B仪表板",
     "nc": "不符合项",
     "recepciones": "接收",
     "rechazos_ext": "外部拒收",
     "rechazos_int": "内部拒收",
-    "capas": "纠正措施",
-    "aql": "AQL",
+    "capas": "纠正措施(CAPA)",
+    "aql": "AQL记录",
     "liberacion_shipping": "发货放行",
-    "organigrama": "组织结构",
+    "organigrama": "QC组织结构",
     "calendario": "日历",
+    "comida": "餐厅登记",
+    "metricas": "ML指标",
+    "asistente": "QC助手",
+    "usuarios": "用户管理",
+    "access": "访问控制",
     "manual": "用户手册"
   },
   "auth": {
@@ -35,7 +42,16 @@
   },
   "layout": {
     "menu": "菜单",
-    "language": "语言"
+    "language": "语言",
+    "lang_es": "Español",
+    "lang_en": "English",
+    "lang_zh": "中文"
+  },
+  "login": {
+    "title": "质量控制",
+    "subtitle": "ISO 9001:2015管理系统",
+    "btn": "登录",
+    "corporate": "通过MI Technologies企业账户访问"
   },
   "notify": {
     "success": "成功",

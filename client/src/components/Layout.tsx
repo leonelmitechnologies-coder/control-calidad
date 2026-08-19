@@ -1,61 +1,28 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { logout } from "../api/auth";
+import i18n from "../config/i18n";
 import { useNotify } from "../context/NotifyContext";
 import { useAuth } from "../hooks/useAuth";
-
-interface NavItem {
-  label: string;
-  href: string;
-}
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/" },
-  { label: "Dashboard B2C", href: "/dashboard-b2c" },
-  { label: "Dashboard B2B", href: "/dashboard-b2b" },
-  { label: "No Conformidades", href: "/nc" },
-  { label: "Recepciones", href: "/recepciones" },
-  { label: "Rechazos Externos", href: "/rechazos-ext" },
-  { label: "Rechazos Internos", href: "/rechazos-int" },
-  { label: "CAPA", href: "/capas" },
-  { label: "AQL", href: "/aql" },
-  { label: "Liberación Shipping", href: "/liberacion-shipping" },
-  { label: "Organigrama QC", href: "/organigrama-qc" },
-  { label: "Calendario", href: "/calendario" },
-  { label: "Registro Comida", href: "/registro-comida" },
-  { label: "Métricas ML", href: "/metricas-ml" },
-  { label: "Asistente QC", href: "/asistente" },
-  { label: "Usuarios", href: "/usuarios" },
-  { label: "Control de Acceso", href: "/admin/access" },
-  { label: "Manual", href: "/manual" },
-];
+const LANGS = [
+  { code: "es-MX", label: "ES" },
+  { code: "en",    label: "EN" },
+  { code: "zh-CN", label: "中" },
+] as const;
 
-const ROUTE_TITLES: Record<string, string> = {
-  "/": "Dashboard",
-  "/nc": "No Conformidades",
-  "/recepciones": "Recepciones",
-  "/rechazos-ext": "Rechazos Externos",
-  "/rechazos-int": "Rechazos Internos",
-  "/capas": "Acciones Correctivas (CAPA)",
-  "/aql": "Registro de AQL",
-  "/liberacion-shipping": "Liberación Shipping",
-  "/organigrama-qc": "Organigrama QC",
-  "/calendario": "Calendario",
-  "/usuarios": "Usuarios",
-  "/admin/access": "Control de Acceso",
-  "/dashboard-b2c": "Dashboard B2C",
-  "/dashboard-b2b": "Dashboard B2B",
-  "/registro-comida": "Registro de Comida",
-  "/metricas-ml": "Métricas MercadoLibre",
-  "/asistente": "Asistente QC",
-  "/manual": "Manual de Usuario",
+const DATE_LOCALE: Record<string, string> = {
+  "es-MX": "es-MX",
+  "en":    "en-US",
+  "zh-CN": "zh-CN",
 };
 
-// ── Sidebar colour tokens (fiel al monolito) ─────────────────────────────────
+// ── Sidebar colour tokens ────────────────────────────────────────────────────
 const S = {
   bg: "#0d2b4e",
   border: "rgba(255,255,255,0.1)",
@@ -72,8 +39,10 @@ export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const { user, isAuthenticated, loading } = useAuth();
   const notify = useNotify();
+  const { t, i18n: i18nHook } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [currentLang, setCurrentLang] = useState(i18n.language);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -92,6 +61,12 @@ export default function Layout({ children }: LayoutProps) {
     logout();
   }, []);
 
+  const handleLang = (code: string) => {
+    i18n.changeLanguage(code);
+    localStorage.setItem("language", code);
+    setCurrentLang(code);
+  };
+
   if (loading) {
     return (
       <div
@@ -108,6 +83,48 @@ export default function Layout({ children }: LayoutProps) {
     return null;
   }
 
+  const NAV_ITEMS = [
+    { key: "dashboard",    href: "/" },
+    { key: "dashboard_b2c", href: "/dashboard-b2c" },
+    { key: "dashboard_b2b", href: "/dashboard-b2b" },
+    { key: "nc",           href: "/nc" },
+    { key: "recepciones",  href: "/recepciones" },
+    { key: "rechazos_ext", href: "/rechazos-ext" },
+    { key: "rechazos_int", href: "/rechazos-int" },
+    { key: "capas",        href: "/capas" },
+    { key: "aql",          href: "/aql" },
+    { key: "liberacion_shipping", href: "/liberacion-shipping" },
+    { key: "organigrama",  href: "/organigrama-qc" },
+    { key: "calendario",   href: "/calendario" },
+    { key: "comida",       href: "/registro-comida" },
+    { key: "metricas",     href: "/metricas-ml" },
+    { key: "asistente",    href: "/asistente" },
+    { key: "usuarios",     href: "/usuarios" },
+    { key: "access",       href: "/admin/access" },
+    { key: "manual",       href: "/manual" },
+  ];
+
+  const ROUTE_NAV_KEY: Record<string, string> = {
+    "/":                   "dashboard",
+    "/dashboard-b2c":      "dashboard_b2c",
+    "/dashboard-b2b":      "dashboard_b2b",
+    "/nc":                 "nc",
+    "/recepciones":        "recepciones",
+    "/rechazos-ext":       "rechazos_ext",
+    "/rechazos-int":       "rechazos_int",
+    "/capas":              "capas",
+    "/aql":                "aql",
+    "/liberacion-shipping":"liberacion_shipping",
+    "/organigrama-qc":     "organigrama",
+    "/calendario":         "calendario",
+    "/registro-comida":    "comida",
+    "/metricas-ml":        "metricas",
+    "/asistente":          "asistente",
+    "/usuarios":           "usuarios",
+    "/admin/access":       "access",
+    "/manual":             "manual",
+  };
+
   const initials = user?.name
     ? user.name
         .split(" ")
@@ -117,8 +134,11 @@ export default function Layout({ children }: LayoutProps) {
         .toUpperCase()
     : "?";
 
-  const moduleTitle = ROUTE_TITLES[location] ?? "Control de Calidad";
-  const todayDate = new Date().toLocaleDateString("es-MX", {
+  const navKey = ROUTE_NAV_KEY[location];
+  const moduleTitle = navKey ? t(`nav.${navKey}`) : t("app.title");
+
+  const dateLocale = DATE_LOCALE[currentLang] ?? "es-MX";
+  const todayDate = new Date().toLocaleDateString(dateLocale, {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -173,12 +193,9 @@ export default function Layout({ children }: LayoutProps) {
         <nav className="flex-1 overflow-y-auto py-2">
           {NAV_ITEMS.filter((item) => {
             if (user?.rol === "Administrador" || user?.permisos === null) return true;
-            if (item.href === "/usuarios" || item.href === "/admin/access") return false; // solo admin
+            if (item.href === "/usuarios" || item.href === "/admin/access") return false;
             const key = item.href === "/" ? "" : item.href.slice(1);
             const p = user?.permisos?.[key];
-            // GAC (2026-08-02): unlike before, an absent permisos entry now means
-            // "never granted this scope" (not "visible by default") — a listed
-            // non-admin user only sees modules they were actually granted.
             return p ? p.ver : false;
           }).map((item) => {
             const active = location === item.href;
@@ -210,13 +227,13 @@ export default function Layout({ children }: LayoutProps) {
                   }
                 }}
               >
-                {item.label}
+                {t(`nav.${item.key}`)}
               </Link>
             );
           })}
         </nav>
 
-        {/* User / logout */}
+        {/* User / logout / language switcher */}
         <div className="px-5 py-4" style={{ borderTop: `1px solid ${S.border}` }}>
           <div className="flex items-center gap-2 mb-3">
             <div
@@ -227,13 +244,42 @@ export default function Layout({ children }: LayoutProps) {
             </div>
             <div className="min-w-0">
               <p className="text-white text-xs font-semibold truncate leading-tight">
-                {user?.name ?? "Usuario"}
+                {user?.name ?? t("auth.user")}
               </p>
               <p className="text-xs truncate" style={{ color: S.userMuted, fontSize: 10 }}>
                 {(user as any)?.rol ?? ""}
               </p>
             </div>
           </div>
+
+          {/* Language switcher */}
+          <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+            {LANGS.map(({ code, label }) => {
+              const active = currentLang === code;
+              return (
+                <button
+                  key={code}
+                  onClick={() => handleLang(code)}
+                  title={t(`layout.lang_${code === "es-MX" ? "es" : code === "zh-CN" ? "zh" : "en"}`)}
+                  style={{
+                    flex: 1,
+                    padding: "4px 0",
+                    fontSize: 11,
+                    fontWeight: active ? 700 : 400,
+                    background: active ? "rgba(255,255,255,0.15)" : "transparent",
+                    border: `1px solid ${active ? "rgba(255,255,255,0.5)" : S.logoutBorder}`,
+                    color: active ? "#ffffff" : S.logoutText,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
           <button
             onClick={handleLogout}
             className="w-full py-1.5 text-xs font-bold uppercase tracking-wide transition-colors"
@@ -254,7 +300,7 @@ export default function Layout({ children }: LayoutProps) {
               (e.currentTarget as HTMLButtonElement).style.color = S.logoutText;
             }}
           >
-            Cerrar sesión
+            {t("auth.logout")}
           </button>
         </div>
       </aside>
@@ -295,7 +341,7 @@ export default function Layout({ children }: LayoutProps) {
                   flexDirection: "column",
                   gap: 4,
                 }}
-                aria-label="Abrir menú"
+                aria-label={t("layout.menu")}
               >
                 <span style={{ display: "block", width: 20, height: 2, background: "#0d2b4e" }} />
                 <span style={{ display: "block", width: 20, height: 2, background: "#0d2b4e" }} />

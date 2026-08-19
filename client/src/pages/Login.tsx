@@ -1,4 +1,20 @@
+import { useTranslation } from "react-i18next";
+import i18n from "../config/i18n";
+
+const LANGS = [
+  { code: "es-MX", label: "ES" },
+  { code: "en",    label: "EN" },
+  { code: "zh-CN", label: "中" },
+] as const;
+
 export default function Login() {
+  const { t, i18n: i18nHook } = useTranslation();
+
+  const handleLang = (code: string) => {
+    i18n.changeLanguage(code);
+    localStorage.setItem("language", code);
+  };
+
   return (
     <div
       style={{
@@ -51,11 +67,11 @@ export default function Login() {
               margin: "0 0 10px",
             }}
           >
-            Control de Calidad
+            {t("login.title")}
           </h1>
           <div style={{ width: 36, height: 3, background: "#0d2b4e", margin: "0 auto 8px" }} />
           <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>
-            Sistema de Gestión ISO 9001:2015
+            {t("login.subtitle")}
           </p>
         </div>
 
@@ -85,12 +101,38 @@ export default function Login() {
             (e.currentTarget as HTMLAnchorElement).style.background = "#0d2b4e";
           }}
         >
-          Iniciar sesión
+          {t("login.btn")}
         </a>
 
         <p style={{ fontSize: 11, color: "#d1d5db", marginTop: 16 }}>
-          Acceso mediante cuenta corporativa MI Technologies
+          {t("login.corporate")}
         </p>
+
+        {/* Language switcher */}
+        <div style={{ display: "flex", gap: 6, marginTop: 24, justifyContent: "center" }}>
+          {LANGS.map(({ code, label }) => {
+            const active = i18nHook.language === code;
+            return (
+              <button
+                key={code}
+                onClick={() => handleLang(code)}
+                style={{
+                  padding: "4px 12px",
+                  fontSize: 11,
+                  fontWeight: active ? 700 : 400,
+                  background: active ? "#0d2b4e" : "transparent",
+                  border: "1px solid #cbd5e1",
+                  color: active ? "#ffffff" : "#6b7280",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  transition: "all 0.15s",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
