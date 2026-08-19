@@ -86,8 +86,10 @@ export default function AsistenteQC() {
   const [streaming, setStreaming] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [videoAdjunto, setVideoAdjunto] = useState<File | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -158,23 +160,33 @@ export default function AsistenteQC() {
   }
 
   async function enviarPregunta(pregunta: string) {
-    if (!pregunta.trim() || streaming) return;
+    if ((!pregunta.trim() && !videoAdjunto) || streaming) return;
 
+    const video = videoAdjunto;
     const historial = mensajes.map((m) => ({ role: m.role, content: m.content }));
+    const labelVideo = video ? `📎 ${video.name}\n\n` : "";
+    const mensajeUsuario = labelVideo + (pregunta.trim() || "Describe y evalúa el defecto mostrado en el video.");
+
     setMensajes((prev) => [
       ...prev,
-      { role: "user", content: pregunta },
+      { role: "user", content: mensajeUsuario },
       { role: "assistant", content: "", pending: true },
     ]);
     setInput("");
+    setVideoAdjunto(null);
+    if (videoInputRef.current) videoInputRef.current.value = "";
     setStreaming(true);
 
     try {
+      const fd = new FormData();
+      fd.append("pregunta", pregunta.trim() || "Describe y evalúa el defecto mostrado en el video.");
+      fd.append("historial", JSON.stringify(historial));
+      if (video) fd.append("video", video);
+
       const res = await fetch(`${API_BASE_URL}/api/asistente/chat`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pregunta, historial }),
+        body: fd,
       });
 
       if (!res.ok) {
@@ -449,60 +461,112 @@ export default function AsistenteQC() {
 
           {/* Input */}
           <div style={{
-            padding: "12px 20px",
             borderTop: `1px solid ${C.border}`,
             background: C.white,
-            display: "flex",
-            gap: 10,
-            alignItems: "flex-end",
             flexShrink: 0,
           }}>
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={streaming}
-              placeholder="Escribe tu pregunta... (Enter para enviar, Shift+Enter para nueva línea)"
-              rows={1}
-              style={{
-                flex: 1,
-                background: C.white,
-                border: `1px solid ${C.inputBorder}`,
-                borderRadius: 8,
-                padding: "9px 14px",
-                color: C.textDark,
-                fontSize: 13,
-                resize: "none",
-                outline: "none",
-                lineHeight: 1.5,
-                maxHeight: 120,
-                overflowY: "auto",
-                fontFamily: "inherit",
-                opacity: streaming ? 0.6 : 1,
-              }}
-            />
-            <button
-              onClick={() => enviarPregunta(input)}
-              disabled={streaming || !input.trim()}
-              style={{
-                background: streaming || !input.trim() ? C.border : C.primary,
-                border: "none",
-                borderRadius: 8,
-                width: 38,
-                height: 38,
+            {/* Chip video adjunto */}
+            {videoAdjunto && (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 20px 0",
+              }}>
+                <span style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  background: "#e8f0fe",
+                  border: "1px solid #c5d8fc",
+                  borderRadius: 6,
+                  padding: "3px 8px",
+                  fontSize: 12,
+                  color: C.primary,
+                  fontWeight: 600,
+                }}>
+                  🎬 {videoAdjunto.name}
+                  <button
+                    onClick={() => { setVideoAdjunto(null); if (videoInputRef.current) videoInputRef.current.value = ""; }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 13, padding: 0, lineHeight: 1 }}
+                  >×</button>
+                </span>
+              </div>
+            )}
+            <div style={{ padding: "10px 20px 12px", display: "flex", gap: 8, alignItems: "flex-end" }}>
+              {/* Botón adjuntar video */}
+              <label title="Adjuntar video al chat" style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                cursor: streaming || !input.trim() ? "not-allowed" : "pointer",
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: `1px solid ${videoAdjunto ? C.primary : C.inputBorder}`,
+                background: videoAdjunto ? "#e8f0fe" : C.white,
+                cursor: streaming ? "not-allowed" : "pointer",
                 flexShrink: 0,
-                color: "#fff",
                 fontSize: 16,
-                transition: "background 0.15s",
-              }}
-            >
-              ↑
-            </button>
+                opacity: streaming ? 0.5 : 1,
+                transition: "all 0.15s",
+              }}>
+                🎬
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept=".mp4,.m4v,.mov,.webm,.mpeg"
+                  disabled={streaming}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) setVideoAdjunto(f); }}
+                  style={{ display: "none" }}
+                />
+              </label>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={streaming}
+                placeholder={videoAdjunto ? "Pregunta sobre el video (opcional)..." : "Escribe tu pregunta... (Enter para enviar, Shift+Enter para nueva línea)"}
+                rows={1}
+                style={{
+                  flex: 1,
+                  background: C.white,
+                  border: `1px solid ${C.inputBorder}`,
+                  borderRadius: 8,
+                  padding: "9px 14px",
+                  color: C.textDark,
+                  fontSize: 13,
+                  resize: "none",
+                  outline: "none",
+                  lineHeight: 1.5,
+                  maxHeight: 120,
+                  overflowY: "auto",
+                  fontFamily: "inherit",
+                  opacity: streaming ? 0.6 : 1,
+                }}
+              />
+              <button
+                onClick={() => enviarPregunta(input)}
+                disabled={streaming || (!input.trim() && !videoAdjunto)}
+                style={{
+                  background: streaming || (!input.trim() && !videoAdjunto) ? C.border : C.primary,
+                  border: "none",
+                  borderRadius: 8,
+                  width: 38,
+                  height: 38,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: streaming || (!input.trim() && !videoAdjunto) ? "not-allowed" : "pointer",
+                  flexShrink: 0,
+                  color: "#fff",
+                  fontSize: 16,
+                  transition: "background 0.15s",
+                }}
+              >
+                ↑
+              </button>
+            </div>
           </div>
         </div>
 

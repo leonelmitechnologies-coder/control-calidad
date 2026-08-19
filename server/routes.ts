@@ -1323,13 +1323,33 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // POST /api/asistente/chat  (SSE streaming)
-  app.post("/api/asistente/chat", requireAuth, async (req: Request, res: Response) => {
+  const uploadChatVideo = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (_req, file, cb) => {
+      const ext = (file.originalname.split(".").pop() ?? "").toLowerCase();
+      if (VIDEO_EXTS.includes(ext)) cb(null, true);
+      else cb(new Error("Solo se aceptan videos en el chat"));
+    },
+    limits: { fileSize: 20 * 1024 * 1024 },
+  });
+
+  // POST /api/asistente/chat  (SSE streaming — acepta multipart con video opcional)
+  app.post(
+    "/api/asistente/chat",
+    requireAuth,
+    (req: Request, res: Response, next: any) => {
+      uploadChatVideo.single("video")(req, res, (err: any) => {
+        if (err) return res.status(400).json({ error: err.message ?? "Error al procesar video" });
+        next();
+      });
+    },
+    async (req: Request, res: Response) => {
     try {
-      const { pregunta, historial = [] } = req.body as {
-        pregunta: string;
-        historial: { role: "user" | "assistant"; content: string }[];
-      };
+      const pregunta: string = req.body.pregunta ?? "";
+      const historial: { role: "user" | "assistant"; content: string }[] =
+        typeof req.body.historial === "string"
+          ? JSON.parse(req.body.historial)
+          : (req.body.historial ?? []);
 
       if (!pregunta?.trim()) return res.status(400).json({ error: "Pregunta requerida" });
 
@@ -1404,11 +1424,35 @@ Hoy es ${new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeri
 
 ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL SISTEMA QC EN TIEMPO REAL]\n${systemData}`;
 
-      // SSE headers
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
-      res.flushHeaders();
+      // Analizar video adjunto al chat (si existe) antes de iniciar SSE
+      let videoAnalysis = "";
+      if ((req as any).file) {
+        const vf = (req as any).file as Express.Multer.File;
+        const ext = vf.originalname.split(".").pop()?.toLowerCase() ?? "mp4";
+        try {
+          res.setHeader("Content-Type", "text/event-stream");
+          res.setHeader("Cache-Control", "no-cache");
+          res.setHeader("Connection", "keep-alive");
+          res.flushHeaders();
+          res.write(`data: ${JSON.stringify({ delta: "🎬 Analizando video con IA..." })}\n\n`);
+          videoAnalysis = await extractVideoText(vf.buffer, ext);
+          res.write(`data: ${JSON.stringify({ delta: "\n\n" })}\n\n`);
+        } catch (e) {
+          console.warn("[API] chat video analysis failed:", e);
+        }
+      }
+
+      const fullSystemPrompt = videoAnalysis
+        ? `${systemPrompt}\n\n[VIDEO ADJUNTO — ANÁLISIS DE CONTENIDO]\nEl usuario adjuntó un video al chat. Esto es lo que contiene:\n${videoAnalysis}`
+        : systemPrompt;
+
+      // SSE headers (solo si no se enviaron ya por el video)
+      if (!res.headersSent) {
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.flushHeaders();
+      }
 
       const client = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
@@ -1422,9 +1466,9 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
       const model = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
 
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: fullSystemPrompt },
         ...historial.map((m) => ({ role: m.role, content: m.content } as OpenAI.Chat.ChatCompletionMessageParam)),
-        { role: "user", content: pregunta },
+        { role: "user", content: pregunta || "Describe y evalúa el defecto que se muestra en el video adjunto." },
       ];
 
       const stream = await client.chat.completions.create({
