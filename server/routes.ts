@@ -1355,12 +1355,13 @@ export function registerRoutes(app: Express) {
     async (req: Request, res: Response) => {
     try {
       const pregunta: string = req.body.pregunta ?? "";
+      const youtubeUrl: string = req.body.youtubeUrl ?? "";
       const historial: { role: "user" | "assistant"; content: string }[] =
         typeof req.body.historial === "string"
           ? JSON.parse(req.body.historial)
           : (req.body.historial ?? []);
 
-      if (!pregunta?.trim() && !(req as any).file) return res.status(400).json({ error: "Pregunta requerida" });
+      if (!pregunta?.trim() && !(req as any).file && !youtubeUrl.trim()) return res.status(400).json({ error: "Pregunta requerida" });
 
       const apiKey = process.env.OPENROUTER_API_KEY;
       if (!apiKey) {
@@ -1461,8 +1462,53 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         }
       }
 
+      // YouTube URL: Gemini lo obtiene directamente (sin límite de tamaño)
+      if (!videoAnalysis && youtubeUrl && /youtube\.com|youtu\.be/.test(youtubeUrl)) {
+        const apiKey = process.env.OPENROUTER_API_KEY;
+        if (apiKey) {
+          if (!res.headersSent) {
+            res.setHeader("Content-Type", "text/event-stream");
+            res.setHeader("Cache-Control", "no-cache");
+            res.setHeader("Connection", "keep-alive");
+            res.flushHeaders();
+          }
+          res.write(`data: ${JSON.stringify({ delta: "🔗 Analizando video de YouTube con IA..." })}\n\n`);
+          try {
+            const geminiClient = new OpenAI({
+              baseURL: "https://openrouter.ai/api/v1",
+              apiKey,
+              defaultHeaders: {
+                "HTTP-Referer": "https://control-calidad-qc.mi2.com.mx",
+                "X-Title": "Asistente QC - MI Technologies",
+              },
+            });
+            const ytRes = await geminiClient.chat.completions.create({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "image_url", image_url: { url: youtubeUrl } } as any,
+                    {
+                      type: "text",
+                      text: "Eres un asistente de control de calidad en una planta de logística. Describe de forma literal y detallada lo que sucede en este video, con marcas de tiempo aproximadas. Indica el texto exacto de cualquier error o etiqueta visible. Si algo no se puede leer con claridad, dilo en lugar de suponerlo.",
+                    },
+                  ],
+                },
+              ],
+              max_tokens: 2000,
+            });
+            videoAnalysis = ytRes.choices[0]?.message?.content ?? "";
+          } catch (e) {
+            console.warn("[API] YouTube analysis failed:", e);
+          }
+          res.write(`data: ${JSON.stringify({ delta: "\n\n" })}\n\n`);
+        }
+      }
+
+      const videoLabel = youtubeUrl ? "VIDEO DE YOUTUBE" : "VIDEO ADJUNTO";
       const fullSystemPrompt = videoAnalysis
-        ? `${systemPrompt}\n\n[VIDEO ADJUNTO — ANÁLISIS DE CONTENIDO]\nEl usuario adjuntó un video al chat. Esto es lo que contiene:\n${videoAnalysis}`
+        ? `${systemPrompt}\n\n[${videoLabel} — ANÁLISIS DE CONTENIDO]\nEl usuario compartió un video. Esto es lo que contiene:\n${videoAnalysis}`
         : systemPrompt;
 
       // SSE headers (solo si no se enviaron ya por el video)
@@ -1489,7 +1535,7 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
             { type: "image_url", image_url: { url: imageDataUrl } } as OpenAI.Chat.ChatCompletionContentPartImage,
             { type: "text", text: pregunta || "Describe y evalúa el defecto o condición visible en esta imagen. Considera las tolerancias de calidad del sistema QC." } as OpenAI.Chat.ChatCompletionContentPartText,
           ]
-        : (pregunta || "Describe y evalúa el defecto que se muestra en el video adjunto.");
+        : (pregunta || "Describe y evalúa el defecto o situación mostrada en el video. Considera el contexto de control de calidad e ISO 9001:2015.");
 
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         { role: "system", content: fullSystemPrompt },

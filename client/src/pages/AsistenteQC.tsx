@@ -87,9 +87,13 @@ export default function AsistenteQC() {
   const [showDocs, setShowDocs] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [videoAdjunto, setVideoAdjunto] = useState<File | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [showYtInput, setShowYtInput] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const ytInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -160,13 +164,16 @@ export default function AsistenteQC() {
   }
 
   async function enviarPregunta(pregunta: string) {
-    if ((!pregunta.trim() && !videoAdjunto) || streaming) return;
+    if ((!pregunta.trim() && !videoAdjunto && !youtubeUrl.trim()) || streaming) return;
 
     const video = videoAdjunto;
+    const ytUrl = youtubeUrl.trim();
     const historial = mensajes.map((m) => ({ role: m.role, content: m.content }));
     const isImage = video ? /\.(jpg|jpeg|png|webp|gif)$/i.test(video.name) : false;
-    const labelVideo = video ? `${isImage ? "🖼️" : "🎬"} ${video.name}\n\n` : "";
-    const mensajeUsuario = labelVideo + (pregunta.trim() || "Describe y evalúa el defecto mostrado en el video.");
+    const labelMedia = video
+      ? `${isImage ? "🖼️" : "🎬"} ${video.name}\n\n`
+      : ytUrl ? `🔗 ${ytUrl}\n\n` : "";
+    const mensajeUsuario = labelMedia + (pregunta.trim() || "Describe y evalúa el defecto mostrado.");
 
     setMensajes((prev) => [
       ...prev,
@@ -175,14 +182,18 @@ export default function AsistenteQC() {
     ]);
     setInput("");
     setVideoAdjunto(null);
+    setYoutubeUrl("");
+    setShowYtInput(false);
     if (videoInputRef.current) videoInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
     setStreaming(true);
 
     try {
       const fd = new FormData();
-      fd.append("pregunta", pregunta.trim() || "Describe y evalúa el defecto mostrado en el video.");
+      fd.append("pregunta", pregunta.trim() || "Describe y evalúa el defecto mostrado.");
       fd.append("historial", JSON.stringify(historial));
       if (video) fd.append("media", video);
+      if (ytUrl) fd.append("youtubeUrl", ytUrl);
 
       const res = await fetch(`${API_BASE_URL}/api/asistente/chat`, {
         method: "POST",
@@ -467,37 +478,69 @@ export default function AsistenteQC() {
             background: C.white,
             flexShrink: 0,
           }}>
-            {/* Chip video adjunto */}
-            {videoAdjunto && (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "6px 20px 0",
-              }}>
-                <span style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  background: "#e8f0fe",
-                  border: "1px solid #c5d8fc",
-                  borderRadius: 6,
-                  padding: "3px 8px",
-                  fontSize: 12,
-                  color: C.primary,
-                  fontWeight: 600,
-                }}>
-                  {/\.(jpg|jpeg|png|webp|gif)$/i.test(videoAdjunto.name) ? "🖼️" : "🎬"} {videoAdjunto.name}
-                  <button
-                    onClick={() => { setVideoAdjunto(null); if (videoInputRef.current) videoInputRef.current.value = ""; }}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 13, padding: 0, lineHeight: 1 }}
-                  >×</button>
-                </span>
+            {/* Chips de adjuntos */}
+            {(videoAdjunto || youtubeUrl) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 20px 0", flexWrap: "wrap" }}>
+                {videoAdjunto && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    background: "#e8f0fe", border: "1px solid #c5d8fc",
+                    borderRadius: 6, padding: "3px 8px", fontSize: 12, color: C.primary, fontWeight: 600,
+                  }}>
+                    {/\.(jpg|jpeg|png|webp|gif)$/i.test(videoAdjunto.name) ? "🖼️" : "🎬"} {videoAdjunto.name}
+                    <button onClick={() => { setVideoAdjunto(null); if (videoInputRef.current) videoInputRef.current.value = ""; if (cameraInputRef.current) cameraInputRef.current.value = ""; }}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+                  </span>
+                )}
+                {youtubeUrl && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    background: "#fce8e8", border: "1px solid #fcc5c5",
+                    borderRadius: 6, padding: "3px 8px", fontSize: 12, color: "#c0392b", fontWeight: 600,
+                    maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    🔗 {youtubeUrl.replace("https://", "").substring(0, 35)}…
+                    <button onClick={() => { setYoutubeUrl(""); setShowYtInput(false); }}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#c0392b", fontSize: 13, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
+                  </span>
+                )}
               </div>
             )}
+
+            {/* Input YouTube URL */}
+            {showYtInput && !youtubeUrl && (
+              <div style={{ padding: "6px 20px 0", display: "flex", gap: 6 }}>
+                <input
+                  ref={ytInputRef}
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=..."
+                  autoFocus
+                  style={{
+                    flex: 1, border: `1px solid #fcc5c5`, borderRadius: 6,
+                    padding: "5px 10px", fontSize: 12, color: C.textDark, outline: "none", fontFamily: "inherit",
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const url = (e.currentTarget.value ?? "").trim();
+                      if (/youtube\.com|youtu\.be/.test(url)) { setYoutubeUrl(url); setShowYtInput(false); }
+                      else notify("Pega un enlace válido de YouTube", "error");
+                    }
+                    if (e.key === "Escape") setShowYtInput(false);
+                  }}
+                  onBlur={(e) => {
+                    const url = (e.currentTarget.value ?? "").trim();
+                    if (/youtube\.com|youtu\.be/.test(url)) { setYoutubeUrl(url); setShowYtInput(false); }
+                    else if (!url) setShowYtInput(false);
+                  }}
+                />
+                <button onClick={() => setShowYtInput(false)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 16, padding: "0 4px" }}>×</button>
+              </div>
+            )}
+
             <div style={{ padding: "10px 20px 12px", display: "flex", gap: 8, alignItems: "flex-end" }}>
-              {/* Botón adjuntar video */}
-              <label title="Adjuntar imagen o video" style={{
+              {/* Botón adjuntar imagen/video */}
+              <label title="Adjuntar imagen o video (máx. 20 MB)" style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -531,13 +574,50 @@ export default function AsistenteQC() {
                   style={{ display: "none" }}
                 />
               </label>
+              {/* Botón cámara (foto o video directo) */}
+              <label title="Tomar foto o grabar video con la cámara" style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: `1px solid ${C.inputBorder}`,
+                background: C.white,
+                cursor: streaming ? "not-allowed" : "pointer",
+                flexShrink: 0,
+                fontSize: 16,
+                opacity: streaming ? 0.5 : 1,
+                transition: "all 0.15s",
+              }}>
+                📷
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  capture="environment"
+                  disabled={streaming}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.size > 20 * 1024 * 1024) {
+                      notify("El archivo supera 20 MB. Graba un clip más corto.", "error");
+                      e.target.value = "";
+                      return;
+                    }
+                    if (videoInputRef.current) videoInputRef.current.value = "";
+                    setVideoAdjunto(f);
+                  }}
+                  style={{ display: "none" }}
+                />
+              </label>
               <textarea
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={streaming}
-                placeholder={videoAdjunto ? "Pregunta sobre el video (opcional)..." : "Escribe tu pregunta... (Enter para enviar, Shift+Enter para nueva línea)"}
+                placeholder={(videoAdjunto || youtubeUrl) ? "Pregunta sobre el archivo adjunto (opcional)..." : "Escribe tu pregunta... (Enter para enviar, Shift+Enter para nueva línea)"}
                 rows={1}
                 style={{
                   flex: 1,
@@ -556,11 +636,27 @@ export default function AsistenteQC() {
                   opacity: streaming ? 0.6 : 1,
                 }}
               />
+              {/* Botón YouTube */}
+              <button
+                title="Pegar enlace de YouTube (videos largos o 4K)"
+                onClick={() => { setShowYtInput((v) => !v); setTimeout(() => ytInputRef.current?.focus(), 50); }}
+                disabled={streaming || !!videoAdjunto}
+                style={{
+                  width: 36, height: 36, borderRadius: 8, flexShrink: 0, fontSize: 15,
+                  border: `1px solid ${youtubeUrl ? "#c0392b" : C.inputBorder}`,
+                  background: youtubeUrl ? "#fce8e8" : C.white,
+                  cursor: (streaming || !!videoAdjunto) ? "not-allowed" : "pointer",
+                  opacity: (streaming || !!videoAdjunto) ? 0.5 : 1,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s",
+                }}
+              >🔗</button>
+
               <button
                 onClick={() => enviarPregunta(input)}
-                disabled={streaming || (!input.trim() && !videoAdjunto)}
+                disabled={streaming || (!input.trim() && !videoAdjunto && !youtubeUrl)}
                 style={{
-                  background: streaming || (!input.trim() && !videoAdjunto) ? C.border : C.primary,
+                  background: (streaming || (!input.trim() && !videoAdjunto && !youtubeUrl)) ? C.border : C.primary,
                   border: "none",
                   borderRadius: 8,
                   width: 38,
