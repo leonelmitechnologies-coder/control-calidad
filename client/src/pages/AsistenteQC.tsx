@@ -437,52 +437,60 @@ export default function AsistenteQC() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "10px 20px",
+        padding: isMobile ? "6px 12px" : "10px 20px",
         borderBottom: `1px solid ${C.border}`,
         background: C.white,
         flexShrink: 0,
+        minHeight: isMobile ? 0 : undefined,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* En móvil: solo avatar pequeño + subtítulo compacto. En desktop: completo */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
-            width: 32,
-            height: 32,
+            width: isMobile ? 24 : 32,
+            height: isMobile ? 24 : 32,
             borderRadius: "50%",
             background: C.primary,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             color: "#fff",
-            fontSize: 14,
+            fontSize: isMobile ? 10 : 14,
             fontWeight: 700,
             flexShrink: 0,
           }}>
             IA
           </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>Asistente QC</div>
-            <div style={{ fontSize: 11, color: C.textMuted }}>ISO 9001:2015 · datos en tiempo real</div>
-          </div>
+          {!isMobile && (
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>Asistente QC</div>
+              <div style={{ fontSize: 11, color: C.textMuted }}>ISO 9001:2015 · datos en tiempo real</div>
+            </div>
+          )}
+          {isMobile && (
+            <span style={{ fontSize: 11, color: C.textMuted }}>ISO 9001:2015</span>
+          )}
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <button
             onClick={() => setShowDocs((v) => !v)}
             style={{
               background: showDocs ? C.primary : C.white,
               border: `1px solid ${showDocs ? C.primary : C.border}`,
               borderRadius: 6,
-              padding: "5px 12px",
+              padding: isMobile ? "3px 8px" : "5px 12px",
               color: showDocs ? "#fff" : C.textMid,
-              fontSize: 12,
+              fontSize: isMobile ? 11 : 12,
               cursor: "pointer",
               fontFamily: "inherit",
               display: "flex",
               alignItems: "center",
-              gap: 5,
+              gap: 4,
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 700 }}>{docsActivos.length}</span>
-            {docsActivos.length === 1 ? "documento" : "documentos"}
+            <span style={{ fontWeight: 700 }}>{docsActivos.length}</span>
+            {!isMobile && (docsActivos.length === 1 ? "documento" : "documentos")}
+            {isMobile && "doc"}
           </button>
 
           {mensajes.length > 0 && (
@@ -492,14 +500,14 @@ export default function AsistenteQC() {
                 background: C.white,
                 border: `1px solid ${C.border}`,
                 borderRadius: 6,
-                padding: "5px 12px",
+                padding: isMobile ? "3px 8px" : "5px 12px",
                 color: C.textMuted,
-                fontSize: 12,
+                fontSize: isMobile ? 11 : 12,
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
-              Limpiar
+              {isMobile ? "✕" : "Limpiar"}
             </button>
           )}
         </div>
@@ -515,10 +523,10 @@ export default function AsistenteQC() {
           <div style={{
             flex: 1,
             overflowY: "auto",
-            padding: "16px 16px",
+            padding: isMobile ? "10px 10px" : "16px 16px",
             display: "flex",
             flexDirection: "column",
-            gap: 16,
+            gap: isMobile ? 10 : 16,
           }}>
             {/* Bienvenida */}
             {mensajes.length === 0 && (
@@ -686,7 +694,7 @@ export default function AsistenteQC() {
             )}
 
             {/* Fila 1: textarea + enviar */}
-            <div style={{ padding: "10px 20px 6px", display: "flex", gap: 8, alignItems: "flex-end" }}>
+            <div style={{ padding: isMobile ? "8px 10px 4px" : "10px 20px 6px", display: "flex", gap: 8, alignItems: "flex-end" }}>
               <textarea
                 ref={inputRef}
                 value={input}
@@ -734,7 +742,7 @@ export default function AsistenteQC() {
             </div>
 
             {/* Fila 2: botones de herramientas */}
-            <div style={{ padding: "4px 20px 12px", display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ padding: isMobile ? "2px 10px 8px" : "4px 20px 12px", display: "flex", gap: 8, alignItems: "center" }}>
               {/* Adjuntar archivo (galería) */}
               <label title="Adjuntar imagen o video desde galería (máx. 20 MB)" style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
