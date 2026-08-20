@@ -876,7 +876,7 @@ export default function AsistenteQC() {
                   + Subir
                   <input
                     type="file"
-                    accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.mp4,.m4v,.mov,.webm,.mpeg"
+                    accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.mp4,.m4v,.mov,.webm,.mpeg,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.avif,.heic,.heif"
                     onChange={handleUpload}
                     style={{ display: "none" }}
                   />

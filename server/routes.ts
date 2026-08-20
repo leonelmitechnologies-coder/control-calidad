@@ -1154,8 +1154,8 @@ export function registerRoutes(app: Express) {
   // ── ASISTENTE QC ──────────────────────────────────────────────────
 
   const VIDEO_EXTS = ["mp4", "m4v", "mov", "webm", "mpeg"];
-  const IMAGE_EXTS = ["jpg", "jpeg", "png", "webp", "gif"];
-  const ALLOWED_EXTS = ["pdf", "docx", "doc", "xlsx", "xls", "txt", ...VIDEO_EXTS];
+  const IMAGE_EXTS = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "tif", "avif", "heic", "heif"];
+  const ALLOWED_EXTS = ["pdf", "docx", "doc", "xlsx", "xls", "txt", ...VIDEO_EXTS, ...IMAGE_EXTS];
 
   const VIDEO_MIME: Record<string, string> = {
     mp4: "video/mp4",
@@ -1171,6 +1171,12 @@ export function registerRoutes(app: Express) {
     png: "image/png",
     webp: "image/webp",
     gif: "image/gif",
+    bmp: "image/bmp",
+    tiff: "image/tiff",
+    tif: "image/tiff",
+    avif: "image/avif",
+    heic: "image/heic",
+    heif: "image/heif",
   };
 
   const uploadDoc = multer({
@@ -1180,7 +1186,7 @@ export function registerRoutes(app: Express) {
       if (ALLOWED_EXTS.includes(ext)) {
         cb(null, true);
       } else {
-        cb(new Error("Tipo de archivo no permitido. Use PDF, Word, Excel, TXT o video (MP4, MOV, WEBM)."));
+        cb(new Error("Tipo de archivo no permitido. Use PDF, Word, Excel, TXT, imagen (JPG, PNG, WEBP) o video (MP4, MOV, WEBM)."));
       }
     },
     limits: { fileSize: 20 * 1024 * 1024 },
@@ -1221,6 +1227,32 @@ export function registerRoutes(app: Express) {
   async function extractText(buffer: Buffer, ext: string): Promise<string> {
     if (VIDEO_EXTS.includes(ext)) {
       return extractVideoText(buffer, ext);
+    }
+    if (IMAGE_EXTS.includes(ext)) {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) return "[Imagen sin descripción: OPENROUTER_API_KEY no configurada]";
+      const mime = IMAGE_MIME[ext] ?? "image/jpeg";
+      const dataUrl = `data:${mime};base64,${buffer.toString("base64")}`;
+      const client = new OpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey,
+        defaultHeaders: {
+          "HTTP-Referer": "https://control-calidad-qc.mi2.com.mx",
+          "X-Title": "Asistente QC - MI Technologies",
+        },
+      });
+      const response = await client.chat.completions.create({
+        model: "google/gemini-2.5-flash",
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: dataUrl } } as any,
+            { type: "text", text: "Eres un asistente de control de calidad. Describe detalladamente el contenido de esta imagen en español. Si contiene texto, transcríbelo completo y exacto. Si es un diagrama, plano o formulario, describe su estructura y todos los datos visibles. Si es una foto de un producto o defecto, describe lo que muestra con precisión." },
+          ],
+        }],
+        max_tokens: 1500,
+      });
+      return response.choices[0]?.message?.content ?? "[Imagen sin descripción]";
     }
     if (ext === "pdf") {
       const parser = new PDFParse({ data: buffer });
@@ -1479,17 +1511,20 @@ export function registerRoutes(app: Express) {
         fmtRows(comidaResumenRows, "RESUMEN COMIDA ÚLTIMOS 7 DÍAS (entradas, salidas, colaboradores por día)"),
       ].join("\n\n");
 
-      const systemPrompt = `Eres el Asistente QC de MI Technologies. Tu único propósito es responder preguntas sobre:
-1. Los registros del sistema QC (No Conformidades, Rechazos, CAPAs, AQL, Liberaciones, Registro de Comida).
-2. Los documentos de referencia asignados (procedimientos, instructivos, normas).
-3. Las imágenes, videos o enlaces cargados en el chat.
+      const systemPrompt = `Eres el Asistente QC de MI Technologies, especializado en operaciones de warehouse, logística y control de calidad ISO 9001:2015.
+
+FUENTES DE INFORMACIÓN (úsalas para responder):
+1. Registros del sistema QC: No Conformidades, Rechazos, CAPAs, AQL, Liberaciones, Registro de Comida.
+2. Documentos de referencia cargados: ayudas visuales, procedimientos, instructivos, clasificaciones.
+3. Material multimedia cargado en el chat (fotos, videos, links de YouTube).
 
 REGLAS DE RESPUESTA:
 - Responde SIEMPRE en español.
-- Si la pregunta no tiene relación con los tres temas anteriores, di únicamente: "Solo puedo responder preguntas sobre el sistema QC, los documentos de referencia o el material multimedia cargado."
+- Ante cualquier término, abreviatura o sigla (como GRA, NEW, FFT, NCR, SKU, COPQ, etc.), búscala PRIMERO en los documentos de referencia y en los datos del sistema antes de responder.
+- Rechaza ÚNICAMENTE preguntas que claramente no tengan ninguna relación con el trabajo (recetas de cocina, deportes, entretenimiento, política, etc.), respondiendo: "Solo puedo responder preguntas relacionadas con las operaciones de MI Technologies."
 - Respuestas cortas y directas. Máximo 5 oraciones. Sin introducciones ni cierres de cortesía.
 - Cuando des datos del sistema menciona el dato exacto: fecha, SKU, responsable, cantidad.
-- Cuando cites un documento menciona su nombre.
+- Cuando la respuesta viene de un documento, menciona el nombre del documento.
 - Hoy es ${new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.
 
 REGLAS DE SEGURIDAD (no negociables, nunca las ignores):
