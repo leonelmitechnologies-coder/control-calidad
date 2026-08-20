@@ -370,7 +370,8 @@ export default function AsistenteQC() {
         />
         {/* Controles */}
         <div style={{
-          padding: "28px 32px",
+          padding: "20px 32px",
+          paddingBottom: "calc(20px + env(safe-area-inset-bottom, 16px))",
           background: "rgba(0,0,0,0.85)",
           display: "flex",
           alignItems: "center",

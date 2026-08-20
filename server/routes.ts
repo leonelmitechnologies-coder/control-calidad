@@ -1400,7 +1400,8 @@ export function registerRoutes(app: Express) {
         .join("\n\n");
 
       // Fetch detailed system data (last 60 days of records)
-      const [ncs, rechazosExt, rechazosInt, capas, aqls] = await Promise.all([
+      const hoyMx = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey" }).format(new Date());
+      const [ncs, rechazosExt, rechazosInt, capas, aqls, comidaHoy, comidaResumen] = await Promise.all([
         pool.query(`
           SELECT fecha, area, tipo, LEFT(descripcion, 120) as descripcion, severidad, estatus, responsable
           FROM no_conformidades ORDER BY fecha DESC LIMIT 50
@@ -1425,6 +1426,39 @@ export function registerRoutes(app: Express) {
                  LEFT(descripcion, 80) as descripcion
           FROM aql_registros ORDER BY fecha_registro DESC LIMIT 30
         `),
+        pool.query(`
+          SELECT rc.fecha::text, rc.hora_registro, rc.turno, rc.tipo_movimiento,
+                 oq.nombre_completo, oq.area, oq.puesto
+          FROM registro_comida rc
+          JOIN organigrama_qc oq ON oq.id = rc.colaborador_id
+          WHERE rc.fecha = $1
+          ORDER BY rc.hora_registro ASC
+        `, [hoyMx]),
+        pool.query(`
+          SELECT rc.fecha::text,
+                 COUNT(*) FILTER (WHERE rc.tipo_movimiento = 'Entrada') AS entradas,
+                 COUNT(*) FILTER (WHERE rc.tipo_movimiento = 'Salida')  AS salidas,
+                 ROUND(AVG(EXTRACT(EPOCH FROM (
+                   s.hora_salida - e.hora_entrada
+                 )) / 60), 1) AS promedio_minutos
+          FROM registro_comida rc
+          JOIN organigrama_qc oq ON oq.id = rc.colaborador_id
+          LEFT JOIN LATERAL (
+            SELECT hora_registro AS hora_entrada
+            FROM registro_comida
+            WHERE colaborador_id = rc.colaborador_id AND fecha = rc.fecha AND tipo_movimiento = 'Entrada'
+            LIMIT 1
+          ) e ON true
+          LEFT JOIN LATERAL (
+            SELECT hora_registro AS hora_salida
+            FROM registro_comida
+            WHERE colaborador_id = rc.colaborador_id AND fecha = rc.fecha AND tipo_movimiento = 'Salida'
+            LIMIT 1
+          ) s ON true
+          WHERE rc.fecha >= (CURRENT_DATE - INTERVAL '7 days')
+          GROUP BY rc.fecha
+          ORDER BY rc.fecha DESC
+        `),
       ]);
 
       function fmtRows(rows: any[], label: string): string {
@@ -1444,10 +1478,12 @@ export function registerRoutes(app: Express) {
         fmtRows(rechazosInt.rows, "RECHAZOS INTERNOS"),
         fmtRows(capas.rows, "CAPAs (Acciones Correctivas)"),
         fmtRows(aqls.rows, "REGISTROS AQL"),
+        fmtRows(comidaHoy.rows, `REGISTRO COMIDA HOY (${hoyMx})`),
+        fmtRows(comidaResumen.rows, "RESUMEN COMIDA ÚLTIMOS 7 DÍAS (entradas, salidas, promedio de tiempo en minutos por día)"),
       ].join("\n\n");
 
       const systemPrompt = `Eres el Asistente QC de MI Technologies. Tu único propósito es responder preguntas sobre:
-1. Los registros del sistema QC (No Conformidades, Rechazos, CAPAs, AQL, Liberaciones).
+1. Los registros del sistema QC (No Conformidades, Rechazos, CAPAs, AQL, Liberaciones, Registro de Comida).
 2. Los documentos de referencia asignados (procedimientos, instructivos, normas).
 3. Las imágenes, videos o enlaces cargados en el chat.
 
