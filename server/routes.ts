@@ -1633,20 +1633,24 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
+        res.setHeader("X-Accel-Buffering", "no");
         res.flushHeaders();
       }
+
+      // Heartbeat cada 10s para evitar que Traefik/nginx corte la conexión SSE
+      const heartbeat = setInterval(() => { try { res.write(": keep-alive\n\n"); } catch {} }, 10000);
 
       const client = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
         apiKey,
-        timeout: 55000,
+        timeout: 90000,
         defaultHeaders: {
           "HTTP-Referer": "https://control-calidad-qc.mi2.com.mx",
           "X-Title": "Asistente QC - MI Technologies",
         },
       });
 
-      const model = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
+      const model = process.env.OPENROUTER_MODEL ?? "google/gemini-2.5-flash";
 
       const userContent: OpenAI.Chat.ChatCompletionContentPart[] | string = imageDataUrl
         ? [
@@ -1661,12 +1665,23 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         { role: "user", content: userContent },
       ];
 
-      const stream = await client.chat.completions.create({
-        model,
-        messages,
-        stream: true,
-        max_tokens: 800,
-      });
+      let stream;
+      try {
+        stream = await client.chat.completions.create({
+          model,
+          messages,
+          stream: true,
+          max_tokens: 800,
+        });
+      } catch (llmErr: any) {
+        clearInterval(heartbeat);
+        console.error("[API] LLM create error:", llmErr?.message);
+        res.write(`data: ${JSON.stringify({ error: "El modelo no respondió. Intenta de nuevo." })}\n\n`);
+        res.end();
+        return;
+      }
+
+      clearInterval(heartbeat);
 
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta?.content ?? "";

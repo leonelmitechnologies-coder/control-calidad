@@ -308,7 +308,14 @@ export default function AsistenteQC() {
           if (data === "[DONE]") break;
           try {
             const { delta, error } = JSON.parse(data);
-            if (error) throw new Error(error);
+            if (error) {
+              setMensajes((prev) => {
+                const copy = [...prev];
+                copy[copy.length - 1] = { role: "assistant", content: `⚠️ ${error}` };
+                return copy;
+              });
+              break;
+            }
             if (delta) {
               setMensajes((prev) => {
                 const copy = [...prev];
