@@ -1650,7 +1650,7 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         },
       });
 
-      const model = process.env.OPENROUTER_MODEL ?? "google/gemini-2.5-flash";
+      const model = process.env.OPENROUTER_MODEL ?? "nvidia/nemotron-3-ultra-550b-a55b:free";
 
       const userContent: OpenAI.Chat.ChatCompletionContentPart[] | string = imageDataUrl
         ? [
@@ -1675,8 +1675,9 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         });
       } catch (llmErr: any) {
         clearInterval(heartbeat);
-        console.error("[API] LLM create error:", llmErr?.message);
-        res.write(`data: ${JSON.stringify({ error: "El modelo no respondió. Intenta de nuevo." })}\n\n`);
+        const errDetail = llmErr?.message ?? String(llmErr);
+        console.error("[API] LLM create error:", errDetail);
+        res.write(`data: ${JSON.stringify({ error: "El asistente no pudo responder. Intenta de nuevo en unos segundos." })}\n\n`);
         res.end();
         return;
       }
