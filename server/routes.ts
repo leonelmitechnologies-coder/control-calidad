@@ -1422,13 +1422,27 @@ export function registerRoutes(app: Express) {
         return res.status(503).json({ error: "OPENROUTER_API_KEY no configurada. Contacta al administrador." });
       }
 
-      // Fetch active documents
+      // Fetch active documents y filtrar los más relevantes a la pregunta
       const docsResult = await pool.query(
         "SELECT nombre, texto_extraido FROM asistente_docs WHERE activo = true ORDER BY created_at DESC",
       );
-      const docsContext = docsResult.rows
-        .filter((d: any) => d.texto_extraido)
-        .map((d: any) => `--- ${d.nombre} ---\n${d.texto_extraido}`)
+      const allDocs = docsResult.rows.filter((d: any) => d.texto_extraido?.trim());
+
+      // Scoring por palabras clave de la pregunta (ignora stopwords cortas)
+      const keywords = pregunta.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3);
+      const scoredDocs = allDocs.map((d: any) => {
+        const haystack = (d.nombre + " " + d.texto_extraido).toLowerCase();
+        const score = keywords.reduce((acc: number, kw: string) => acc + (haystack.includes(kw) ? 1 : 0), 0);
+        return { ...d, score };
+      });
+
+      // Top 5 más relevantes (o los primeros 5 si ninguno tiene match)
+      const topDocs = scoredDocs
+        .sort((a: any, b: any) => b.score - a.score)
+        .slice(0, 5);
+
+      const docsContext = topDocs
+        .map((d: any) => `--- ${d.nombre} ---\n${String(d.texto_extraido).slice(0, 4000)}`)
         .join("\n\n");
 
       // Fetch detailed system data (last 60 days of records)
