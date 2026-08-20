@@ -1650,7 +1650,15 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         },
       });
 
-      const model = process.env.OPENROUTER_MODEL ?? "nvidia/nemotron-3-ultra-550b-a55b:free";
+      // Lista de modelos en orden de preferencia — si el primero falla por rate-limit
+      // o no disponible, se prueba el siguiente automáticamente
+      const MODEL_FALLBACKS = process.env.OPENROUTER_MODEL
+        ? [process.env.OPENROUTER_MODEL]
+        : [
+            "nvidia/nemotron-3-super-120b-a12b:free",
+            "nvidia/nemotron-3-ultra-550b-a55b:free",
+            "nvidia/nemotron-3.5-lightning:free",
+          ];
 
       const userContent: OpenAI.Chat.ChatCompletionContentPart[] | string = imageDataUrl
         ? [
@@ -1665,21 +1673,22 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         { role: "user", content: userContent },
       ];
 
-      let stream;
-      try {
-        stream = await client.chat.completions.create({
-          model,
-          messages,
-          stream: true,
-          max_tokens: 800,
-        });
-      } catch (llmErr: any) {
-        clearInterval(heartbeat);
-        const errDetail = llmErr?.message ?? String(llmErr);
-        console.error("[API] LLM create error:", errDetail);
-        res.write(`data: ${JSON.stringify({ error: "El asistente no pudo responder. Intenta de nuevo en unos segundos." })}\n\n`);
-        res.end();
-        return;
+      let stream: any = null;
+      for (let i = 0; i < MODEL_FALLBACKS.length; i++) {
+        const model = MODEL_FALLBACKS[i];
+        try {
+          stream = await client.chat.completions.create({ model, messages, stream: true, max_tokens: 800 });
+          console.log(`[API] Usando modelo: ${model}`);
+          break;
+        } catch (llmErr: any) {
+          const errMsg = llmErr?.message ?? String(llmErr);
+          console.warn(`[API] Modelo ${model} falló: ${errMsg.slice(0, 120)}`);
+          if (i < MODEL_FALLBACKS.length - 1) continue; // prueba el siguiente
+          clearInterval(heartbeat);
+          res.write(`data: ${JSON.stringify({ error: "El asistente no pudo responder. Intenta de nuevo en unos segundos." })}\n\n`);
+          res.end();
+          return;
+        }
       }
 
       clearInterval(heartbeat);
