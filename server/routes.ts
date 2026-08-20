@@ -1441,36 +1441,38 @@ export function registerRoutes(app: Express) {
         .sort((a: any, b: any) => b.score - a.score)
         .slice(0, 5);
 
-      const docsContext = topDocs
-        .map((d: any) => `--- ${d.nombre} ---\n${String(d.texto_extraido).slice(0, 4000)}`)
+      const rawDocsContext = topDocs
+        .map((d: any) => `--- ${d.nombre} ---\n${String(d.texto_extraido).slice(0, 2000)}`)
         .join("\n\n");
+      // Hard cap: máximo 8000 chars de documentos en el contexto
+      const docsContext = rawDocsContext.slice(0, 8000);
 
       // Fetch detailed system data (last 60 days of records)
       const hoyMx = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey" }).format(new Date());
       const [ncs, rechazosExt, rechazosInt, capas, aqls] = await Promise.all([
         pool.query(`
-          SELECT fecha, area, tipo, LEFT(descripcion, 120) as descripcion, severidad, estatus, responsable
-          FROM no_conformidades ORDER BY fecha DESC LIMIT 50
+          SELECT fecha, area, tipo, LEFT(descripcion, 80) as descripcion, severidad, estatus, responsable
+          FROM no_conformidades ORDER BY fecha DESC LIMIT 20
         `),
         pool.query(`
           SELECT registration_date, return_order, sku, brand, modelo, classification, estatus, processed_by
-          FROM rechazos_externos ORDER BY registration_date DESC LIMIT 50
+          FROM rechazos_externos ORDER BY registration_date DESC LIMIT 20
         `),
         pool.query(`
-          SELECT fecha_registro, sku, defecto, LEFT(descripcion, 100) as descripcion,
+          SELECT fecha_registro, sku, defecto, LEFT(descripcion, 60) as descripcion,
                  costo_no_calidad, origen_hallazgo, inspector
-          FROM rechazos_internos ORDER BY fecha_registro DESC LIMIT 50
+          FROM rechazos_internos ORDER BY fecha_registro DESC LIMIT 20
         `),
         pool.query(`
           SELECT fecha_apertura, fecha_compromiso, fecha_cierre, titulo,
-                 LEFT(descripcion_problema, 120) as descripcion_problema,
+                 LEFT(descripcion_problema, 80) as descripcion_problema,
                  responsable, estatus, metodo_analisis
-          FROM capas ORDER BY fecha_apertura DESC LIMIT 30
+          FROM capas ORDER BY fecha_apertura DESC LIMIT 15
         `),
         pool.query(`
           SELECT fecha_registro, sku, marca, modelo, clasificacion,
-                 LEFT(descripcion, 80) as descripcion
-          FROM aql_registros ORDER BY fecha_registro DESC LIMIT 30
+                 LEFT(descripcion, 60) as descripcion
+          FROM aql_registros ORDER BY fecha_registro DESC LIMIT 15
         `),
       ]);
 
@@ -1637,6 +1639,7 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
       const client = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
         apiKey,
+        timeout: 55000,
         defaultHeaders: {
           "HTTP-Referer": "https://control-calidad-qc.mi2.com.mx",
           "X-Title": "Asistente QC - MI Technologies",
@@ -1662,7 +1665,7 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         model,
         messages,
         stream: true,
-        max_tokens: 1500,
+        max_tokens: 800,
       });
 
       for await (const chunk of stream) {
