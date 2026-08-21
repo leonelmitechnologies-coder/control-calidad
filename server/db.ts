@@ -16,6 +16,21 @@ export const pool = process.env.DATABASE_URL
     });
 
 // Initialize Drizzle ORM
+// ATTACH AN ERROR LISTENER OR THE PROCESS DIES. node-postgres emits 'error' on the
+// Pool when an IDLE client fails -- a database restart, a failover, a firewall
+// reaping an idle connection -- and an unhandled 'error' event terminates Node.
+// Without this the app exits(1) on any database hiccup, which on Coolify is a
+// crash-loop until the database comes back, and a health endpoint can never report
+// the outage because the outage killed the thing that would report it.
+//
+// Confirmed by experiment 2026-08-20 on stack-template: stopping Postgres killed
+// the container outright -- exit(1), last log line "listening", no error printed.
+// Logging and continuing is correct: a pooled connection dying is normal
+// operational noise and the next query opens a fresh one.
+pool.on("error", (err) => {
+  console.error("[db] idle client error (pool recovers, process stays up):", err.message);
+});
+
 export const db = drizzle(pool, { schema });
 
 /**
