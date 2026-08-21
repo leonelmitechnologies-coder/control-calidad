@@ -7,7 +7,7 @@ WORKDIR /app
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Enable Corepack + pin pnpm (fleet standard)
-RUN corepack enable && corepack prepare pnpm@11.17.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 
 # Copy dependency manifests first for better layer caching.
 # pnpm-workspace.yaml carries the supply-chain guard (allowBuilds/overrides) and
@@ -29,7 +29,7 @@ FROM node:24-alpine AS runner
 WORKDIR /app
 
 # Enable Corepack + pin pnpm (fleet standard)
-RUN corepack enable && corepack prepare pnpm@11.17.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 
 # Copy built artifacts + manifests from builder
 COPY --from=builder /app/dist ./dist
