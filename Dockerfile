@@ -49,8 +49,11 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 # Install only production dependencies (frozen against the committed lockfile)
 RUN pnpm install --prod --frozen-lockfile
 
-# Create uploads directory for file storage
-RUN mkdir -p public/uploads
+# Create uploads directory and transfer ownership to non-root user
+RUN mkdir -p public/uploads && chown -R node:node /app
+
+# DS-0002: run as non-root (node user is built into node:alpine)
+USER node
 
 EXPOSE 3001
 
