@@ -1506,6 +1506,66 @@ export function registerRoutes(app: Express) {
         console.warn("[API] comida query skipped:", (e as any).message);
       }
 
+      // Módulos adicionales — en try/catch para no bloquear el chat
+      let organigramaRows: any[] = [];
+      let metricasMLRows: any[] = [];
+      let shippingRows: any[] = [];
+      let recepcionesRows: any[] = [];
+      let panelKPIRows: any[] = [];
+      try {
+        const [organigrama, metricasML, shipping, recepciones, panelKPI] = await Promise.all([
+          pool.query(`
+            SELECT nombre_completo, no_empleado, puesto, area, turno, estatus, fecha_ingreso
+            FROM organigrama_qc
+            WHERE estatus = 'activo'
+            ORDER BY area, puesto
+          `),
+          pool.query(`
+            SELECT cuenta, fecha::text, pct_reclamos, pct_mediaciones, pct_canceladas,
+                   pct_demora, nivel_desempeno, estatus
+            FROM metricas_ml
+            ORDER BY fecha DESC
+            LIMIT 20
+          `),
+          pool.query(`
+            SELECT fecha::text, numero_orden, destino, tipo_envio, tipo_orden, paqueteria,
+                   cantidad_pallets, cantidad_manifiesto, cantidad_fisica,
+                   resultado_inspeccion, inspector, estado, comentarios
+            FROM liberacion_shipping
+            ORDER BY fecha DESC, created_at DESC
+            LIMIT 20
+          `),
+          pool.query(`
+            SELECT fecha::text, hora::text, company, origen, cargo,
+                   unit_qty, pallet_qty, tipo, estatus, registrado_por
+            FROM recepciones
+            ORDER BY fecha DESC, hora DESC
+            LIMIT 20
+          `),
+          pool.query(`
+            SELECT
+              (SELECT COUNT(*) FROM no_conformidades WHERE estatus NOT IN ('Cerrada','Cerrado')) AS ncs_abiertas,
+              (SELECT COUNT(*) FROM no_conformidades WHERE fecha >= date_trunc('month', CURRENT_DATE)) AS ncs_este_mes,
+              (SELECT COUNT(*) FROM rechazos_externos WHERE registration_date >= date_trunc('month', CURRENT_DATE)) AS re_este_mes,
+              (SELECT COUNT(*) FROM rechazos_internos WHERE fecha_registro >= date_trunc('month', CURRENT_DATE)) AS ri_este_mes,
+              (SELECT COUNT(*) FROM capas WHERE estatus NOT IN ('Cerrada','Cerrado')) AS capas_abiertas,
+              (SELECT COUNT(*) FROM capas WHERE fecha_compromiso < CURRENT_DATE AND estatus NOT IN ('Cerrada','Cerrado')) AS capas_vencidas,
+              (SELECT COUNT(*) FROM aql_registros WHERE fecha_registro >= date_trunc('month', CURRENT_DATE)) AS aql_inspecciones_mes,
+              (SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE clasificacion ILIKE '%aprobad%') / NULLIF(COUNT(*),0), 1)
+               FROM aql_registros WHERE fecha_registro >= date_trunc('month', CURRENT_DATE)) AS aql_pct_aprobado,
+              (SELECT COUNT(*) FROM liberacion_shipping WHERE fecha >= date_trunc('month', CURRENT_DATE)) AS liberaciones_mes,
+              (SELECT COUNT(*) FROM recepciones WHERE fecha >= date_trunc('month', CURRENT_DATE)) AS recepciones_mes
+          `),
+        ]);
+        organigramaRows = organigrama.rows;
+        metricasMLRows = metricasML.rows;
+        shippingRows = shipping.rows;
+        recepcionesRows = recepciones.rows;
+        panelKPIRows = panelKPI.rows;
+      } catch (e) {
+        console.warn("[API] módulos adicionales query skipped:", (e as any).message);
+      }
+
       function fmtRows(rows: any[], label: string): string {
         if (!rows.length) return `${label}: Sin registros.`;
         const lines = rows.map((r) =>
@@ -1518,11 +1578,16 @@ export function registerRoutes(app: Express) {
       }
 
       const systemData = [
+        fmtRows(panelKPIRows, "PANEL PRINCIPAL — KPIs ACTUALES"),
         fmtRows(ncs.rows, "NO CONFORMIDADES"),
         fmtRows(rechazosExt.rows, "RECHAZOS EXTERNOS"),
         fmtRows(rechazosInt.rows, "RECHAZOS INTERNOS"),
         fmtRows(capas.rows, "CAPAs (Acciones Correctivas)"),
         fmtRows(aqls.rows, "REGISTROS AQL"),
+        fmtRows(shippingRows, "LIBERACIÓN SHIPPING"),
+        fmtRows(recepcionesRows, "RECEPCIONES"),
+        fmtRows(metricasMLRows, "MÉTRICAS ML"),
+        fmtRows(organigramaRows, "ORGANIGRAMA QC (personal activo)"),
         fmtRows(comidaHoyRows, `REGISTRO COMIDA HOY (${hoyMx})`),
         fmtRows(comidaResumenRows, "RESUMEN COMIDA ÚLTIMOS 7 DÍAS (entradas, salidas, colaboradores por día)"),
       ].join("\n\n");
@@ -1530,9 +1595,10 @@ export function registerRoutes(app: Express) {
       const systemPrompt = `Eres el Asistente QC de MI Technologies, especializado en operaciones de warehouse, logística y control de calidad ISO 9001:2015.
 
 FUENTES DE INFORMACIÓN (úsalas para responder):
-1. Registros del sistema QC: No Conformidades, Rechazos, CAPAs, AQL, Liberaciones, Registro de Comida.
-2. Documentos de referencia cargados: ayudas visuales, procedimientos, instructivos, clasificaciones.
-3. Material multimedia cargado en el chat (fotos, videos, links de YouTube).
+1. Registros del sistema QC: No Conformidades, Rechazos Externos, Rechazos Internos, CAPAs, AQL, Liberación Shipping, Recepciones, Métricas ML, Organigrama QC, Registro de Comida.
+2. Panel Principal con KPIs actuales del mes (NCs abiertas, rechazos, CAPAs vencidas, % AQL aprobado, liberaciones, recepciones).
+3. Documentos de referencia cargados: ayudas visuales, procedimientos, instructivos, clasificaciones.
+4. Material multimedia cargado en el chat (fotos, videos, links de YouTube).
 
 REGLAS DE RESPUESTA:
 - Responde SIEMPRE en español.
@@ -1655,9 +1721,9 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
       const MODEL_FALLBACKS = process.env.OPENROUTER_MODEL
         ? [process.env.OPENROUTER_MODEL]
         : [
-            "nvidia/nemotron-3-super-120b-a12b:free",
-            "nvidia/nemotron-3-ultra-550b-a55b:free",
             "nvidia/nemotron-3.5-lightning:free",
+            "nvidia/nemotron-3-ultra-550b-a55b:free",
+            "nvidia/nemotron-3-super-120b-a12b:free",
           ];
 
       const userContent: OpenAI.Chat.ChatCompletionContentPart[] | string = imageDataUrl
@@ -1693,11 +1759,32 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
 
       clearInterval(heartbeat);
 
+      let inThink = false;
       for await (const chunk of stream) {
-        const delta = chunk.choices[0]?.delta?.content ?? "";
-        if (delta) {
-          res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+        const anyDelta = chunk.choices[0]?.delta as any;
+        // Ignorar campos de razonamiento separados (Gemini 2.5, DeepSeek R1, etc.)
+        if (anyDelta?.reasoning_content || anyDelta?.reasoning) continue;
+
+        let delta: string = anyDelta?.content ?? "";
+        if (!delta) continue;
+
+        // Filtrar bloques <think>...</think> que pueden dividirse entre chunks
+        if (inThink) {
+          const closeIdx = delta.indexOf("</think>");
+          if (closeIdx !== -1) { delta = delta.slice(closeIdx + 8); inThink = false; }
+          else continue;
         }
+        if (!inThink && delta.includes("<think>")) {
+          const openIdx = delta.indexOf("<think>");
+          const before = delta.slice(0, openIdx);
+          if (before) res.write(`data: ${JSON.stringify({ delta: before })}\n\n`);
+          inThink = true;
+          const closeIdx = delta.indexOf("</think>", openIdx + 7);
+          if (closeIdx !== -1) { delta = delta.slice(closeIdx + 8); inThink = false; }
+          else continue;
+        }
+
+        if (delta) res.write(`data: ${JSON.stringify({ delta })}\n\n`);
       }
 
       res.write("data: [DONE]\n\n");
