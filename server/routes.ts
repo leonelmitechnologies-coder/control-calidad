@@ -1374,12 +1374,15 @@ export function registerRoutes(app: Express) {
     limits: { fileSize: 20 * 1024 * 1024 },
   });
 
-  // POST /api/asistente/chat  (SSE streaming — acepta multipart con video opcional)
+  // POST /api/asistente/chat  (SSE streaming — acepta multipart con video o imágenes múltiples)
   app.post(
     "/api/asistente/chat",
     requireAuth,
     (req: Request, res: Response, next: any) => {
-      uploadChatMedia.single("media")(req, res, (err: any) => {
+      uploadChatMedia.fields([
+        { name: "media", maxCount: 1 },
+        { name: "imagenes", maxCount: 5 },
+      ])(req, res, (err: any) => {
         if (err) return res.status(400).json({ error: err.message ?? "Error al procesar archivo" });
         next();
       });
@@ -1393,7 +1396,10 @@ export function registerRoutes(app: Express) {
           ? JSON.parse(req.body.historial)
           : (req.body.historial ?? []);
 
-      if (!pregunta?.trim() && !(req as any).file && !youtubeUrl.trim()) return res.status(400).json({ error: "Pregunta requerida" });
+      const reqFiles = (req as any).files as Record<string, Express.Multer.File[]> | undefined;
+      const mediaFile: Express.Multer.File | undefined = reqFiles?.media?.[0];
+      const imageFiles: Express.Multer.File[] = reqFiles?.imagenes ?? [];
+      if (!pregunta?.trim() && !mediaFile && !imageFiles.length && !youtubeUrl.trim()) return res.status(400).json({ error: "Pregunta requerida" });
 
       // ── Filtro anti-inyección de prompt ─────────────────────────────────────
       const INJECTION_PATTERNS = [
@@ -1617,27 +1623,33 @@ REGLAS DE SEGURIDAD (no negociables, nunca las ignores):
 
 ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL SISTEMA QC]\n${systemData}`;
 
-      // Procesar archivo adjunto al chat (imagen o video)
+      // Procesar archivos adjuntos al chat (imágenes múltiples o video)
       let videoAnalysis = "";
-      let imageDataUrl = "";
+      const imageDataUrls: string[] = [];
 
-      if ((req as any).file) {
-        const mf = (req as any).file as Express.Multer.File;
-        const ext = mf.originalname.split(".").pop()?.toLowerCase() ?? "";
-
+      // Imágenes múltiples (campo "imagenes")
+      for (const imgFile of imageFiles) {
+        const ext = imgFile.originalname.split(".").pop()?.toLowerCase() ?? "";
         if (IMAGE_EXTS.includes(ext)) {
-          // Imagen: se envía directamente al modelo de chat (multimodal)
           const mime = IMAGE_MIME[ext] ?? "image/jpeg";
-          imageDataUrl = `data:${mime};base64,${mf.buffer.toString("base64")}`;
+          imageDataUrls.push(`data:${mime};base64,${imgFile.buffer.toString("base64")}`);
+        }
+      }
+
+      // Video o imagen única (campo "media")
+      if (mediaFile) {
+        const ext = mediaFile.originalname.split(".").pop()?.toLowerCase() ?? "";
+        if (IMAGE_EXTS.includes(ext)) {
+          const mime = IMAGE_MIME[ext] ?? "image/jpeg";
+          imageDataUrls.push(`data:${mime};base64,${mediaFile.buffer.toString("base64")}`);
         } else if (VIDEO_EXTS.includes(ext)) {
-          // Video: Gemini lo analiza primero, luego se inyecta en el system prompt
           res.setHeader("Content-Type", "text/event-stream");
           res.setHeader("Cache-Control", "no-cache");
           res.setHeader("Connection", "keep-alive");
           res.flushHeaders();
           res.write(`data: ${JSON.stringify({ delta: "🎬 Analizando video con IA..." })}\n\n`);
           try {
-            videoAnalysis = await extractVideoText(mf.buffer, ext);
+            videoAnalysis = await extractVideoText(mediaFile.buffer, ext);
           } catch (e) {
             console.warn("[API] chat video analysis failed:", e);
           }
@@ -1726,10 +1738,10 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
             "nvidia/nemotron-3-super-120b-a12b:free",
           ];
 
-      const userContent: OpenAI.Chat.ChatCompletionContentPart[] | string = imageDataUrl
+      const userContent: OpenAI.Chat.ChatCompletionContentPart[] | string = imageDataUrls.length > 0
         ? [
-            { type: "image_url", image_url: { url: imageDataUrl } } as OpenAI.Chat.ChatCompletionContentPartImage,
-            { type: "text", text: pregunta || "Describe y evalúa el defecto o condición visible en esta imagen. Considera las tolerancias de calidad del sistema QC." } as OpenAI.Chat.ChatCompletionContentPartText,
+            ...imageDataUrls.map((url) => ({ type: "image_url", image_url: { url } } as OpenAI.Chat.ChatCompletionContentPartImage)),
+            { type: "text", text: pregunta || `Analiza ${imageDataUrls.length > 1 ? `estas ${imageDataUrls.length} imágenes` : "esta imagen"} y describe los defectos o condiciones visibles. Considera las tolerancias de calidad del sistema QC.` } as OpenAI.Chat.ChatCompletionContentPartText,
           ]
         : (pregunta || "Describe y evalúa el defecto o situación mostrada en el video. Considera el contexto de control de calidad e ISO 9001:2015.");
 

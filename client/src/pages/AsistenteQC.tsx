@@ -87,6 +87,7 @@ export default function AsistenteQC() {
   const [showDocs, setShowDocs] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [videoAdjunto, setVideoAdjunto] = useState<File | null>(null);
+  const [imagenesAdjuntas, setImagenesAdjuntas] = useState<File[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [showYtInput, setShowYtInput] = useState(false);
   const [showCameraRec, setShowCameraRec] = useState(false);
@@ -240,14 +241,15 @@ export default function AsistenteQC() {
   }
 
   async function enviarPregunta(pregunta: string) {
-    if ((!pregunta.trim() && !videoAdjunto && !youtubeUrl.trim()) || streaming) return;
+    if ((!pregunta.trim() && !videoAdjunto && !imagenesAdjuntas.length && !youtubeUrl.trim()) || streaming) return;
 
     const video = videoAdjunto;
+    const imagenes = imagenesAdjuntas;
     const ytUrl = youtubeUrl.trim();
     const historial = mensajes.map((m) => ({ role: m.role, content: m.content }));
-    const isImage = video ? /\.(jpg|jpeg|png|webp|gif)$/i.test(video.name) : false;
-    const labelMedia = video
-      ? `${isImage ? "🖼️" : "🎬"} ${video.name}\n\n`
+    const labelMedia = imagenes.length > 0
+      ? `🖼️ ${imagenes.length} imagen${imagenes.length > 1 ? "es" : ""} adjunta${imagenes.length > 1 ? "s" : ""}\n\n`
+      : video ? `🎬 ${video.name}\n\n`
       : ytUrl ? `🔗 ${ytUrl}\n\n` : "";
     const mensajeUsuario = labelMedia + (pregunta.trim() || "Describe y evalúa el defecto mostrado.");
 
@@ -258,6 +260,7 @@ export default function AsistenteQC() {
     ]);
     setInput("");
     setVideoAdjunto(null);
+    setImagenesAdjuntas([]);
     setYoutubeUrl("");
     setShowYtInput(false);
     if (videoInputRef.current) videoInputRef.current.value = "";
@@ -269,6 +272,7 @@ export default function AsistenteQC() {
       fd.append("pregunta", pregunta.trim() || "Describe y evalúa el defecto mostrado.");
       fd.append("historial", JSON.stringify(historial));
       if (video) fd.append("media", video);
+      imagenes.forEach((img) => fd.append("imagenes", img));
       if (ytUrl) fd.append("youtubeUrl", ytUrl);
 
       const res = await fetch(`${API_BASE_URL}/api/asistente/chat`, {
@@ -642,15 +646,26 @@ export default function AsistenteQC() {
             flexShrink: 0,
           }}>
             {/* Chips de adjuntos */}
-            {(videoAdjunto || youtubeUrl) && (
+            {(videoAdjunto || imagenesAdjuntas.length > 0 || youtubeUrl) && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 20px 0", flexWrap: "wrap" }}>
+                {imagenesAdjuntas.map((img, i) => (
+                  <span key={i} style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    background: "#e8f0fe", border: "1px solid #c5d8fc",
+                    borderRadius: 6, padding: "3px 8px", fontSize: 12, color: C.primary, fontWeight: 600,
+                  }}>
+                    🖼️ {img.name.length > 20 ? img.name.substring(0, 18) + "…" : img.name}
+                    <button onClick={() => setImagenesAdjuntas((prev) => prev.filter((_, j) => j !== i))}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+                  </span>
+                ))}
                 {videoAdjunto && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 5,
                     background: "#e8f0fe", border: "1px solid #c5d8fc",
                     borderRadius: 6, padding: "3px 8px", fontSize: 12, color: C.primary, fontWeight: 600,
                   }}>
-                    {/\.(jpg|jpeg|png|webp|gif)$/i.test(videoAdjunto.name) ? "🖼️" : "🎬"} {videoAdjunto.name}
+                    🎬 {videoAdjunto.name}
                     <button onClick={() => { setVideoAdjunto(null); if (videoInputRef.current) videoInputRef.current.value = ""; if (cameraInputRef.current) cameraInputRef.current.value = ""; }}
                       style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
                   </span>
@@ -709,7 +724,7 @@ export default function AsistenteQC() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={streaming}
-                placeholder={(videoAdjunto || youtubeUrl) ? "Pregunta sobre el archivo (opcional)..." : "Escribe tu pregunta..."}
+                placeholder={(imagenesAdjuntas.length || videoAdjunto || youtubeUrl) ? "Pregunta sobre el archivo (opcional)..." : "Escribe tu pregunta..."}
                 rows={1}
                 style={{
                   flex: 1,
@@ -730,9 +745,9 @@ export default function AsistenteQC() {
               />
               <button
                 onClick={() => enviarPregunta(input)}
-                disabled={streaming || (!input.trim() && !videoAdjunto && !youtubeUrl)}
+                disabled={streaming || (!input.trim() && !videoAdjunto && !imagenesAdjuntas.length && !youtubeUrl)}
                 style={{
-                  background: (streaming || (!input.trim() && !videoAdjunto && !youtubeUrl)) ? C.border : C.primary,
+                  background: (streaming || (!input.trim() && !videoAdjunto && !imagenesAdjuntas.length && !youtubeUrl)) ? C.border : C.primary,
                   border: "none",
                   borderRadius: 8,
                   width: 38,
@@ -740,7 +755,7 @@ export default function AsistenteQC() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: (streaming || (!input.trim() && !videoAdjunto && !youtubeUrl)) ? "not-allowed" : "pointer",
+                  cursor: (streaming || (!input.trim() && !videoAdjunto && !imagenesAdjuntas.length && !youtubeUrl)) ? "not-allowed" : "pointer",
                   flexShrink: 0,
                   color: "#fff",
                   fontSize: 16,
@@ -752,11 +767,11 @@ export default function AsistenteQC() {
             {/* Fila 2: botones de herramientas */}
             <div style={{ padding: isMobile ? "2px 10px 8px" : "4px 20px 12px", display: "flex", gap: 8, alignItems: "center" }}>
               {/* Adjuntar archivo (galería) */}
-              <label title="Adjuntar imagen o video desde galería (máx. 20 MB)" style={{
+              <label title="Adjuntar imágenes (múltiple) o video desde galería (máx. 20 MB c/u)" style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 32, height: 32, borderRadius: 8, flexShrink: 0, fontSize: 15,
-                border: `1px solid ${videoAdjunto ? C.primary : C.inputBorder}`,
-                background: videoAdjunto ? "#e8f0fe" : C.white,
+                border: `1px solid ${(videoAdjunto || imagenesAdjuntas.length) ? C.primary : C.inputBorder}`,
+                background: (videoAdjunto || imagenesAdjuntas.length) ? "#e8f0fe" : C.white,
                 cursor: streaming ? "not-allowed" : "pointer",
                 opacity: streaming ? 0.5 : 1, transition: "all 0.15s",
               }}>
@@ -765,17 +780,22 @@ export default function AsistenteQC() {
                   ref={videoInputRef}
                   type="file"
                   accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.m4v,.mov,.webm,.mpeg"
+                  multiple
                   disabled={streaming}
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (f.size > 20 * 1024 * 1024) {
-                      notify("El archivo supera 20 MB. Usa una imagen o clip más pequeño.", "error");
+                    const files = Array.from(e.target.files ?? []);
+                    if (!files.length) return;
+                    const oversized = files.find((f) => f.size > 20 * 1024 * 1024);
+                    if (oversized) {
+                      notify(`"${oversized.name}" supera 20 MB.`, "error");
                       e.target.value = "";
                       return;
                     }
-                    if (cameraInputRef.current) cameraInputRef.current.value = "";
-                    setVideoAdjunto(f);
+                    const imgs = files.filter((f) => /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name));
+                    const vids = files.filter((f) => /\.(mp4|m4v|mov|webm|mpeg)$/i.test(f.name));
+                    if (imgs.length) setImagenesAdjuntas((prev) => [...prev, ...imgs].slice(0, 5));
+                    if (vids.length) { setVideoAdjunto(vids[0]); if (cameraInputRef.current) cameraInputRef.current.value = ""; }
+                    e.target.value = "";
                   }}
                   style={{ display: "none" }}
                 />
@@ -804,8 +824,8 @@ export default function AsistenteQC() {
                       e.target.value = "";
                       return;
                     }
-                    if (videoInputRef.current) videoInputRef.current.value = "";
-                    setVideoAdjunto(f);
+                    setImagenesAdjuntas((prev) => [...prev, f].slice(0, 5));
+                    e.target.value = "";
                   }}
                   style={{ display: "none" }}
                 />
