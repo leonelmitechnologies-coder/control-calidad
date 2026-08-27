@@ -22,7 +22,23 @@ interface Mensaje {
   role: "user" | "assistant";
   content: string;
   pending?: boolean;
+  chips?: string;
 }
+
+const CHIP_SETS: Record<string, { label: string; chips: string[] }> = {
+  pulgadas: {
+    label: '📐 ¿Cuántas pulgadas tiene el TV?',
+    chips: ['32"', '40"', '43"', '50"', '55"', '58"', '65"', '70"', '75"+'],
+  },
+  clasificacion: {
+    label: '🏷️ ¿Qué clasificación tiene asignada?',
+    chips: ["GRA", "GRB", "GRC", "ICB", "ICC", "ICD", "ICX", "BOX"],
+  },
+  area: {
+    label: '🔍 ¿Qué aspecto evalúo?',
+    chips: ["Chasis", "Pantalla", "Accesorios", "Empaque", "Software", "Trazabilidad", "Limpieza"],
+  },
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -311,7 +327,8 @@ export default function AsistenteQC() {
           const data = line.slice(6).trim();
           if (data === "[DONE]") break;
           try {
-            const { delta, error } = JSON.parse(data);
+            const parsed = JSON.parse(data);
+            const { delta, error, chips } = parsed;
             if (error) {
               setMensajes((prev) => {
                 const copy = [...prev];
@@ -319,6 +336,14 @@ export default function AsistenteQC() {
                 return copy;
               });
               break;
+            }
+            if (chips) {
+              setMensajes((prev) => {
+                const copy = [...prev];
+                const last = copy[copy.length - 1];
+                copy[copy.length - 1] = { ...last, chips, pending: false };
+                return copy;
+              });
             }
             if (delta) {
               setMensajes((prev) => {
@@ -599,7 +624,8 @@ export default function AsistenteQC() {
                 key={i}
                 style={{
                   display: "flex",
-                  justifyContent: m.role === "user" ? "flex-end" : "flex-start",
+                  flexDirection: "column",
+                  alignItems: m.role === "user" ? "flex-end" : "flex-start",
                 }}
               >
                 <div style={{
@@ -634,6 +660,62 @@ export default function AsistenteQC() {
                     {m.pending && m.content && <span style={{ color: C.textMuted }}>▋</span>}
                   </div>
                 </div>
+
+                {/* Chips de contexto — solo en el último mensaje del asistente */}
+                {m.role === "assistant" && m.chips && !streaming && i === mensajes.length - 1 && (() => {
+                  const set = CHIP_SETS[m.chips];
+                  if (!set) return null;
+                  return (
+                    <div style={{ marginTop: 8, maxWidth: "85%" }}>
+                      <div style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: C.textMuted,
+                        marginBottom: 7,
+                        letterSpacing: "0.2px",
+                      }}>
+                        {set.label}
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {set.chips.map((chip) => (
+                          <button
+                            key={chip}
+                            onClick={() => {
+                              setMensajes((prev) => {
+                                const copy = [...prev];
+                                copy[i] = { ...copy[i], chips: undefined };
+                                return copy;
+                              });
+                              enviarPregunta(chip);
+                            }}
+                            style={{
+                              background: C.white,
+                              border: `1.5px solid ${C.primary}`,
+                              borderRadius: 20,
+                              padding: "5px 13px",
+                              color: C.primary,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                              transition: "all 0.15s",
+                            }}
+                            onMouseEnter={(e) => {
+                              (e.currentTarget as HTMLElement).style.background = C.primary;
+                              (e.currentTarget as HTMLElement).style.color = "#fff";
+                            }}
+                            onMouseLeave={(e) => {
+                              (e.currentTarget as HTMLElement).style.background = C.white;
+                              (e.currentTarget as HTMLElement).style.color = C.primary;
+                            }}
+                          >
+                            {chip}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
             <div ref={chatBottomRef} />

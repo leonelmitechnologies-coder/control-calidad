@@ -1617,6 +1617,18 @@ REGLAS DE RESPUESTA:
 - Formato: si es un veredicto de clasificación, empiézalo con ✅ o ❌ en la primera línea. Si son datos, da el número exacto primero.
 - Cuando des datos del sistema menciona el dato exacto: fecha, SKU, responsable, cantidad.
 - Cita el documento solo si es necesario para validar el veredicto, y en una sola frase corta.
+
+SOLICITAR CONTEXTO CON CHIPS — CUANDO TE FALTA INFORMACIÓN:
+Cuando analices cualquier contenido (imagen, video, archivo, descripción) y te falte contexto para dar un veredicto preciso, haz UNA sola pregunta corta y añade al FINAL de tu mensaje exactamente uno de estos marcadores:
+- Para pedir el tamaño del TV: [CHIPS:pulgadas]
+- Para pedir la clasificación asignada: [CHIPS:clasificacion]
+- Para pedir qué aspecto evaluar: [CHIPS:area]
+REGLAS de chips:
+- Solo UN marcador por mensaje. Nunca dos a la vez.
+- Pregunta primero clasificacion, luego pulgadas (solo si el criterio de tamaño de golpe es relevante), luego area.
+- Si con lo visible ya puedes dar un veredicto completo, NO uses marcadores — ve directo al veredicto.
+- NUNCA expliques el marcador al usuario ni lo escribas de otra forma — el sistema lo convierte en botones automáticamente.
+- Aplica a imágenes, videos, links de YouTube y cualquier archivo.
 - Hoy es ${new Date().toLocaleDateString("es-MX", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.
 
 ANÁLISIS DE IMÁGENES — CLASIFICACIÓN DE PRODUCTO (MUY IMPORTANTE):
@@ -1792,6 +1804,29 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
       clearInterval(heartbeat);
 
       let inThink = false;
+      let chipsBuffer = "";
+      const CHIPS_RE = /\[CHIPS:(pulgadas|clasificacion|area)\]/;
+
+      function flushBuffer(force = false) {
+        const match = CHIPS_RE.exec(chipsBuffer);
+        if (match) {
+          const before = chipsBuffer.slice(0, match.index);
+          if (before) res.write(`data: ${JSON.stringify({ delta: before })}\n\n`);
+          res.write(`data: ${JSON.stringify({ chips: match[1] })}\n\n`);
+          chipsBuffer = chipsBuffer.slice(match.index + match[0].length);
+          // Flush any text that remained after the marker
+          if (chipsBuffer) { res.write(`data: ${JSON.stringify({ delta: chipsBuffer })}\n\n`); chipsBuffer = ""; }
+        } else if (force) {
+          if (chipsBuffer) res.write(`data: ${JSON.stringify({ delta: chipsBuffer })}\n\n`);
+          chipsBuffer = "";
+        } else if (chipsBuffer.length > 80) {
+          // Keep last 25 chars in case a marker spans chunks; flush the rest
+          const safe = chipsBuffer.slice(0, -25);
+          if (safe) res.write(`data: ${JSON.stringify({ delta: safe })}\n\n`);
+          chipsBuffer = chipsBuffer.slice(-25);
+        }
+      }
+
       for await (const chunk of stream) {
         const anyDelta = chunk.choices[0]?.delta as any;
         // Ignorar campos de razonamiento separados (Gemini 2.5, DeepSeek R1, etc.)
@@ -1809,15 +1844,19 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         if (!inThink && delta.includes("<think>")) {
           const openIdx = delta.indexOf("<think>");
           const before = delta.slice(0, openIdx);
-          if (before) res.write(`data: ${JSON.stringify({ delta: before })}\n\n`);
+          if (before) chipsBuffer += before;
           inThink = true;
           const closeIdx = delta.indexOf("</think>", openIdx + 7);
           if (closeIdx !== -1) { delta = delta.slice(closeIdx + 8); inThink = false; }
           else continue;
         }
 
-        if (delta) res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+        if (delta) {
+          chipsBuffer += delta;
+          flushBuffer();
+        }
       }
+      flushBuffer(true);
 
       res.write("data: [DONE]\n\n");
       res.end();
