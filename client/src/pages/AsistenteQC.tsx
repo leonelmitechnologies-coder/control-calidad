@@ -25,6 +25,16 @@ interface Mensaje {
   chips?: string;
 }
 
+interface ContextoPanel {
+  step: "clasificacion" | "area";
+  clasificacion?: string;
+  pregunta: string;
+  video: File | null;
+  imagenes: File[];
+  ytUrl: string;
+  historial: { role: "user" | "assistant"; content: string }[];
+}
+
 const CHIP_SETS: Record<string, { label: string; chips: string[] }> = {
   pulgadas: {
     label: '📐 ¿Cuántas pulgadas tiene el TV?',
@@ -104,6 +114,7 @@ export default function AsistenteQC() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [videoAdjunto, setVideoAdjunto] = useState<File | null>(null);
   const [imagenesAdjuntas, setImagenesAdjuntas] = useState<File[]>([]);
+  const [contextoPanel, setContextoPanel] = useState<ContextoPanel | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [showYtInput, setShowYtInput] = useState(false);
   const [showCameraRec, setShowCameraRec] = useState(false);
@@ -256,36 +267,20 @@ export default function AsistenteQC() {
     e.target.value = "";
   }
 
-  async function enviarPregunta(pregunta: string) {
-    if ((!pregunta.trim() && !videoAdjunto && !imagenesAdjuntas.length && !youtubeUrl.trim()) || streaming) return;
-
-    const video = videoAdjunto;
-    const imagenes = imagenesAdjuntas;
-    const ytUrl = youtubeUrl.trim();
-    const historial = mensajes.map((m) => ({ role: m.role, content: m.content }));
-    const labelMedia = imagenes.length > 0
-      ? `🖼️ ${imagenes.length} imagen${imagenes.length > 1 ? "es" : ""} adjunta${imagenes.length > 1 ? "s" : ""}\n\n`
-      : video ? `🎬 ${video.name}\n\n`
-      : ytUrl ? `🔗 ${ytUrl}\n\n` : "";
-    const mensajeUsuario = labelMedia + (pregunta.trim() || "Describe y evalúa el defecto mostrado.");
-
-    setMensajes((prev) => [
-      ...prev,
-      { role: "user", content: mensajeUsuario },
-      { role: "assistant", content: "", pending: true },
-    ]);
-    setInput("");
-    setVideoAdjunto(null);
-    setImagenesAdjuntas([]);
-    setYoutubeUrl("");
-    setShowYtInput(false);
-    if (videoInputRef.current) videoInputRef.current.value = "";
-    if (cameraInputRef.current) cameraInputRef.current.value = "";
+  // ── Llamada real a la API con streaming ─────────────────────────────────────
+  async function ejecutarLlamadaAPI(
+    pregunta: string,
+    video: File | null,
+    imagenes: File[],
+    ytUrl: string,
+    historial: { role: "user" | "assistant"; content: string }[],
+  ) {
+    setMensajes((prev) => [...prev, { role: "assistant", content: "", pending: true }]);
     setStreaming(true);
 
     try {
       const fd = new FormData();
-      fd.append("pregunta", pregunta.trim() || "Describe y evalúa el defecto mostrado.");
+      fd.append("pregunta", pregunta);
       fd.append("historial", JSON.stringify(historial));
       if (video) fd.append("media", video);
       imagenes.forEach((img) => fd.append("imagenes", img));
@@ -377,6 +372,80 @@ export default function AsistenteQC() {
       setStreaming(false);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
+  }
+
+  // ── Manejo de chip de contexto (clasificacion → area → llamada API) ──────────
+  async function handleContextoChip(chip: string) {
+    if (!contextoPanel) return;
+
+    if (contextoPanel.step === "clasificacion") {
+      // Guardamos clasificacion y pedimos area
+      setContextoPanel({ ...contextoPanel, step: "area", clasificacion: chip });
+      return;
+    }
+
+    // Último paso: area seleccionada — ya tenemos todo el contexto
+    const { clasificacion, pregunta, video, imagenes, ytUrl, historial } = contextoPanel;
+    setContextoPanel(null);
+
+    const contextStr = `Clasificación: ${clasificacion} — Área a evaluar: ${chip}.`;
+    const finalPregunta = `${contextStr} ${pregunta}`.trim();
+
+    // Actualizar el historial con el mensaje del usuario que ya se mostró
+    const historialConUsuario = [
+      ...historial,
+      { role: "user" as const, content: `${imagenes.length > 0 ? "🖼️ imagen adjunta\n\n" : video ? "🎬 video adjunto\n\n" : ytUrl ? `🔗 ${ytUrl}\n\n` : ""}${pregunta}` },
+    ];
+
+    await ejecutarLlamadaAPI(finalPregunta, video, imagenes, ytUrl, historialConUsuario);
+  }
+
+  // ── Enviar pregunta (intercepta media para recolectar contexto primero) ───────
+  async function enviarPregunta(pregunta: string) {
+    if (streaming) return;
+
+    const hasMedia = imagenesAdjuntas.length > 0 || !!videoAdjunto || !!youtubeUrl.trim();
+
+    if (!pregunta.trim() && !hasMedia) return;
+
+    const video = videoAdjunto;
+    const imagenes = [...imagenesAdjuntas];
+    const ytUrl = youtubeUrl.trim();
+
+    const labelMedia = imagenes.length > 0
+      ? `🖼️ ${imagenes.length} imagen${imagenes.length > 1 ? "es" : ""} adjunta${imagenes.length > 1 ? "s" : ""}\n\n`
+      : video ? `🎬 ${video.name}\n\n`
+      : ytUrl ? `🔗 ${ytUrl}\n\n` : "";
+
+    // Limpiar inputs siempre
+    setInput("");
+    setVideoAdjunto(null);
+    setImagenesAdjuntas([]);
+    setYoutubeUrl("");
+    setShowYtInput(false);
+    if (videoInputRef.current) videoInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+
+    if (hasMedia) {
+      // Mostrar el mensaje del usuario y arrancar recolección de contexto
+      const mensajeUsuario = labelMedia + (pregunta.trim() || "Analiza este contenido.");
+      const historial = mensajes.map((m) => ({ role: m.role, content: m.content }));
+      setMensajes((prev) => [...prev, { role: "user", content: mensajeUsuario }]);
+      setContextoPanel({
+        step: "clasificacion",
+        pregunta: pregunta.trim() || "Analiza este contenido.",
+        video,
+        imagenes,
+        ytUrl,
+        historial,
+      });
+      return;
+    }
+
+    // Mensaje de solo texto — llamada directa a la API
+    const historial = mensajes.map((m) => ({ role: m.role, content: m.content }));
+    setMensajes((prev) => [...prev, { role: "user", content: pregunta.trim() }]);
+    await ejecutarLlamadaAPI(pregunta.trim(), null, [], "", historial);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -718,6 +787,74 @@ export default function AsistenteQC() {
                 })()}
               </div>
             ))}
+            {/* Panel de contexto — recolecta clasificacion y area ANTES de llamar a la IA */}
+            {contextoPanel && !streaming && (() => {
+              const isClasificacion = contextoPanel.step === "clasificacion";
+              const set = isClasificacion ? CHIP_SETS.clasificacion : CHIP_SETS.area;
+              return (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                  <div style={{
+                    maxWidth: "85%",
+                    background: C.assistantBg,
+                    border: `1px solid ${C.assistantBorder}`,
+                    borderRadius: "3px 12px 12px 12px",
+                    padding: "10px 14px",
+                  }}>
+                    <div style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: C.textMuted,
+                      letterSpacing: "0.5px",
+                      textTransform: "uppercase",
+                      marginBottom: 6,
+                    }}>
+                      Asistente QC
+                    </div>
+                    {isClasificacion && contextoPanel.clasificacion === undefined && (
+                      <div style={{ fontSize: 13, color: C.textDark, marginBottom: 8 }}>
+                        Para analizar correctamente, ¿qué clasificación tiene asignada esta TV?
+                      </div>
+                    )}
+                    {!isClasificacion && (
+                      <div style={{ fontSize: 13, color: C.textDark, marginBottom: 8 }}>
+                        {`Clasificación: ${contextoPanel.clasificacion} ✓ — ¿Qué área evalúo?`}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {set.chips.map((chip) => (
+                        <button
+                          key={chip}
+                          onClick={() => handleContextoChip(chip)}
+                          style={{
+                            background: C.white,
+                            border: `1.5px solid ${C.primary}`,
+                            borderRadius: 20,
+                            padding: "5px 13px",
+                            color: C.primary,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                            transition: "all 0.15s",
+                          }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLElement).style.background = C.primary;
+                            (e.currentTarget as HTMLElement).style.color = "#fff";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLElement).style.background = C.white;
+                            (e.currentTarget as HTMLElement).style.color = C.primary;
+                          }}
+                        >
+                          {chip}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div ref={chatBottomRef} />
           </div>
 
