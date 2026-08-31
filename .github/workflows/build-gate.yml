@@ -10,7 +10,17 @@ on:
     branches: [stack-migration, master, main]
 jobs:
   build-gate:
-    runs-on: ubuntu-latest
+    # SELF-HOSTED (coolify-build-01). 2026-08-31: the org exceeded its 2,000 free
+    # Actions minutes for August (2,094 used, $0.00 billed — GitHub refuses to start
+    # jobs rather than billing the overage), and EVERY repo's build-gate had been
+    # failing in 3-4s with zero steps and no runner. A gate that fails identically
+    # whether the code is perfect or broken carries no signal while still looking
+    # enforced. Self-hosted minutes are free and unmetered.
+    #
+    # SAFETY: the org runner group keeps allows_public_repositories=false. A PUBLIC
+    # fork PR can modify the workflow file and would then execute on our build host.
+    # Do not relax that flag.
+    runs-on: [self-hosted, linux, x64]
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
       PUPPETEER_SKIP_DOWNLOAD: 'true'
