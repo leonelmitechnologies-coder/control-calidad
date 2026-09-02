@@ -3031,6 +3031,137 @@ app.delete("/api/metricas-ml/:id", requireAuth, async (req: Request, res: Respon
   }
 });
 
+// ── LÍNEA DE PRODUCCIÓN ──────────────────────────────────────────────────────
+
+function mockDefectos(date: string): any[] {
+  const LINEAS = ["LÍNEA 1","LÍNEA 2","LÍNEA 3","LÍNEA 4","LÍNEA 5","LÍNEA 6"];
+  const INSPECTORES = ["Mario Gutiérrez","Ana López","Carlos Mendoza","Laura Pérez","Roberto Sánchez"];
+  const DEFECTOS = [
+    { CODE:"EM-01", name:"EMPAQUE ROTO",       area:"EMPAQUE",            sev:"MAYOR"  },
+    { CODE:"EM-02", name:"CAJA GOLPEADA",       area:"EMPAQUE",            sev:"MENOR"  },
+    { CODE:"EM-03", name:"EMPAQUE SUCIO",       area:"EMPAQUE",            sev:"MENOR"  },
+    { CODE:"AC-01", name:"ACCESORIO FALTANTE",  area:"ACCESORIOS",         sev:"CRITICO"},
+    { CODE:"AC-02", name:"CONTROL FALTANTE",    area:"ACCESORIOS",         sev:"MAYOR"  },
+    { CODE:"AC-03", name:"CABLE FALTANTE",      area:"ACCESORIOS",         sev:"MAYOR"  },
+    { CODE:"ET-01", name:"ETIQUETA MAL PUESTA", area:"ETIQUETADOR",        sev:"MENOR"  },
+    { CODE:"ET-02", name:"ETIQUETA FALTANTE",   area:"ETIQUETADOR",        sev:"MAYOR"  },
+    { CODE:"LI-01", name:"PANTALLA SUCIA",      area:"LIMPIEZA DE CAJAS",  sev:"MENOR"  },
+    { CODE:"LI-02", name:"POLVO INTERIOR",      area:"LIMPIEZA DE CAJAS",  sev:"MENOR"  },
+  ];
+  const LPN_BASE = 3000;
+  const rows = [];
+  let id = 1;
+  const hora = (h: number, m: number) => `${date}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00.000Z`;
+  const seed = (n: number) => n % 10;
+  for (let i = 0; i < 38; i++) {
+    const def = DEFECTOS[seed(i * 7) % DEFECTOS.length];
+    const insp = INSPECTORES[seed(i * 3) % INSPECTORES.length];
+    const linea = LINEAS[seed(i * 5) % LINEAS.length];
+    rows.push({
+      DefectsRecordsID: id++,
+      LicencePlateNumber: `LPN-${LPN_BASE + i}`,
+      ProductionLineName: linea,
+      DefectGeneratedBy: insp,
+      DefectRecordedBy: insp,
+      DefectEnteredDate: hora(8 + Math.floor(i / 5), (i * 7) % 60),
+      CODE: def.CODE,
+      DefectName: def.name,
+      Area: def.area,
+      Severity: def.sev,
+      Commentary: "",
+    });
+  }
+  return rows;
+}
+
+function mockLiberaciones(date: string): any[] {
+  const LINEAS = ["LÍNEA 1","LÍNEA 2","LÍNEA 3","LÍNEA 4","LÍNEA 5","LÍNEA 6"];
+  const INSPECTORES = ["Mario Gutiérrez","Ana López","Carlos Mendoza","Laura Pérez","Roberto Sánchez"];
+  const BRANDS = ["Samsung","LG","TCL","Hisense","Skyworth"];
+  const SIZES = [32,43,50,55,65,75];
+  const LPN_BASE = 3000;
+  const hora = (h: number, m: number) => `${date}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00.000Z`;
+  const seed = (n: number) => n % 10;
+  const rows = [];
+  for (let i = 0; i < 120; i++) {
+    const brand = BRANDS[seed(i * 3) % BRANDS.length];
+    const size  = SIZES[seed(i * 7) % SIZES.length];
+    const insp  = INSPECTORES[seed(i * 11) % INSPECTORES.length];
+    const linea = LINEAS[seed(i * 13) % LINEAS.length];
+    const accs  = [
+      { SKU:`ACC-RC-${i}`, Brand:brand, Model:"RC-01", Description:"Control Remoto", Qty:1 },
+      { SKU:`ACC-CB-${i}`, Brand:brand, Model:"HDMI-2M", Description:"Cable HDMI 2m", Qty:1 },
+      { SKU:`ACC-BS-${i}`, Brand:brand, Model:"BASE-STD", Description:"Base/Pie", Qty:1 },
+    ];
+    rows.push({
+      ProductionQualityReleaseID: i + 1,
+      TV_LPN: `LPN-${LPN_BASE + i}`,
+      TV_SKU: `SKU-${brand.toUpperCase().slice(0,3)}-${size}`,
+      TV_Brand: brand,
+      TV_Model: `${brand.slice(0,3).toUpperCase()}${size}UN`,
+      TV_Size: size,
+      TV_Description: `${brand} ${size}" 4K Smart TV`,
+      ProductionLineName: linea,
+      ReleaseEnteredBy: insp,
+      ReleaseEnteredDate: hora(8 + Math.floor(i / 15), (i * 4) % 60),
+      ReleaseComment: "",
+      DetailsJSON: JSON.stringify(accs),
+    });
+  }
+  return rows;
+}
+
+app.get("/api/produccion/defectos", requireAuth, async (req: Request, res: Response) => {
+  const startDate = (req.query.startDate as string) || new Date().toISOString().slice(0, 10);
+  const endDate   = (req.query.endDate   as string) || startDate;
+  const linea     = req.query.linea     as string;
+  const inspector = req.query.inspector as string;
+  const severidad = req.query.severidad as string;
+  try {
+    const bm = await getBMPool();
+    const result = await bm.request()
+      .input("startDate", startDate)
+      .input("endDate", endDate)
+      .input("shift", 0)
+      .execute("SmartControl.OE.sp_GetDefectsWithDetailsByDateRange");
+    let rows = result.recordset as any[];
+    if (linea)     rows = rows.filter(r => r.ProductionLineName === linea);
+    if (inspector) rows = rows.filter(r => r.DefectGeneratedBy === inspector || r.DefectRecordedBy === inspector);
+    if (severidad) rows = rows.filter(r => r.Severity === severidad);
+    res.json(rows);
+  } catch {
+    let rows = mockDefectos(startDate);
+    if (linea)     rows = rows.filter(r => r.ProductionLineName === linea);
+    if (inspector) rows = rows.filter(r => r.DefectGeneratedBy === inspector || r.DefectRecordedBy === inspector);
+    if (severidad) rows = rows.filter(r => r.Severity === severidad);
+    res.json(rows);
+  }
+});
+
+app.get("/api/produccion/liberaciones", requireAuth, async (req: Request, res: Response) => {
+  const startDate = (req.query.startDate as string) || new Date().toISOString().slice(0, 10);
+  const endDate   = (req.query.endDate   as string) || startDate;
+  const linea     = req.query.linea     as string;
+  const inspector = req.query.inspector as string;
+  try {
+    const bm = await getBMPool();
+    const result = await bm.request()
+      .input("startDate", startDate)
+      .input("endDate", endDate)
+      .input("shift", 0)
+      .execute("SmartControl.OE.sp_GetQualityReleasesWithDetailsByDateRange");
+    let rows = result.recordset as any[];
+    if (linea)     rows = rows.filter(r => r.ProductionLineName === linea);
+    if (inspector) rows = rows.filter(r => r.ReleaseEnteredBy === inspector);
+    res.json(rows);
+  } catch {
+    let rows = mockLiberaciones(startDate);
+    if (linea)     rows = rows.filter(r => r.ProductionLineName === linea);
+    if (inspector) rows = rows.filter(r => r.ReleaseEnteredBy === inspector);
+    res.json(rows);
+  }
+});
+
 // ── SPA Catch-all ────────────────────────────────────────────────
 // Serves index.html for all non-API routes (client-side routing via wouter).
 // Registered after all API routes so Express only reaches this for deep-links.

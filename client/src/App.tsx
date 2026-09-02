@@ -30,6 +30,7 @@ import RechazosInternos from "./pages/RechazosInternos";
 import MetricasML from "./pages/MetricasML";
 import RegistroComida from "./pages/RegistroComida";
 import AsistenteQC from "./pages/AsistenteQC";
+import LineaProduccion from "./pages/LineaProduccion";
 import RequestAccess from "./pages/RequestAccess";
 import Usuarios from "./pages/Usuarios";
 
@@ -208,6 +209,14 @@ function AppRoutes() {
         {() => (
           <Layout>
             <AsistenteQC />
+          </Layout>
+        )}
+      </Route>
+
+      <Route path="/linea-produccion">
+        {() => (
+          <Layout>
+            <LineaProduccion />
           </Layout>
         )}
       </Route>

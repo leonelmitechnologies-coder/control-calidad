@@ -1754,21 +1754,21 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
         },
       });
 
-      // Imágenes → Gemini (visión multimodal, los nemotron son text-only y no ven imágenes).
-      // Videos → también Gemini para que el chat sintetice el análisis QC con la mayor calidad.
       const needsVision = imageDataUrls.length > 0 || !!videoAnalysis;
+      // Gemini Flash es el modelo principal tanto para texto como visión.
+      // Nemotron 3.5 Lightning se convirtió en reasoning model — gasta todos los tokens
+      // en chain-of-thought y nunca llega a la respuesta real con max_tokens bajos.
+      // OPENROUTER_MODEL env var agrega un modelo preferido al inicio de la lista (no lo fuerza solo).
+      // Gemini Flash es el modelo principal (requiere créditos en OpenRouter — activos desde sep 2026).
+      // OPENROUTER_MODEL env var sobreescribe el primero de la lista si se quiere cambiar en Coolify.
+      const BASE_MODELS = [
+        "google/gemini-2.5-flash",
+        "google/gemini-2.0-flash-lite-001",
+        "nvidia/nemotron-3.5-lightning:free",
+      ];
       const MODEL_FALLBACKS = process.env.OPENROUTER_MODEL
-        ? [process.env.OPENROUTER_MODEL]
-        : needsVision
-          ? [
-              "google/gemini-2.5-flash",
-              "google/gemini-2.0-flash-lite-001",
-            ]
-          : [
-              "nvidia/nemotron-3.5-lightning:free",
-              "nvidia/nemotron-3-ultra-550b-a55b:free",
-              "nvidia/nemotron-3-super-120b-a12b:free",
-            ];
+        ? [process.env.OPENROUTER_MODEL, ...BASE_MODELS.filter(m => m !== process.env.OPENROUTER_MODEL)]
+        : BASE_MODELS;
 
       const userContent: OpenAI.Chat.ChatCompletionContentPart[] | string = imageDataUrls.length > 0
         ? [
@@ -1787,7 +1787,7 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
       for (let i = 0; i < MODEL_FALLBACKS.length; i++) {
         const model = MODEL_FALLBACKS[i];
         try {
-          stream = await client.chat.completions.create({ model, messages, stream: true, max_tokens: needsVision ? 450 : 300 });
+          stream = await client.chat.completions.create({ model, messages, stream: true, max_tokens: needsVision ? 1000 : 1500 });
           console.log(`[API] Usando modelo: ${model}`);
           break;
         } catch (llmErr: any) {
@@ -1829,8 +1829,11 @@ ${docsContext ? `[DOCUMENTOS DE REFERENCIA]\n${docsContext}\n\n` : ""}[DATOS DEL
 
       for await (const chunk of stream) {
         const anyDelta = chunk.choices[0]?.delta as any;
-        // Ignorar campos de razonamiento separados (Gemini 2.5, DeepSeek R1, etc.)
-        if (anyDelta?.reasoning_content || anyDelta?.reasoning) continue;
+        // Ignorar chunks que son *solo* razonamiento sin contenido real
+        // (Nemotron, DeepSeek R1, Gemini 2.5 en modo thinking)
+        const hasReasoning = !!(anyDelta?.reasoning_content || anyDelta?.reasoning);
+        const hasContent   = !!(anyDelta?.content);
+        if (hasReasoning && !hasContent) continue;
 
         let delta: string = anyDelta?.content ?? "";
         if (!delta) continue;
